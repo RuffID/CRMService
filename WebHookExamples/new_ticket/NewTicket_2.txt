@@ -1,0 +1,120 @@
+{
+  "event": {
+    "event_type": "new_ticket"
+  },
+  "issue": {
+    "title": "Зависла лиц",
+    "planned_execution_in_hours": null,
+    "id": 315521,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "[17:30, 24.08.2024] +7 983 661-11-43: Добрый день)<br>\n[17:31, 24.08.2024] +7 983 661-11-43: мы субдиллеры в предприятии одна касса, зависла лицензия <br>\n720-799-079<br>\nИП Першнев<br>\n<br>\nМы компания Айти фуд<br>\n[17:31, 24.08.2024] Service@aqba.Ru: Доброго дня. Пришлите скриншот connections<br>\n[17:35, 24.08.2024] Service@aqba.Ru: И обрезали время, по которому можно понять, зависла лицензия или нет<br>\n[17:38, 24.08.2024] Service@aqba.Ru: Тут ничего не зависло<br>\n[17:40, 24.08.2024] +7 983 661-11-43: спасибо<br>\n[17:41, 24.08.2024] Service@aqba.Ru: Если \"потерялась\" лицензия - попробуйте просто обновить их в бэкофисе - сегодня несколько клиентов обращались с отвалом лицензий, которые сразу вернулись после установки в бэке<br>\n[17:41, 24.08.2024] Service@aqba.Ru: Если после установки лицензии всё ещё нет - напишите нам или партнёрскому менеджеру, будем разбираться<br>\n[17:42, 24.08.2024] Service@aqba.Ru: По этому UID вижу только одну лицензию iikoFront<br>\n[17:42, 24.08.2024] +7 983 661-11-43: Да, все верно, после все наладилось<br>\n[17:43, 24.08.2024] +7 983 661-11-43: прошу прощения за беспокойства",
+    "type": {
+      "code": "incident",
+      "name": "Инцидент",
+      "inner": false
+    },
+    "priority": {
+      "code": "high",
+      "name": "Критическая"
+    },
+    "status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "rate": null,
+    "old_status": null,
+    "client": {
+      "company": {
+        "name": "ООО \"АЙТИ-ФУД\"",
+        "id": 2030
+      },
+      "contact": null
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "Суши-Маркет",
+      "id": 2629,
+      "address": {
+        "string_value": "644000, Россия, Омская область, Омск",
+        "coordinates": null
+      }
+    },
+    "equipments": [],
+    "author": {
+      "first_name": "Григорий",
+      "last_name": "Горынин",
+      "patronymic": "Викторович",
+      "id": 76,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Григорий",
+        "last_name": "Горынин",
+        "patronymic": "Викторович",
+        "id": 76
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [],
+      "contacts": [],
+      "groups": [
+        {
+          "name": "Сервис НСК",
+          "id": 1
+        }
+      ]
+    },
+    "created_at": "2024-08-24T17:44:53.773+07:00",
+    "deadline_at": "2024-08-26T03:00:00.000+07:00",
+    "planned_reaction_at": "2024-08-26T02:00:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": null,
+    "reacted_at": null,
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Schet",
+        "name": "Состав счета",
+        "type": "fttext",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

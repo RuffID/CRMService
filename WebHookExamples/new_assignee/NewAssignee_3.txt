@@ -1,0 +1,186 @@
+{
+  "event": {
+    "event_type": "new_assignee",
+    "author": {
+      "first_name": "Кирилл",
+      "last_name": "Киреев",
+      "patronymic": "Романович",
+      "id": 98,
+      "type": "employee"
+    },
+    "old_assignee": {
+      "group": {
+        "name": "КЕМ Сервис",
+        "id": 2
+      },
+      "employee": {
+        "first_name": "Денис",
+        "last_name": "Вортман",
+        "patronymic": "Владимирович",
+        "id": 8
+      }
+    },
+    "new_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Кирилл",
+        "last_name": "Киреев",
+        "patronymic": "Романович",
+        "id": 98
+      }
+    }
+  },
+  "issue": {
+    "title": "помочь с ваучерами",
+    "planned_execution_in_hours": null,
+    "id": 315543,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "Заявка принята с номера 89202909227",
+    "type": {
+      "code": "incident",
+      "name": "Инцидент",
+      "inner": false
+    },
+    "priority": {
+      "code": "high",
+      "name": "Критическая"
+    },
+    "status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "rate": null,
+    "old_status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "client": {
+      "company": {
+        "name": "ООО \"ГА-ГА-ГА\"",
+        "id": 2267
+      },
+      "contact": {
+        "first_name": "Тамара",
+        "last_name": "Удалова",
+        "patronymic": "",
+        "id": 13120
+      }
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "НА РАЗОВЫХ ОБРАЩЕНИЯХ Gussi Coffee Нижний Новгород (ИП Удалова Тамара Андреевна)",
+      "id": 3422,
+      "address": {
+        "string_value": "603000, Россия, Нижегородская область, Нижний Новгород, улица Максима Горького, дом 148",
+        "coordinates": [
+          56.31533,
+          43.999672
+        ]
+      }
+    },
+    "equipments": [
+      {
+        "serial_number": "",
+        "inventory_number": "200664",
+        "id": 8869,
+        "type": {
+          "code": "1000",
+          "name": "Терминал"
+        },
+        "manufacturer": {
+          "code": "1",
+          "name": "АТОЛ"
+        },
+        "model": {
+          "code": "00008",
+          "name": "Optima"
+        }
+      },
+      {
+        "serial_number": "",
+        "inventory_number": "",
+        "id": 8959,
+        "type": {
+          "code": "0000",
+          "name": "Сервер Iiko RMS"
+        },
+        "manufacturer": null,
+        "model": null
+      }
+    ],
+    "author": {
+      "first_name": "Денис",
+      "last_name": "Вортман",
+      "patronymic": "Владимирович",
+      "id": 8,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Кирилл",
+        "last_name": "Киреев",
+        "patronymic": "Романович",
+        "id": 98
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [],
+      "contacts": [],
+      "groups": []
+    },
+    "created_at": "2024-08-24T20:59:42.696+07:00",
+    "deadline_at": "2024-08-25T01:00:00.000+07:00",
+    "planned_reaction_at": "2024-08-24T21:59:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": "2024-08-24T21:32:03.201+07:00",
+    "reacted_at": "2024-08-24T21:32:03.229+07:00",
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Schet",
+        "name": "Состав счета",
+        "type": "fttext",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

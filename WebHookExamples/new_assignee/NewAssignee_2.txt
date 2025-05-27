@@ -1,0 +1,164 @@
+{
+  "event": {
+    "event_type": "new_assignee",
+    "author": {
+      "first_name": "Григорий",
+      "last_name": "Горынин",
+      "patronymic": "Викторович",
+      "id": 76,
+      "type": "employee"
+    },
+    "old_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Григорий",
+        "last_name": "Горынин",
+        "patronymic": "Викторович",
+        "id": 76
+      }
+    },
+    "new_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Кирилл",
+        "last_name": "Киреев",
+        "patronymic": "Романович",
+        "id": 98
+      }
+    }
+  },
+  "issue": {
+    "title": "Нет продаж в дажборде",
+    "planned_execution_in_hours": null,
+    "id": 315410,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "АКВАБАЙТ_СТАРТ, [23.08.2024 19:08]<br>\nПерестало отображаться москвичка .<br>\nПочему?<br>\n<br>\nАкваБайт, [23.08.2024 19:10]<br>\nЗдравствуйте, проверим",
+    "type": {
+      "code": "incident",
+      "name": "Инцидент",
+      "inner": false
+    },
+    "priority": {
+      "code": "normal",
+      "name": "Важная"
+    },
+    "status": {
+      "code": "delayed",
+      "name": "Отложена"
+    },
+    "rate": null,
+    "old_status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "client": {
+      "company": {
+        "name": "ООО Старт (бывш ООО Новотэк ООО ТМК)",
+        "id": 1216
+      },
+      "contact": null
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "Кальянная Москвичка",
+      "id": 3326,
+      "address": {
+        "string_value": "630099, Россия, Новосибирская область, Новосибирск, улица Чаплыгина, дом 92",
+        "coordinates": [
+          55.0262,
+          82.92994
+        ]
+      }
+    },
+    "equipments": [
+      {
+        "serial_number": "",
+        "inventory_number": "Кальянная",
+        "id": 8434,
+        "type": {
+          "code": "0000",
+          "name": "Сервер Iiko RMS"
+        },
+        "manufacturer": null,
+        "model": null
+      }
+    ],
+    "author": {
+      "first_name": "Владислав",
+      "last_name": "Балашов",
+      "patronymic": "Валерьевич",
+      "id": 85,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Кирилл",
+        "last_name": "Киреев",
+        "patronymic": "Романович",
+        "id": 98
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [],
+      "contacts": [],
+      "groups": []
+    },
+    "created_at": "2024-08-23T19:11:04.121+07:00",
+    "deadline_at": null,
+    "planned_reaction_at": "2024-08-23T21:11:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": null,
+    "reacted_at": "2024-08-23T19:11:18.446+07:00",
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Schet",
+        "name": "Состав счета",
+        "type": "fttext",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

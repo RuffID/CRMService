@@ -1,0 +1,218 @@
+{
+  "event": {
+    "event_type": "new_ticket_status",
+    "author": {
+      "first_name": "Данил",
+      "last_name": "Паршаков",
+      "patronymic": "Глебович",
+      "id": 75,
+      "type": "employee"
+    },
+    "old_status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "new_status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "comment": null,
+    "attachments": null,
+    "parameters": [],
+    "time_entries": [],
+    "old_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Данил",
+        "last_name": "Паршаков",
+        "patronymic": "Глебович",
+        "id": 75
+      }
+    },
+    "new_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Данил",
+        "last_name": "Паршаков",
+        "patronymic": "Глебович",
+        "id": 75
+      }
+    }
+  },
+  "issue": {
+    "title": "Томск 1_Прошёл возврат заказа, но касса не грузит дальше",
+    "planned_execution_in_hours": null,
+    "id": 314599,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "Прошёл возврат заказа, но касса не грузит дальше<br>Фамилия Имя Отчество: Бурьян Елизавета Олеговна<br>Номер телефона: 79146745870<br>Должность: Менеджер<br>Заведение: Томск/Томск 1<br>Ожидаемый срок реализации:21.08.2024 15:27:51",
+    "type": {
+      "code": "service",
+      "name": "Обслуживание",
+      "inner": false
+    },
+    "priority": {
+      "code": "normal",
+      "name": "Важная"
+    },
+    "status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "rate": null,
+    "old_status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "client": {
+      "company": {
+        "name": "ИП Качаев Роман Олегович / Бар Чико",
+        "id": 2058
+      },
+      "contact": {
+        "first_name": "Чико",
+        "last_name": "Интеграция",
+        "patronymic": "",
+        "id": 11771
+      }
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "НА РАЗОВЫХ Chicko (Томск) «АЛЬФА-НОВАЯ ЭРА» ООО",
+      "id": 3160,
+      "address": {
+        "string_value": "634050, Россия, Томская область, Томск, проспект Ленина, дом 99",
+        "coordinates": [
+          56.482384,
+          84.949302
+        ]
+      }
+    },
+    "equipments": [],
+    "author": {
+      "first_name": "Чико",
+      "last_name": "Интеграция",
+      "patronymic": "",
+      "id": 11771,
+      "type": "contact"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Данил",
+        "last_name": "Паршаков",
+        "patronymic": "Глебович",
+        "id": 75
+      }
+    },
+    "coexecutors": [
+      {
+        "group": {
+          "name": "Сервис НСК",
+          "id": 1
+        },
+        "employee": {
+          "first_name": "Владимир",
+          "last_name": "Башта",
+          "patronymic": "Сергеевич",
+          "id": 83
+        }
+      },
+      {
+        "group": {
+          "name": "Сервис НСК",
+          "id": 1
+        },
+        "employee": {
+          "first_name": "Кирилл",
+          "last_name": "Киреев",
+          "patronymic": "Романович",
+          "id": 98
+        }
+      }
+    ],
+    "observers": {
+      "employees": [
+        {
+          "first_name": "Павел",
+          "last_name": "Кокряцкий",
+          "patronymic": "Семенович",
+          "id": 1
+        },
+        {
+          "first_name": "Сервиса",
+          "last_name": "Администратор",
+          "patronymic": "",
+          "id": 5
+        },
+        {
+          "first_name": "Александр",
+          "last_name": "Сланко",
+          "patronymic": "Сергеевич",
+          "id": 73
+        },
+        {
+          "first_name": "Владимир",
+          "last_name": "Башта",
+          "patronymic": "Сергеевич",
+          "id": 83
+        }
+      ],
+      "contacts": [],
+      "groups": [
+        {
+          "name": "Сервис НСК",
+          "id": 1
+        }
+      ]
+    },
+    "created_at": "2024-08-21T14:27:53.441+07:00",
+    "deadline_at": "2024-08-26T19:40:01.000+07:00",
+    "planned_reaction_at": "2024-08-21T16:27:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": null,
+    "reacted_at": "2024-08-21T14:47:52.110+07:00",
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": true
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

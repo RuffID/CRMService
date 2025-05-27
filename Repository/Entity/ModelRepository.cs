@@ -1,0 +1,66 @@
+﻿using Microsoft.EntityFrameworkCore;
+using CRMService.DataBase;
+using CRMService.Models.Entity;
+using CRMService.Interfaces.Repository.Entity;
+
+namespace CRMService.Repository.Entity
+{
+    public class ModelRepository(CRMEntitiesContext context, ILoggerFactory logger) : IModelRepository
+    {
+        private readonly ILogger<ModelRepository> _logger = logger.CreateLogger<ModelRepository>();
+
+        public async Task<IEnumerable<Model>?> GetItems(int startIndex, int limit)
+        {
+            try
+            {
+                return await context.Models.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving model list.");
+                return null;
+            }
+        }
+
+        public async Task<Model?> GetItem(Model item, bool? trackable = null)
+        {
+            try
+            {
+                if (trackable == null || trackable == true)
+                    return await context.Models.FirstOrDefaultAsync(c => c.Code == item.Code);
+
+                return await context.Models.AsNoTracking().FirstOrDefaultAsync(c => c.Code == item.Code);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving model.");
+                return null;
+            }
+        }
+
+        public void Update(Model item)
+        {
+            context.Entry(item).State = EntityState.Modified;
+        }
+
+        public void Create(Model item)
+        {
+            context.Models.Add(item);
+        }
+
+        public async Task CreateOrUpdate(IEnumerable<Model> items)
+        {
+            foreach (var item in items)
+            {
+                var itemFromDb = await GetItem(item);
+                if (itemFromDb == null)
+                {
+                    item.Id = 0;
+                    Create(item);
+                }
+                else
+                    itemFromDb.CopyData(item);
+            }
+        }
+    }
+}

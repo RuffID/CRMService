@@ -1,0 +1,189 @@
+{
+  "event": {
+    "event_type": "new_ticket_status",
+    "author": {
+      "first_name": "Алексей",
+      "last_name": "Карпенко",
+      "patronymic": "Сергеевич",
+      "id": 52,
+      "type": "employee"
+    },
+    "old_status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "new_status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "comment": {
+      "id": 48883009,
+      "is_public": false,
+      "content": "Перенёс печать 2х блюд на холодный цех"
+    },
+    "attachments": null,
+    "parameters": [],
+    "time_entries": [
+      {
+        "id": 5844846,
+        "comment": "Перенёс печать 2х блюд на холодный цех",
+        "spent_time": 0.25,
+        "employee": {
+          "first_name": "Алексей",
+          "last_name": "Карпенко",
+          "patronymic": "Сергеевич",
+          "id": 52
+        }
+      }
+    ],
+    "old_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Алексей",
+        "last_name": "Карпенко",
+        "patronymic": "Сергеевич",
+        "id": 52
+      }
+    },
+    "new_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Алексей",
+        "last_name": "Карпенко",
+        "patronymic": "Сергеевич",
+        "id": 52
+      }
+    }
+  },
+  "issue": {
+    "title": "Перекинуть печать ",
+    "planned_execution_in_hours": null,
+    "id": 315519,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "79013040804",
+    "type": {
+      "code": "incident",
+      "name": "Инцидент",
+      "inner": false
+    },
+    "priority": {
+      "code": "high",
+      "name": "Критическая"
+    },
+    "status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "rate": null,
+    "old_status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "client": {
+      "company": {
+        "name": "ООО Кафе Хамовники",
+        "id": 156
+      },
+      "contact": null
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "ОРНЖ Мясник и Море (кофетино)",
+      "id": 3487,
+      "address": {
+        "string_value": "620025, Россия, Свердловская область, Екатеринбург, площадь Бахчиванджи, сооружение 1",
+        "coordinates": null
+      }
+    },
+    "equipments": [
+      {
+        "serial_number": "",
+        "inventory_number": "",
+        "id": 10191,
+        "type": {
+          "code": "0000",
+          "name": "Сервер Iiko RMS"
+        },
+        "manufacturer": null,
+        "model": null
+      }
+    ],
+    "author": {
+      "first_name": "Алексей",
+      "last_name": "Карпенко",
+      "patronymic": "Сергеевич",
+      "id": 52,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Алексей",
+        "last_name": "Карпенко",
+        "patronymic": "Сергеевич",
+        "id": 52
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [],
+      "contacts": [],
+      "groups": []
+    },
+    "created_at": "2024-08-24T17:20:07.136+07:00",
+    "deadline_at": "2024-08-26T12:00:00.000+07:00",
+    "planned_reaction_at": "2024-08-26T09:00:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": "2024-08-24T17:25:54.864+07:00",
+    "reacted_at": "2024-08-24T17:25:54.906+07:00",
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Schet",
+        "name": "Состав счета",
+        "type": "fttext",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

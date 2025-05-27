@@ -1,0 +1,141 @@
+{
+  "event": {
+    "event_type": "update_issue_work_type",
+    "old_type": {
+      "code": "incident",
+      "name": "Инцидент"
+    },
+    "new_type": {
+      "code": "service",
+      "name": "Обслуживание"
+    },
+    "author": {
+      "first_name": "Александр",
+      "last_name": "Сланко",
+      "patronymic": "Сергеевич",
+      "id": 73,
+      "type": "employee"
+    }
+  },
+  "issue": {
+    "title": "Освободить лицензию офиса",
+    "planned_execution_in_hours": null,
+    "id": 315658,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "",
+    "type": {
+      "code": "service",
+      "name": "Обслуживание",
+      "inner": false
+    },
+    "priority": {
+      "code": "normal",
+      "name": "Важная"
+    },
+    "status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "rate": null,
+    "old_status": null,
+    "client": {
+      "company": {
+        "name": "ИП Алямов Марат Олегович",
+        "id": 1920
+      },
+      "contact": {
+        "first_name": "Аяна",
+        "last_name": "Иргит",
+        "patronymic": "",
+        "id": 13106
+      }
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "КЦ (CallCenter)",
+      "id": 3379,
+      "address": {
+        "string_value": "",
+        "coordinates": null
+      }
+    },
+    "equipments": [
+      {
+        "serial_number": "",
+        "inventory_number": "КЦ",
+        "id": 4973,
+        "type": {
+          "code": "0000",
+          "name": "Сервер Iiko RMS"
+        },
+        "manufacturer": null,
+        "model": null
+      }
+    ],
+    "author": {
+      "first_name": "Александр",
+      "last_name": "Сланко",
+      "patronymic": "Сергеевич",
+      "id": 73,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Александр",
+        "last_name": "Сланко",
+        "patronymic": "Сергеевич",
+        "id": 73
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [],
+      "contacts": [],
+      "groups": []
+    },
+    "created_at": "2024-08-25T20:26:18.461+07:00",
+    "deadline_at": "2024-08-26T20:00:00.000+07:00",
+    "planned_reaction_at": "2024-08-26T10:00:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": null,
+    "reacted_at": null,
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      }
+    ],
+    "attachments": []
+  }
+}

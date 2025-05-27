@@ -1,0 +1,219 @@
+{
+  "event": {
+    "event_type": "new_ticket_status",
+    "author": {
+      "first_name": "Григорий",
+      "last_name": "Горынин",
+      "patronymic": "Викторович",
+      "id": 76,
+      "type": "employee"
+    },
+    "old_status": {
+      "code": "completed_outdor",
+      "name": "Принята"
+    },
+    "new_status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "comment": {
+      "id": 48883013,
+      "is_public": true,
+      "content": "Отлично"
+    },
+    "attachments": null,
+    "parameters": [],
+    "time_entries": [
+      {
+        "id": 5844847,
+        "comment": "",
+        "spent_time": 0.25,
+        "employee": {
+          "first_name": "Григорий",
+          "last_name": "Горынин",
+          "patronymic": "Викторович",
+          "id": 76
+        }
+      }
+    ],
+    "old_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Григорий",
+        "last_name": "Горынин",
+        "patronymic": "Викторович",
+        "id": 76
+      }
+    },
+    "new_assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Григорий",
+        "last_name": "Горынин",
+        "patronymic": "Викторович",
+        "id": 76
+      }
+    }
+  },
+  "issue": {
+    "title": "Калининград 1_У нас не работает вейтер. Можете проверить, в чем причина _Фото прилагаю",
+    "planned_execution_in_hours": null,
+    "id": 315029,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "У нас не работает вейтер. Можете проверить, в чем причина _Фото прилагаю<br>Фамилия Имя Отчество: Амоян Али Игоревич<br>Номер телефона: 79193738183<br>Должность: Управляющий<br>Заведение: Калининград/Калининград 1<br>Ожидаемый срок реализации:28.08.2024 18:52:01",
+    "type": {
+      "code": "service",
+      "name": "Обслуживание",
+      "inner": false
+    },
+    "priority": {
+      "code": "normal",
+      "name": "Важная"
+    },
+    "status": {
+      "code": "completed",
+      "name": "Решена"
+    },
+    "rate": null,
+    "old_status": {
+      "code": "completed_outdor",
+      "name": "Принята"
+    },
+    "client": {
+      "company": {
+        "name": "ИП Качаев Роман Олегович / Бар Чико",
+        "id": 2058
+      },
+      "contact": {
+        "first_name": "Чико",
+        "last_name": "Интеграция",
+        "patronymic": "",
+        "id": 11771
+      }
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "Chicko (Калининград) (ООО Кей Фуд бывш Люмен фильм)",
+      "id": 3425,
+      "address": {
+        "string_value": "",
+        "coordinates": null
+      }
+    },
+    "equipments": [],
+    "author": {
+      "first_name": "Чико",
+      "last_name": "Интеграция",
+      "patronymic": "",
+      "id": 11771,
+      "type": "contact"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Григорий",
+        "last_name": "Горынин",
+        "patronymic": "Викторович",
+        "id": 76
+      }
+    },
+    "coexecutors": [
+      {
+        "group": {
+          "name": "Сервис НСК",
+          "id": 1
+        },
+        "employee": {
+          "first_name": "Владимир",
+          "last_name": "Башта",
+          "patronymic": "Сергеевич",
+          "id": 83
+        }
+      }
+    ],
+    "observers": {
+      "employees": [
+        {
+          "first_name": "Павел",
+          "last_name": "Кокряцкий",
+          "patronymic": "Семенович",
+          "id": 1
+        },
+        {
+          "first_name": "Сервиса",
+          "last_name": "Администратор",
+          "patronymic": "",
+          "id": 5
+        },
+        {
+          "first_name": "Александр",
+          "last_name": "Сланко",
+          "patronymic": "Сергеевич",
+          "id": 73
+        },
+        {
+          "first_name": "Владимир",
+          "last_name": "Башта",
+          "patronymic": "Сергеевич",
+          "id": 83
+        }
+      ],
+      "contacts": [],
+      "groups": [
+        {
+          "name": "Сервис НСК",
+          "id": 1
+        }
+      ]
+    },
+    "created_at": "2024-08-22T22:52:03.221+07:00",
+    "deadline_at": "2024-08-23T18:53:00.000+07:00",
+    "planned_reaction_at": "2024-08-23T08:53:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": "2024-08-24T17:26:19.298+07:00",
+    "reacted_at": "2024-08-22T22:57:35.222+07:00",
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": null
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

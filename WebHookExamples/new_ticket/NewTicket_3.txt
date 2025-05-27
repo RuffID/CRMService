@@ -1,0 +1,145 @@
+{
+  "event": {
+    "event_type": "new_ticket"
+  },
+  "issue": {
+    "title": "не закрылся заказ",
+    "planned_execution_in_hours": null,
+    "id": 315522,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "",
+    "type": {
+      "code": "incident",
+      "name": "Инцидент",
+      "inner": false
+    },
+    "priority": {
+      "code": "high",
+      "name": "Критическая"
+    },
+    "status": {
+      "code": "opened",
+      "name": "Открыта"
+    },
+    "rate": null,
+    "old_status": null,
+    "client": {
+      "company": {
+        "name": "Река ООО (Притомье)",
+        "id": 1637
+      },
+      "contact": null
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "У бассейна",
+      "id": 2376,
+      "address": {
+        "string_value": "",
+        "coordinates": null
+      }
+    },
+    "equipments": [
+      {
+        "serial_number": "EL110V606042300373",
+        "inventory_number": "200496 (1 касса)",
+        "id": 9360,
+        "type": {
+          "code": "1000",
+          "name": "Терминал"
+        },
+        "manufacturer": {
+          "code": "1",
+          "name": "АТОЛ"
+        },
+        "model": {
+          "code": "00008",
+          "name": "Optima"
+        }
+      }
+    ],
+    "author": {
+      "first_name": "Денис",
+      "last_name": "Вортман",
+      "patronymic": "Владимирович",
+      "id": 8,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "КЕМ Сервис",
+        "id": 2
+      },
+      "employee": {
+        "first_name": "Денис",
+        "last_name": "Вортман",
+        "patronymic": "Владимирович",
+        "id": 8
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [
+        {
+          "first_name": "Анна",
+          "last_name": "Логинова",
+          "patronymic": "Викторовна",
+          "id": 6
+        }
+      ],
+      "contacts": [],
+      "groups": [
+        {
+          "name": "КЕМ Сервис",
+          "id": 2
+        }
+      ]
+    },
+    "created_at": "2024-08-24T17:45:46.718+07:00",
+    "deadline_at": "2024-08-24T21:45:00.000+07:00",
+    "planned_reaction_at": "2024-08-24T18:45:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": null,
+    "reacted_at": null,
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Schet",
+        "name": "Состав счета",
+        "type": "fttext",
+        "value": null
+      }
+    ],
+    "attachments": []
+  }
+}

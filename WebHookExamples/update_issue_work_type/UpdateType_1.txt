@@ -1,0 +1,151 @@
+{
+  "event": {
+    "event_type": "update_issue_work_type",
+    "old_type": {
+      "code": "incident",
+      "name": "Инцидент"
+    },
+    "new_type": {
+      "code": "service",
+      "name": "Обслуживание"
+    },
+    "author": {
+      "first_name": "Данил",
+      "last_name": "Паршаков",
+      "patronymic": "Глебович",
+      "id": 75,
+      "type": "employee"
+    }
+  },
+  "issue": {
+    "title": "Не работает api ключ",
+    "planned_execution_in_hours": null,
+    "id": 303164,
+    "parent_id": null,
+    "child_ids": [],
+    "description": "&gt; Святослав Слободянюк: добрый день, у нас на одном объекте закончилась лицензия, при создании заказа на сайте, заказ не попадает в айку, а я получаю ошибку \"Ошибка: Apilogin`s license for using the Cloud API has expired.\", похоже лицензия кончилась.<br>\nКомпания ооо СТАР, ключ апи айки 67e31623, ИНН 5405342890<br>\n&gt; Никита Пешков: От кого вопрос?<br>\n&gt; Никита Пешков: Или тебе ОС?<br>\n<br>\n ",
+    "type": {
+      "code": "service",
+      "name": "Обслуживание",
+      "inner": false
+    },
+    "priority": {
+      "code": "normal",
+      "name": "Важная"
+    },
+    "status": {
+      "code": "VendorSupport",
+      "name": "В техподдержке вендора"
+    },
+    "rate": null,
+    "old_status": {
+      "code": "iikoSupport",
+      "name": "В iikoSupport"
+    },
+    "client": {
+      "company": {
+        "name": "ООО Стар",
+        "id": 90
+      },
+      "contact": null
+    },
+    "agreement": null,
+    "maintenance_entity": {
+      "name": "Бар Клевер",
+      "id": 234,
+      "address": {
+        "string_value": "630090, Россия, Новосибирская область, Новосибирск, проспект Морской, дом 54",
+        "coordinates": [
+          54.835232,
+          83.09729
+        ]
+      }
+    },
+    "equipments": [
+      {
+        "serial_number": "",
+        "inventory_number": "",
+        "id": 4620,
+        "type": {
+          "code": "0000",
+          "name": "Сервер Iiko RMS"
+        },
+        "manufacturer": null,
+        "model": null
+      }
+    ],
+    "author": {
+      "first_name": "Никита",
+      "last_name": "Пешков",
+      "patronymic": "Андреевич",
+      "id": 19,
+      "type": "employee"
+    },
+    "assignee": {
+      "group": {
+        "name": "Сервис НСК",
+        "id": 1
+      },
+      "employee": {
+        "first_name": "Данил",
+        "last_name": "Паршаков",
+        "patronymic": "Глебович",
+        "id": 75
+      }
+    },
+    "coexecutors": [],
+    "observers": {
+      "employees": [],
+      "contacts": [],
+      "groups": []
+    },
+    "created_at": "2024-07-05T12:12:11.745+07:00",
+    "deadline_at": "2024-07-08T08:13:12.000+07:00",
+    "planned_reaction_at": "2024-07-05T14:12:00.000+07:00",
+    "start_execution_until": null,
+    "completed_at": null,
+    "reacted_at": "2024-07-05T12:15:16.488+07:00",
+    "parameters": [
+      {
+        "code": "outdor_check",
+        "name": "Выезд",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "ext_pay",
+        "name": "Доп.счет.",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "Control",
+        "name": "Контроль",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "billready",
+        "name": "Счет выставлен",
+        "type": "ftcheckbox",
+        "value": false
+      },
+      {
+        "code": "chaT",
+        "name": "Задача из общего чата",
+        "type": "ftcheckbox",
+        "value": false
+      }
+    ],
+    "attachments": [
+      {
+        "id": 27595345,
+        "is_public": false,
+        "attachment_file_name": "140624-11-лс.pdf",
+        "description": null,
+        "attachment_file_size": 419469,
+        "created_at": "2024-07-05T12:15:31.243+07:00"
+      }
+    ]
+  }
+}

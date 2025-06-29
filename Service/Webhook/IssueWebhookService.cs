@@ -119,8 +119,8 @@ namespace CRMService.Service.Webhook
 
                 await unitOfWork.TimeEntry.CreateOrUpdate(entries);
 
-                _logger.LogInformation("[Method:{MethodName}] Save time entry from webhook: \"{WebhookType}\". Issue: {issueId}",
-                nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.FirstOrDefault()?.IssueId);
+                _logger.LogInformation("[Method:{MethodName}] Save time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}",
+                nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, issue.Id);
 
                 await unitOfWork.SaveAsync();
             }
@@ -142,6 +142,8 @@ namespace CRMService.Service.Webhook
         private async Task MarkIssueAsDeletedAsync(IssueJSON issueJson)
         {
             Issue convertIssue = issueJson.ConvertToIssue();
+            await issueService.CheckAttributes(convertIssue);
+
             convertIssue.DeletedAt = DateTime.Now;
             await unitOfWork.Issue.CreateOrUpdate(convertIssue);
 

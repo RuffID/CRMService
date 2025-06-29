@@ -33,7 +33,7 @@ namespace CRMService.Repository.Report
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "The operation: {GetInfoForOpenIssuesByEmployee} was interrupted by the user.", nameof(GetSolvedIssuesByEmployee));
+                _logger.LogWarning(ex, "The operation: {GetInfoForOpenIssuesByEmployee} was interrupted by the user.", nameof(GetSolvedIssuesByEmployee));
                 return null;
             }
             catch (Exception ex)
@@ -61,7 +61,7 @@ namespace CRMService.Repository.Report
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "The operation: {MethodName} was interrupted by the user.", nameof(GetSolvedIssuesByEmployee));
+                _logger.LogWarning(ex, "The operation: {MethodName} was interrupted by the user.", nameof(GetSolvedIssuesByEmployee));
                 return null;
             }
             catch (Exception ex)
@@ -95,7 +95,7 @@ namespace CRMService.Repository.Report
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "The operation: {MethodName} was interrupted by the user.", nameof(GetSolvedIssuesByEmployee));
+                _logger.LogWarning(ex, "The operation: {MethodName} was interrupted by the user.", nameof(GetSolvedIssuesByEmployee));
                 return null;
             }
             catch (Exception ex)
@@ -120,7 +120,7 @@ namespace CRMService.Repository.Report
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "The operation: {MethodName} was interrupted by the user.", nameof(GetSpentedTimeByEmployee));
+                _logger.LogWarning(ex, "The operation: {MethodName} was interrupted by the user.", nameof(GetSpentedTimeByEmployee));
                 return null;
             }
             catch (Exception ex)

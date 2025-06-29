@@ -11,7 +11,7 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-Log.Information("Starting CRM service.");
+Log.Information("[Class:{ClassName}] Starting CRM service.", nameof(Program));
 
 try
 {
@@ -23,7 +23,7 @@ try
     using (IServiceScope scope = app.Services.CreateScope())
     {
         ILogger<Program> logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("CRM service started.");
+        logger.LogInformation("[Class:{ClassName}] CRM service started.", nameof(Program));
     }
 
     app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -41,10 +41,10 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Internal application error.");
+    Log.Fatal(ex, "[Class:{ClassName}] Internal application error.", nameof(Program));
 }
 finally
 {
-    Log.Information("CRM service stopped.");
+    Log.Information("[Class:{ClassName}] CRM service stopped.", nameof(Program));
     await Log.CloseAndFlushAsync();
 }

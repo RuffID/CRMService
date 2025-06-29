@@ -22,8 +22,10 @@ namespace CRMService.Models.Entity
             EmployeeId = item.EmployeeId;
             SpentTime = item.SpentTime;
             IssueId = item.IssueId;
-            LoggedAt = item.LoggedAt;
-            CreatedAt = item.CreatedAt;
+            if (LoggedAt == null)
+                LoggedAt = item.LoggedAt;
+            if (CreatedAt == null)
+                CreatedAt = item.CreatedAt;
         }
     }
 }

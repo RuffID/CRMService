@@ -17,6 +17,9 @@ namespace CRMService.Service.Report
 
             foreach (Employee employee in employees.Where(e=> e.Active == true))
             {
+                if (cancellation.IsCancellationRequested)
+                    break;
+
                 ReportInfo report = new();
                 report.EmployeeId = employee.Id;
                 report.Issues = await unitOfWork.Report.GetInfoForOpenIssuesByEmployee(dateFrom, dateTo, employee.Id, cancellation);

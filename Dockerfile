@@ -1,24 +1,39 @@
-#See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+# Базовый слой (runtime)
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER root
+# Создание безопасного пользователя
+RUN useradd -m -u 1001 appuser
+
+# Создание директорий и установка прав
+RUN mkdir -p /app /app/Config /app/Logs /app/keys-linux && chown -R appuser:appuser /app
+
 WORKDIR /app
 EXPOSE 8080
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Слой сборки
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["AqbaServerASPNetCore/AqbaServer.csproj", "AqbaServerASPNetCore/"]
-RUN dotnet restore "./AqbaServerASPNetCore/AqbaServer.csproj"
-COPY . .
-WORKDIR "/src/AqbaServerASPNetCore"
-RUN dotnet build "./AqbaServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
+WORKDIR /src
+
+COPY ["nuget.config", "."]
+COPY ["CRMService.csproj", "."]
+RUN dotnet restore "./CRMService.csproj"
+
+COPY . .
+RUN dotnet build "./CRMService.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# Слой публикации
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./AqbaServer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./CRMService.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
+# Финальный слой (runtime + опубликованное приложение)
 FROM base AS final
-WORKDIR /app
+
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "AqbaServer.dll"]
+
+# Переход на безопасного пользователя
+USER appuser
+
+ENTRYPOINT ["dotnet", "CRMService.dll"]

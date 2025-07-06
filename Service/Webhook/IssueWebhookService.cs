@@ -30,31 +30,31 @@ namespace CRMService.Service.Webhook
                     await sync.RunExclusive(async () =>
                     {
                         await UpdateStatusAndSaveTimeEntries(@event);
-                    }, nameof(IssueWebhookService));
+                    });
                     break;
                 case "new_ticket":
                     await sync.RunExclusive(async () =>
                     {
                         await CreateIssue(@event.Issue);
-                    }, nameof(IssueWebhookService));
+                    });
                     break;
                 case "new_assignee":
                     await sync.RunExclusive(async () =>
                     {
                         await UpdateIssue(@event.Issue);
-                    }, nameof(IssueWebhookService));
+                    });
                     break;
                 case "update_issue_work_type":
                     await sync.RunExclusive(async () =>
                     {
                         await UpdateIssue(@event.Issue);
-                    }, nameof(IssueWebhookService));
+                    });
                     break;
                 case "ticket_deleted":
                     await sync.RunExclusive(async () =>
                     {
                         await MarkIssueAsDeletedAsync(@event.Issue);
-                    }, nameof(IssueWebhookService));
+                    });
                     break;
                 case "new_comment":
                     await NewComment(@event);

@@ -3,7 +3,11 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using System.Net;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration
+    .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Config"))
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration) // Читает из appsettings.json
@@ -18,7 +22,7 @@ try
     builder.Services.AddConfig(builder.Configuration);
     builder.Services.ConfigureServices(builder.Configuration);   
 
-    var app = builder.Build();
+    WebApplication app = builder.Build();
 
     using (IServiceScope scope = app.Services.CreateScope())
     {

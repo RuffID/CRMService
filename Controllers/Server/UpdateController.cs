@@ -98,7 +98,7 @@ namespace CRMService.Controllers.Server
         }
 
         [HttpGet("versions")]
-        public async Task<IActionResult> GetCategories([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetVersions([FromQuery] int startIndex = 0)
         {
             IEnumerable<ClientAppInfo>? versions = await unitOfWork.ClientInfo.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 

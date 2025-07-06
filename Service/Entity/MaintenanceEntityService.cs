@@ -65,7 +65,7 @@ namespace CRMService.Service.Entity
                     unitOfWork.MaintenanceEntity.Update(maintenanceEntity);
 
                 await unitOfWork.SaveAsync();
-            }, nameof(UpdateMaintenanceEntityFromCloudApi));
+            });
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudApi(long startIndex, long limit)
@@ -83,7 +83,7 @@ namespace CRMService.Service.Entity
 
                     await unitOfWork.SaveAsync();
                 }
-            }, nameof(UpdateMaintenanceEntitiesFromCloudApi));
+            });
 
             _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
         }
@@ -109,7 +109,7 @@ namespace CRMService.Service.Entity
 
                     await unitOfWork.SaveAsync();
                 }
-            }, nameof(UpdateMaintenanceEntitiesFromCloudDb));
+            });
 
             _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
         }

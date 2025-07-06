@@ -7,7 +7,6 @@ using CRMService.Service.Sync;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using System.Data;
-using System.Runtime;
 
 namespace CRMService.Service.Entity
 {
@@ -84,7 +83,7 @@ namespace CRMService.Service.Entity
                     await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
 
                 await unitOfWork.SaveAsync();
-            }, nameof(UpdateEquipmentFromCloudApi));
+            });
         }
 
         public async Task UpdateEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0)
@@ -109,7 +108,7 @@ namespace CRMService.Service.Entity
 
                     await unitOfWork.SaveAsync();
                 }
-            }, nameof(UpdateEquipmentsFromCloudApi));
+            });
         }
 
         public async Task UpdateEquipmentsFromCloudDb(int startIndex, int limit)
@@ -143,7 +142,7 @@ namespace CRMService.Service.Entity
                     if (equipments.Count < limit)
                         break;
                 }
-            }, nameof(UpdateEquipmentsFromCloudDb));
+            });
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));
         }

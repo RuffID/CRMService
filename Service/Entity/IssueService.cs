@@ -132,7 +132,7 @@ namespace CRMService.Service.Entity
                         }
                     }
                 }
-            }, nameof(UpdateIssuesFromCloudApi));
+            });
 
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
         }
@@ -165,7 +165,7 @@ namespace CRMService.Service.Entity
                     if (issues.Count < limit)
                         break;
                 }
-            }, nameof(UpdateIssuesFromCloudDb));
+            });
 
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
         }

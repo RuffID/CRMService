@@ -99,7 +99,7 @@ namespace CRMService.Service.Entity
                 await unitOfWork.Company.CreateOrUpdate([company]);
 
                 await unitOfWork.SaveAsync();
-            }, nameof(UpdateCompanyFromCloudApi));
+            });
         }
 
         public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany)
@@ -120,7 +120,7 @@ namespace CRMService.Service.Entity
 
                     await unitOfWork.SaveAsync();
                 }
-            }, nameof(UpdateCompaniesFromCloudApi));
+            });
         }
 
         public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany)
@@ -143,7 +143,7 @@ namespace CRMService.Service.Entity
 
                     await unitOfWork.SaveAsync();
                 }
-            }, nameof(UpdateCompaniesFromCloudDb));
+            });
 
             _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }

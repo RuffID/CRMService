@@ -20,13 +20,13 @@ namespace CRMService.Service.Webhook
                     await sync.RunExclusive(async () =>
                     {
                         await unitOfWork.MaintenanceEntity.CreateOrUpdate([mapper.Map<MaintenanceEntity>(@event.Service_aim)]);
-                    }, nameof(MaintenanceEntityWebhookService));
+                    });
                     break;
                 case "change_service_aim":
                     await sync.RunExclusive(async () =>
                     {
                         await unitOfWork.MaintenanceEntity.CreateOrUpdate([mapper.Map<MaintenanceEntity>(@event.Service_aim)]);
-                    }, nameof(MaintenanceEntityWebhookService));
+                    });
                     break;
                 default:
                     return false;

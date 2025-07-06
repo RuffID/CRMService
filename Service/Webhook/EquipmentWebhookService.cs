@@ -21,14 +21,14 @@ namespace CRMService.Service.Webhook
                     {
                         await equipmentService.CheckInformationOnEquipment(@event.Equipment);
                         await unitOfWork.Equipment.CreateOrUpdate([@event.Equipment]);
-                    }, nameof(EquipmentWebhookService));
+                    });
                     break;
                 case "change_equipment":
                     await sync.RunExclusive(async () =>
                     {
                         await equipmentService.CheckInformationOnEquipment(@event.Equipment);
                         await unitOfWork.Equipment.CreateOrUpdate([@event.Equipment]);
-                    }, nameof(EquipmentWebhookService));
+                    });
                     break;
                 default:
                     return false;

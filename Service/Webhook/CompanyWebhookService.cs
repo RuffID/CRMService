@@ -20,7 +20,7 @@ namespace CRMService.Service.Webhook
                     {
                         if (await companyService.CheckCompanyCategory(@event.Company))
                             await unitOfWork.Company.CreateOrUpdate([@event.Company]);
-                    }, nameof(CompanyWebhookService));
+                    });
                     break;
 
                 case "change_company":
@@ -28,7 +28,7 @@ namespace CRMService.Service.Webhook
                     {
                         if (await companyService.CheckCompanyCategory(@event.Company))
                             await unitOfWork.Company.CreateOrUpdate([@event.Company]);
-                    }, nameof(CompanyWebhookService));
+                    });
                     break;
                 default:
                     return false;

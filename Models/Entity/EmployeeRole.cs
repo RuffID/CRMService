@@ -9,5 +9,11 @@ namespace CRMService.Models.Entity
         public int EmployeeId { get; set; }
 
         public int RoleId { get; set; }
+
+        public void CopyData(EmployeeRole newItem)
+        {
+            EmployeeId = newItem.EmployeeId;
+            RoleId = newItem.RoleId;
+        }
     }
 }

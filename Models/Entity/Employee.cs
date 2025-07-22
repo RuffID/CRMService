@@ -32,5 +32,17 @@ namespace CRMService.Models.Entity
         public virtual IEnumerable<Issue> Issues { get; set; } = new List<Issue>();
 
         public virtual IEnumerable<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
+
+        public void CopyData(Employee newItem)
+        {
+            FirstName = newItem.FirstName;
+            LastName = newItem.LastName;
+            Patronymic = newItem.Patronymic;
+            Position = newItem.Position;
+            Active = newItem.Active;
+            Email = newItem.Email;
+            Login = newItem.Login;
+            Phone = newItem.Phone;
+        }
     }
 }

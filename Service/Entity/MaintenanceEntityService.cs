@@ -52,17 +52,18 @@ namespace CRMService.Service.Entity
 
         public async Task UpdateMaintenanceEntityFromCloudApi(int maintenanceEntityId)
         {
-            MaintenanceEntity? maintenanceEntity = await GetMaintenanceEntityFromCloudApi(maintenanceEntityId);
+            MaintenanceEntity? newMaintenanceEntity = await GetMaintenanceEntityFromCloudApi(maintenanceEntityId);
 
-            if (maintenanceEntity == null)
+            if (newMaintenanceEntity == null)
                 return;
 
             await sync.RunExclusive(async () =>
             {
-                if (await unitOfWork.MaintenanceEntity.GetItem(maintenanceEntity, false) == null)
-                    unitOfWork.MaintenanceEntity.Create(maintenanceEntity);
+                MaintenanceEntity? existing = await unitOfWork.MaintenanceEntity.GetItem(newMaintenanceEntity, false);
+                if (existing == null)
+                    unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
                 else
-                    unitOfWork.MaintenanceEntity.Update(maintenanceEntity);
+                    unitOfWork.MaintenanceEntity.Update(existing, newMaintenanceEntity);
 
                 await unitOfWork.SaveAsync();
             });

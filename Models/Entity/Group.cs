@@ -16,5 +16,12 @@ namespace CRMService.Models.Entity
 
         [NotMapped]
         public IEnumerable<EmployeeDto>? Employees { get; set; } = new List<EmployeeDto>();
+
+        public void CopyData(Group newItem)
+        {
+            Name = newItem.Name;
+            Active = newItem.Active;
+            Description = newItem.Description;
+        }
     }
 }

@@ -21,5 +21,13 @@ namespace CRMService.Models.Entity
         public virtual ICollection<Equipment> Equipment { get; set; } = new List<Equipment>();
 
         public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
+
+        internal void CopyData(MaintenanceEntity newItem)
+        {
+            Name = newItem.Name;
+            Address = newItem.Address;
+            Active = newItem.Active;
+            CompanyId = newItem.CompanyId;
+        }
     }
 }

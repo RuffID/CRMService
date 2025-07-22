@@ -70,11 +70,6 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(KindParam item)
-        {
-            context.Entry(item).State = EntityState.Modified;
-        }
-
         public void Create(KindParam item)
         {
             context.KindParams.Add(item);

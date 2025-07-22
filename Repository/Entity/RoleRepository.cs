@@ -54,9 +54,9 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(Role item)
+        public void Update(Role oldItem, Role newItem)
         {
-            context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
         }
 
         public void Create(Role item)
@@ -68,10 +68,12 @@ namespace CRMService.Repository.Entity
         {
             foreach (var item in items)
             {
-                if (await GetItem(item, false) == null)
+                var existingItem = await GetItem(item, false);
+
+                if (existingItem == null)
                     Create(item);
                 else
-                    Update(item);
+                    Update(existingItem, item);
             }
         }
     }

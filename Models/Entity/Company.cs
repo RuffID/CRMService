@@ -26,7 +26,6 @@ public class Company : IEntity
 
     public void CopyData(Company company)
     {
-        Id = company.Id;
         Name = company.Name;
         AdditionalName = company.AdditionalName;
         Active = company.Active;

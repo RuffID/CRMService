@@ -54,25 +54,26 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(TimeEntry item)
-        {
-            context.Entry(item).State = EntityState.Modified;
-        }
-
         public void Create(TimeEntry item)
         {
             context.TimeEntries.Add(item);
+        }
+
+        public void Update(TimeEntry oldItem, TimeEntry newItem)
+        {
+            oldItem.CopyData(newItem);
         }
 
         public async Task CreateOrUpdate(IEnumerable<TimeEntry> items)
         {
             foreach (var item in items)
             {
-                var itemFromDb = await GetItem(item);
-                if (itemFromDb == null)
+                var existingItem = await GetItem(item, false);
+
+                if (existingItem == null)
                     Create(item);
                 else
-                    itemFromDb.CopyData(item);
+                    Update(existingItem, item);
             }
         }
 

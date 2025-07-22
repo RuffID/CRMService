@@ -51,9 +51,9 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(IssueStatus item)
+        public void Update(IssueStatus oldItem, IssueStatus newItem)
         {
-            context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
         }
 
         public void Create(IssueStatus item)
@@ -65,11 +65,12 @@ namespace CRMService.Repository.Entity
         {
             foreach (var item in items)
             {
-                var itemFromDb = await GetItem(item);
-                if (itemFromDb == null)
+                var existingItem = await GetItem(item, false);
+
+                if (existingItem == null)
                     Create(item);
                 else
-                    itemFromDb.CopyData(item);
+                    Update(existingItem, item);
             }
         }
     }

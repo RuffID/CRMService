@@ -38,5 +38,16 @@ namespace CRMService.Models.Entity
         public virtual Model? Model { get; set; }
 
         public virtual List<Parameter>? Parameters { get; set; } = new List<Parameter>();
+
+        internal void CopyData(Equipment newItem)
+        {
+            SerialNumber = newItem.SerialNumber;
+            InventoryNumber = newItem.InventoryNumber;
+            KindId = newItem.KindId;
+            ManufacturerId = newItem.ManufacturerId;
+            ModelId = newItem.ModelId;
+            CompanyId = newItem.CompanyId;
+            MaintenanceEntitiesId = newItem.MaintenanceEntitiesId;
+        }
     }
 }

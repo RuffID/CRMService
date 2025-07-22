@@ -12,5 +12,12 @@ public class CompanyCategory : IEntity
 
     public string? Color { get; set; }
 
-    public virtual ICollection<Company> Companies { get; set; } = new List<Company>();
+    public virtual ICollection<Company> Companies { get; set; } = [];
+
+    public void CopyData(CompanyCategory newItem)
+    {
+        Code = newItem.Code;
+        Name = newItem.Name;
+        Color = newItem.Color;
+    }
 }

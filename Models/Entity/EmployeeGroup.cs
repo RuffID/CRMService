@@ -9,5 +9,11 @@ namespace CRMService.Models.Entity
         public int? EmployeeId { get; set; }
 
         public int? GroupId { get; set; }
+
+        internal void CopyData(EmployeeGroup newItem)
+        {
+            EmployeeId = newItem.EmployeeId;
+            GroupId = newItem.GroupId;
+        }
     }
 }

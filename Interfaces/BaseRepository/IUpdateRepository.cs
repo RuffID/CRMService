@@ -2,6 +2,6 @@
 {
     public interface IUpdateRepository<T> where T : class
     {
-        void Update(T item); // обновление объекта
+        void Update(T oldItem, T newItem);
     }
 }

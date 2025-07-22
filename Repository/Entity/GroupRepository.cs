@@ -38,9 +38,9 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(Group item)
+        public void Update(Group oldItem, Group newItem)
         {
-            context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
         }
 
         public void Create(Group item)
@@ -52,10 +52,12 @@ namespace CRMService.Repository.Entity
         {
             foreach (var item in items)
             {
-                if (await GetItem(item, false) == null)
+                var existingItem = await GetItem(item, false);
+
+                if (existingItem == null)
                     Create(item);
                 else
-                    Update(item);
+                    Update(existingItem, item);
             }
         }
     }

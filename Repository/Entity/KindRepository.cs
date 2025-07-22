@@ -67,9 +67,9 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(Kind item)
+        public void Update(Kind oldItem, Kind newItem)
         {
-            context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
         }
 
         public void Create(Kind item)
@@ -81,14 +81,12 @@ namespace CRMService.Repository.Entity
         {
             foreach (var item in items)
             {
-                var itemFromDb = await GetItem(item);
-                if (itemFromDb == null)
-                {
-                    item.Id = 0;
+                var existingItem = await GetItem(item, false);
+
+                if (existingItem == null)
                     Create(item);
-                }
                 else
-                    itemFromDb.CopyData(item);
+                    Update(existingItem, item);
             }
         }
     }

@@ -52,9 +52,10 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(CompanyCategory item)
+        public void Update(CompanyCategory oldItem, CompanyCategory newItem)
         {
-            context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
+
         }
 
         public void Create(CompanyCategory item)
@@ -66,10 +67,12 @@ namespace CRMService.Repository.Entity
         {
             foreach (var item in items)
             {
-                if (await GetItem(item, false) == null)
+                var existingItem = await GetItem(item, false);
+
+                if (existingItem == null)
                     Create(item);
                 else
-                    Update(item);
+                    Update(existingItem, item);
             }
         }
     }

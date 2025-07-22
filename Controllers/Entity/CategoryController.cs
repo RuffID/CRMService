@@ -51,7 +51,7 @@ namespace CRMService.Controllers.Entity
 
             var categoryMap = mapper.Map<CompanyCategory>(updatedCategory);
 
-            unitOfWork.CompanyCategory.Update(categoryMap);
+            unitOfWork.CompanyCategory.Update(category, categoryMap);
 
             await unitOfWork.SaveAsync();
 

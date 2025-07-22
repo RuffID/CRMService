@@ -7,8 +7,14 @@ namespace CRMService.Models.Server
         [JsonProperty]
         public string? ServerName { get; set; }
         [JsonProperty]
-        public string? ServerStartingTime { get; set; }
+        public DateTime ServerStartingTime { get; private set; }
         [JsonProperty]
         public string? ServerUpTime { get; set; }      
+
+        public ServerData()
+        {
+            ServerName = "CRMService Dashboard";
+            ServerStartingTime = DateTime.UtcNow;
+        }
     }
 }

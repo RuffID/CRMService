@@ -6,6 +6,7 @@ using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Server;
 using CRMService.Repository;
 using CRMService.Service.Entity;
 using CRMService.Service.Hosted;
@@ -74,7 +75,7 @@ namespace CRMService.Core
                 });
 
             services.AddSingleton<EntitySyncService>();
-            services.AddSingleton<ServerInfo>();
+            services.AddSingleton<ServerData>();
             services.AddScoped<PGSelect>();
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
 

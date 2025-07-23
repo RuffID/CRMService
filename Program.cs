@@ -33,7 +33,11 @@ try
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-        KnownProxies = { IPAddress.Parse("127.0.0.1") }, // IP nginx (если на той же машине)
+        KnownProxies =
+        {
+            IPAddress.Parse("127.0.0.1"), // запуск вне docker
+            IPAddress.Parse("172.18.0.1") // если nginx с точки зрения контейнера
+        },
     });
 
     app.UseRouting();

@@ -58,7 +58,6 @@ namespace CRMService.Models.Entity
 
         public void CopyData(Issue item)
         {
-            Id = item.Id;
             AssigneeId = item.AssigneeId;
             AuthorId = item.AuthorId;
             Title = item.Title;

@@ -68,7 +68,7 @@ namespace CRMService.Repository.Entity
         {
             foreach (var item in items)
             {
-                var existingItem = await GetItem(item, false);
+                var existingItem = await GetItem(item);
 
                 if (existingItem == null)
                     Create(item);

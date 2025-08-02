@@ -25,6 +25,7 @@ namespace CRMService.Models.WebHook
             convertIssue.Id = Id;
             convertIssue.Title = Title;
             convertIssue.Type = Type;
+            convertIssue.TypeId = Type?.Id;
             convertIssue.Priority = Priority;
             convertIssue.PriorityId = Priority?.Id;
             convertIssue.Status = Status;

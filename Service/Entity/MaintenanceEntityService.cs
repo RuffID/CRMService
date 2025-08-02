@@ -36,7 +36,7 @@ namespace CRMService.Service.Entity
                 "AND company_maintenance_entities.sequential_id > '{0}' ORDER BY company_maintenance_entities.sequential_id  LIMIT '{1}';", startIndex, limit);
 
             DataSet ds = await pGSelect.Select(sqlCommand);
-            DataTable? meTable = ds.Tables["company_maintenance_entities"];
+            DataTable? meTable = ds.Tables["Table"];
             if (meTable == null)
                 return null;
 
@@ -46,7 +46,7 @@ namespace CRMService.Service.Entity
                     Id = me.Field<int>("sequential_id"),
                     Name = me.Field<string>("name"),
                     CompanyId = me.Field<int>("companyId"),
-                    Active = me.Field<sbyte>("active")
+                    Active = me.Field<bool>("active")
                 }).ToList();
         }
 
@@ -106,6 +106,9 @@ namespace CRMService.Service.Entity
 
                     indexOfME = me.Last().Id;
 
+                    foreach (MaintenanceEntity entity in me)
+                        await CheckAttributes(entity);
+
                     await unitOfWork.MaintenanceEntity.CreateOrUpdate(me);
 
                     await unitOfWork.SaveAsync();
@@ -113,6 +116,19 @@ namespace CRMService.Service.Entity
             });
 
             _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
+        }
+
+        public async Task CheckAttributes(MaintenanceEntity maintenanceEntity)
+        {
+            // Проверка всех внешних ключей (элементов) что они есть в локальной БД
+            if (maintenanceEntity.CompanyId == null || maintenanceEntity.CompanyId == 0)
+                return;
+
+            if (await unitOfWork.Company.GetCompanyById((int)maintenanceEntity.CompanyId, false) == null)
+            {
+                _logger.LogWarning("[Method:{MethodName}] When updating maintenance entity, the specified company could not be found by ID - {companyId}.", nameof(CheckAttributes), maintenanceEntity.CompanyId);
+                maintenanceEntity.CompanyId = null;
+            }
         }
     }
 }

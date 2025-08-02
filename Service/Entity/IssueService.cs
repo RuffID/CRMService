@@ -73,6 +73,7 @@ namespace CRMService.Service.Entity
                 issue.CompanyId = (await unitOfWork.Company.GetItem(issue.Company, false))?.Id;
             else if (issue.CompanyId != null)
                 issue.CompanyId = (await unitOfWork.Company.GetCompanyById((int)issue.CompanyId, false))?.Id;
+
             if (issue.ServiceObject != null)
                 issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItem(issue.ServiceObject, false))?.Id;
             else if (issue.ServiceObjectId != null)

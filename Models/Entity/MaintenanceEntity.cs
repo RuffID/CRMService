@@ -11,7 +11,7 @@ namespace CRMService.Models.Entity
 
         public string? Address { get; set; }
 
-        public sbyte? Active { get; set; }
+        public bool? Active { get; set; }
 
         [JsonProperty("Company_id")]
         public int? CompanyId { get; set; }

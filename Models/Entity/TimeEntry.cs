@@ -22,9 +22,9 @@ namespace CRMService.Models.Entity
             EmployeeId = item.EmployeeId;
             SpentTime = item.SpentTime;
             IssueId = item.IssueId;
-            if (LoggedAt == null)
+            if (item.LoggedAt.HasValue)
                 LoggedAt = item.LoggedAt;
-            if (CreatedAt == null)
+            if (item.CreatedAt.HasValue)
                 CreatedAt = item.CreatedAt;
         }
     }

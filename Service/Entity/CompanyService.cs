@@ -77,7 +77,7 @@ namespace CRMService.Service.Entity
                     if (companies == null || companies.Count == 0)
                         break;
 
-                    startIndexCompany = companies.Last().Id + 1;
+                    startIndexCompany = companies.Last().Id;
                     yield return companies;
                 }
                 startIndexCompany = 0;

@@ -110,7 +110,9 @@ namespace CRMService.Service.Webhook
                         Id = entry.Id,
                         SpentTime = entry.Spent_time,
                         EmployeeId = entry.Employee?.Id ?? 0,
-                        IssueId = issue.Id
+                        IssueId = issue.Id,
+                        CreatedAt = DateTime.Now,
+                        LoggedAt = entry.Logged_at
                     });
                 }
 
@@ -147,7 +149,7 @@ namespace CRMService.Service.Webhook
             convertIssue.DeletedAt = DateTime.Now;
             await unitOfWork.Issue.CreateOrUpdate(convertIssue);
 
-            _logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}",
+            _logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, old work type: {typeCode}, companyId: {companyId}, objectId: {objectId}",
                 nameof(MarkIssueAsDeletedAsync), issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id);
 
             await unitOfWork.SaveAsync();

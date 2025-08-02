@@ -7,5 +7,6 @@ namespace CRMService.Models.WebHook
         public int Id { get; set; }
         public double Spent_time { get; set; }
         public EmployeeWebHook? Employee { get; set; }
+        public DateTime? Logged_at { get; set; }
     }
 }

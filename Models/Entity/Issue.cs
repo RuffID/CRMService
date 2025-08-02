@@ -54,29 +54,32 @@ namespace CRMService.Models.Entity
 
         public virtual IssueType? Type { get; set; }
 
-        public virtual ICollection<TimeEntry>? TimeEntries { get; set; } = new List<TimeEntry>();
+        public virtual ICollection<TimeEntry>? TimeEntries { get; set; } = [];
 
         public void CopyData(Issue item)
         {
             AssigneeId = item.AssigneeId;
             AuthorId = item.AuthorId;
-            Title = item.Title;
-            EmployeesUpdatedAt = item.EmployeesUpdatedAt;
-            CreatedAt = item.CreatedAt;
-            DeadlineAt = item.DeadlineAt;
-            DelayTo = item.DelayTo;
-            DeletedAt = item.DeletedAt;
+            Title = item.Title;            
             StatusId = item.StatusId;
             PriorityId = item.PriorityId;
+            TypeId = item.TypeId;
             CompanyId = item.CompanyId;
             ServiceObjectId = item.ServiceObjectId;
             Assignee = item.Assignee;
             Company = item.Company;
             ServiceObject = item.ServiceObject;
             Priority = item.Priority;
-            Status = item.Status;
             Type = item.Type;
+            Status = item.Status;
             TimeEntries = item.TimeEntries;
+
+            EmployeesUpdatedAt = item.EmployeesUpdatedAt;
+            CreatedAt = item.CreatedAt;
+            DeadlineAt = item.DeadlineAt;
+            DelayTo = item.DelayTo;
+            DeletedAt = item.DeletedAt;
+            CompletedAt = item.CompletedAt;
         }
     }
 }

@@ -24,16 +24,16 @@ namespace CRMService.Models.Entity
         [NotMapped]
         public List<IssueType>? Children { get; set; }
 
-        public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
+        public virtual ICollection<Issue> Issues { get; set; } = [];
 
-        public void CopyData(IssueType status)
+        public void CopyData(IssueType type)
         {
-            Code = status.Code;
-            Name = status.Name;
-            Default = status.Default;
-            Inner = status.Inner;
-            AvailableForClient = status.AvailableForClient;
-            Type = status.Type;
+            Code = type.Code;
+            Name = type.Name;
+            Default = type.Default;
+            Inner = type.Inner;
+            AvailableForClient = type.AvailableForClient;
+            Type = type.Type;
         }
     }
 }

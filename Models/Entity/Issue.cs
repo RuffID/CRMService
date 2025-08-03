@@ -54,7 +54,7 @@ namespace CRMService.Models.Entity
 
         public virtual IssueType? Type { get; set; }
 
-        public virtual ICollection<TimeEntry>? TimeEntries { get; set; } = [];
+        public virtual ICollection<TimeEntry>? TimeEntries { get; set; }
 
         public void CopyData(Issue item)
         {

@@ -58,22 +58,19 @@ namespace CRMService.Models.Entity
 
         public void CopyData(Issue item)
         {
+            if (item.AuthorId != null)
+                AuthorId = item.AuthorId;           
+            if (item.StatusId != null)
+                StatusId = item.StatusId;
+            if (item.PriorityId != null)
+                PriorityId = item.PriorityId;
+            if (item.TypeId != null)
+                TypeId = item.TypeId;
+
             AssigneeId = item.AssigneeId;
-            AuthorId = item.AuthorId;
-            Title = item.Title;            
-            StatusId = item.StatusId;
-            PriorityId = item.PriorityId;
-            TypeId = item.TypeId;
             CompanyId = item.CompanyId;
             ServiceObjectId = item.ServiceObjectId;
-            Assignee = item.Assignee;
-            Company = item.Company;
-            ServiceObject = item.ServiceObject;
-            Priority = item.Priority;
-            Type = item.Type;
-            Status = item.Status;
-            TimeEntries = item.TimeEntries;
-
+            Title = item.Title;
             EmployeesUpdatedAt = item.EmployeesUpdatedAt;
             CreatedAt = item.CreatedAt;
             DeadlineAt = item.DeadlineAt;

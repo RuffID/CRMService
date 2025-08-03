@@ -87,10 +87,7 @@ namespace CRMService.Service.Entity
                 issue.TypeId = (await unitOfWork.IssueType.GetItem(issue.Type, false))?.Id;
 
             if (issue.AssigneeId != null && issue.AssigneeId != 0)
-            {
-                Employee? tempEmp = new() { Id = (int)issue.AssigneeId };
-                issue.AssigneeId = (await unitOfWork.Employee.GetItem(tempEmp, false))?.Id;
-            }
+                issue.AssigneeId = (await unitOfWork.Employee.GetItem(new ((int)issue.AssigneeId), false))?.Id;
 
             // Если не зануллить то будет выдавать ошибку EF (id уже использовался)
             issue.Company = null;

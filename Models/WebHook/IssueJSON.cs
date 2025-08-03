@@ -31,6 +31,13 @@ namespace CRMService.Models.WebHook
             convertIssue.Status = Status;
             convertIssue.StatusId = Status?.Id;
             convertIssue.AuthorId = Author?.Id;
+            if (Assignee != null && Assignee.Employee != null)
+            {
+                convertIssue.Assignee = new()
+                {
+                    Id = Assignee.Employee.Id,
+                };
+            }
             convertIssue.AssigneeId = Assignee?.Employee?.Id;
             convertIssue.CreatedAt = Created_at;
             convertIssue.DeadlineAt = Deadline_at;

@@ -27,11 +27,18 @@ namespace CRMService.Models.Entity
         public string? Phone { get; set; }
 
         [NotMapped]
-        public IEnumerable<Role>? Roles { get; set; } = new List<Role>();
+        public IEnumerable<Role>? Roles { get; set; } = [];
 
-        public virtual IEnumerable<Issue> Issues { get; set; } = new List<Issue>();
+        public virtual IEnumerable<Issue> Issues { get; set; } = [];
 
-        public virtual IEnumerable<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
+        public virtual IEnumerable<TimeEntry> TimeEntries { get; set; } = [];
+
+        public Employee() { }
+
+        public Employee(int id)
+        {
+            Id = id;
+        }
 
         public void CopyData(Employee newItem)
         {

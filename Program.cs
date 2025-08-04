@@ -10,6 +10,7 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
 Log.Logger = new LoggerConfiguration()
+    .Enrich.With(new SimpleClassNameEnricher())
     .ReadFrom.Configuration(builder.Configuration) // Читает из appsettings.json
     .CreateLogger();
 

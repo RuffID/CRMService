@@ -24,7 +24,7 @@ namespace CRMService.Models.Entity
         [NotMapped]
         public List<IssueType>? Children { get; set; }
 
-        public virtual ICollection<Issue> Issues { get; set; } = [];
+        public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 
         public void CopyData(IssueType type)
         {

@@ -61,8 +61,7 @@ namespace CRMService.Service.Entity
                     DeadlineAt = issue.Field<DateTime?>("deadline_at")?.ToLocalTime(),
                     DelayTo = issue.Field<DateTime?>("delay_to")?.ToLocalTime(),
                     EmployeesUpdatedAt = issue.Field<DateTime?>("employees_updated_at")?.ToLocalTime(),
-                    DeletedAt = issue.Field<DateTime?>("deleted_at")?.ToLocalTime(),
-                    TimeEntries = null
+                    DeletedAt = issue.Field<DateTime?>("deleted_at")?.ToLocalTime()
                 }).ToList();
         }
 
@@ -151,8 +150,6 @@ namespace CRMService.Service.Entity
                     foreach (Issue issue in issues)
                     {
                         await CheckAttributes(issue);
-                        issue.TimeEntries = null;
-
 
                         await unitOfWork.Issue.CreateOrUpdate(issue);
                         await unitOfWork.SaveAsync();

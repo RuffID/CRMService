@@ -17,7 +17,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue list.", nameof(GetItems));
                 return null;
             }
         }
@@ -30,7 +30,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue list between update dates.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue list between update dates.", nameof(GetIssuesBetweenUpdateDates));
                 return null;
             }
         }
@@ -46,7 +46,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue: {IssueId}.", item.Id);
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue: {IssueId}.", item.Id, nameof(GetItem));
                 return null;
             }
         }
@@ -62,7 +62,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue by id: {IssueId}.", id);
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue by id: {IssueId}.", id, nameof(GetIssueById));
                 return null;
             }
         }

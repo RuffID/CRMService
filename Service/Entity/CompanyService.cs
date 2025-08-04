@@ -160,6 +160,7 @@ namespace CRMService.Service.Entity
             if (category != null)
             {
                 company.CategoryId = category.Id;
+                company.Category = null;
                 return true;
             }
 

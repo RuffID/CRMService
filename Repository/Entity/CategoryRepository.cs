@@ -27,9 +27,9 @@ namespace CRMService.Repository.Entity
             try
             {
                 if (trackable == null || trackable == true)
-                    return await context.CompanyCategories.FirstOrDefaultAsync(c => c.Id == item.Id || c.Code == item.Code);
+                    return await context.CompanyCategories.FirstOrDefaultAsync(c => c.Code == item.Code);
 
-                return await context.CompanyCategories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id || c.Code == item.Code);
+                return await context.CompanyCategories.AsNoTracking().FirstOrDefaultAsync(c => c.Code == item.Code);
 
             }
             catch (Exception ex)

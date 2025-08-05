@@ -3,13 +3,13 @@ using CRMService.DataBase.Postgresql;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
-using CRMService.Service.Sync;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class CompanyService(IOptions<ApiEndpoint> endpoint, EntitySyncService sync, IOptions<OkdeskSettings> okdSettings, IOptions<DatabaseSettings> dbSettings, GetItemService _request, IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class CompanyService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdSettings, IOptions<DatabaseSettings> dbSettings, 
+        GetItemService _request, IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<CompanyService> _logger = logger.CreateLogger<CompanyService>();
 
@@ -91,15 +91,12 @@ namespace CRMService.Service.Entity
             if (company == null)
                 return;
 
-            await sync.RunExclusive(async () =>
-            {
-                if (!await CheckCompanyCategory(company))
-                    return;
+            if (!await CheckCompanyCategory(company))
+                return;
 
-                await unitOfWork.Company.CreateOrUpdate([company]);
+            await unitOfWork.Company.CreateOrUpdate([company]);
 
-                await unitOfWork.SaveAsync();
-            });
+            await unitOfWork.SaveAsync();
         }
 
         public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany)
@@ -109,18 +106,15 @@ namespace CRMService.Service.Entity
             if (categories == null || !categories.Any())
                 return;
 
-            await sync.RunExclusive(async () =>
+            await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, okdSettings.Value.LimitForRetrievingEntitiesFromApi))
             {
-                await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, okdSettings.Value.LimitForRetrievingEntitiesFromApi))
-                {
-                    if (companies == null || companies.Count == 0)
-                        continue;
+                if (companies == null || companies.Count == 0)
+                    continue;
 
-                    await unitOfWork.Company.CreateOrUpdate(companies);
+                await unitOfWork.Company.CreateOrUpdate(companies);
 
-                    await unitOfWork.SaveAsync();
-                }
-            });
+                await unitOfWork.SaveAsync();
+            }
         }
 
         public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany)
@@ -132,18 +126,15 @@ namespace CRMService.Service.Entity
             if (categories == null || !categories.Any())
                 return;
 
-            await sync.RunExclusive(async () =>
+            await foreach (List<Company>? companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany, dbSettings.Value.LimitForRetrievingEntitiesFromDb))
             {
-                await foreach (List<Company>? companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany, dbSettings.Value.LimitForRetrievingEntitiesFromDb))
-                {
-                    if (companies == null || companies.Count == 0)
-                        continue;
+                if (companies == null || companies.Count == 0)
+                    continue;
 
-                    await unitOfWork.Company.CreateOrUpdate(companies);
+                await unitOfWork.Company.CreateOrUpdate(companies);
 
-                    await unitOfWork.SaveAsync();
-                }
-            });
+                await unitOfWork.SaveAsync();
+            }
 
             _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }

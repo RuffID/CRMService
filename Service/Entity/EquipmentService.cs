@@ -3,14 +3,14 @@ using CRMService.DataBase.Postgresql;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
-using CRMService.Service.Sync;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class EquipmentService(IOptions<ApiEndpoint> endpoint, EntitySyncService sync, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class EquipmentService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, 
+        IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<EquipmentService> _logger = logger.CreateLogger<EquipmentService>();
 
@@ -73,76 +73,67 @@ namespace CRMService.Service.Entity
 
             Equipment? equipment = equipments.First();
 
-            await sync.RunExclusive(async () =>
-            {
-                await CheckInformationOnEquipment(equipment);
+            await CheckInformationOnEquipment(equipment);
 
-                await unitOfWork.Equipment.CreateOrUpdate([equipment]);
+            await unitOfWork.Equipment.CreateOrUpdate([equipment]);
 
-                if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                    await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
+            if (equipment.Parameters != null && equipment.Parameters.Count > 0)
+                await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
 
-                await unitOfWork.SaveAsync();
-            });
+            await unitOfWork.SaveAsync();
         }
 
         public async Task UpdateEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0)
         {
-            await sync.RunExclusive(async () =>
+            await foreach (List<Equipment>? equipments in GetEquipmentsFromCloudApi(startIndex, limit, companyId, maintenanceEntityId))
             {
-                await foreach (List<Equipment>? equipments in GetEquipmentsFromCloudApi(startIndex, limit, companyId, maintenanceEntityId))
+                if (equipments == null || equipments.Count == 0)
+                    return;
+
+                foreach (var equipment in equipments)
+                    await CheckInformationOnEquipment(equipment);
+
+                await unitOfWork.Equipment.CreateOrUpdate(equipments);
+
+                foreach (var equipment in equipments)
                 {
-                    if (equipments == null || equipments.Count == 0)
-                        return;
-
-                    foreach (var equipment in equipments)
-                        await CheckInformationOnEquipment(equipment);
-
-                    await unitOfWork.Equipment.CreateOrUpdate(equipments);
-
-                    foreach (var equipment in equipments)
-                    {
-                        if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                            await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
-                    }
-
-                    await unitOfWork.SaveAsync();
+                    if (equipment.Parameters != null && equipment.Parameters.Count > 0)
+                        await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
                 }
-            });
+
+                await unitOfWork.SaveAsync();
+            }
         }
 
         public async Task UpdateEquipmentsFromCloudDb(int startIndex, int limit)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudDb));
 
-            await sync.RunExclusive(async () =>
+            while (true)
             {
-                while (true)
+                List<Equipment>? equipments = await GetEquipmentsFromCloudDb(startIndex, limit);
+
+                if (equipments == null || equipments.Count == 0)
+                    return;
+
+                startIndex = equipments.Last().Id;
+
+                foreach (var equipment in equipments)
+                    await CheckInformationOnEquipment(equipment);
+
+                await unitOfWork.Equipment.CreateOrUpdate(equipments);
+
+                foreach (var equipment in equipments)
                 {
-                    List<Equipment>? equipments = await GetEquipmentsFromCloudDb(startIndex, limit);
-
-                    if (equipments == null || equipments.Count == 0)
-                        return;
-
-                    startIndex = equipments.Last().Id;
-
-                    foreach (var equipment in equipments)
-                        await CheckInformationOnEquipment(equipment);
-
-                    await unitOfWork.Equipment.CreateOrUpdate(equipments);
-
-                    foreach (var equipment in equipments)
-                    {
-                        if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                            await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
-                    }
-
-                    await unitOfWork.SaveAsync();
-
-                    if (equipments.Count < limit)
-                        break;
+                    if (equipment.Parameters != null && equipment.Parameters.Count > 0)
+                        await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
                 }
-            });
+
+                await unitOfWork.SaveAsync();
+
+                if (equipments.Count < limit)
+                    break;
+            }
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));
         }

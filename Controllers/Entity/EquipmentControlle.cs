@@ -6,13 +6,14 @@ using CRMService.Dto;
 using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Service.Sync;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/crm/[controller]")]
     [ApiController]
-    public class EquipmentController(IUnitOfWorkEntities unitOfWork, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, EquipmentService service) : Controller
+    public class EquipmentController(IUnitOfWorkEntities unitOfWork, IOptions<DatabaseSettings> dbSettings, EntitySyncService sync, IOptions<OkdeskSettings> okdSettings, EquipmentService service) : Controller
     {
 
         [HttpGet]
@@ -59,7 +60,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut]
         public async Task<IActionResult> UpdateEquipmentFromCloudApi([FromQuery] long equipmentId = 0)
         {
-            await service.UpdateEquipmentFromCloudApi(equipmentId);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateEquipmentFromCloudApi(equipmentId);
+            });
 
             return NoContent();
         }
@@ -67,7 +71,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_by_company")]
         public async Task<IActionResult> UpdateEquipmentsByCompanyFromCloudApi([FromQuery] int startIndex = 0, [FromQuery] long id = 0)
         {
-            await service.UpdateEquipmentsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi, companyId: id);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateEquipmentsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi, companyId: id);
+            });
 
             return NoContent();
         }
@@ -75,7 +82,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_by_maintenance")]
         public async Task<IActionResult> UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] int startIndex = 0, [FromQuery] long id = 0)
         {
-            await service.UpdateEquipmentsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi, maintenanceEntityId: id);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateEquipmentsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi, maintenanceEntityId: id);
+            });
 
             return NoContent();
         }
@@ -83,7 +93,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromCloudApi([FromQuery] int startIndex = 0)
         {
-            await service.UpdateEquipmentsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateEquipmentsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+            });
 
             return NoContent();
         }
@@ -91,7 +104,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk([FromQuery] int startIndex = 0)
         {
-            await service.UpdateEquipmentsFromCloudDb(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateEquipmentsFromCloudDb(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            });
 
             return NoContent();
         }

@@ -3,14 +3,14 @@ using CRMService.DataBase.Postgresql;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
-using CRMService.Service.Sync;
 using Microsoft.Extensions.Options;
 using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.Entity
 {
-    public class IssueService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService itemService, IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, EntitySyncService sync, ILoggerFactory logger)
+    public class IssueService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService itemService, 
+        IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueService> _logger = logger.CreateLogger<IssueService>();
 
@@ -109,28 +109,25 @@ namespace CRMService.Service.Entity
 
             long pageNubmer = 1;
 
-            await sync.RunExclusive(async () =>
+            foreach (Employee employee in employees.Where(e => e.Active == true))
             {
-                foreach (Employee employee in employees.Where(e => e.Active == true))
+                await foreach (List<Issue>? issues in GetIssuesFromCloudApi(dateFrom, dateTo, employee.Id, pageNubmer, startIndex, limit))
                 {
-                    await foreach (List<Issue>? issues in GetIssuesFromCloudApi(dateFrom, dateTo, employee.Id, pageNubmer, startIndex, limit))
+                    if (issues == null || issues.Count == 0)
+                        break;
+
+                    foreach (Issue issue in issues)
                     {
-                        if (issues == null || issues.Count == 0)
-                            break;
-
-                        foreach (Issue issue in issues)
-                        {
-                            issue.AssigneeId = employee.Id;
-                            await CheckAttributes(issue);
-                            issue.TimeEntries = new List<TimeEntry>();
+                        issue.AssigneeId = employee.Id;
+                        await CheckAttributes(issue);
+                        issue.TimeEntries = new List<TimeEntry>();
 
 
-                            await unitOfWork.Issue.CreateOrUpdate(issue);
-                            await unitOfWork.SaveAsync();
-                        }
+                        await unitOfWork.Issue.CreateOrUpdate(issue);
+                        await unitOfWork.SaveAsync();
                     }
                 }
-            });
+            }
 
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
         }
@@ -139,29 +136,26 @@ namespace CRMService.Service.Entity
         {
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudDb), caller);
 
-            await sync.RunExclusive(async () =>
+            while (true)
             {
-                while (true)
+                List<Issue>? issues = await GetIssuesFromCloudDb(dateFrom, dateTo, startIndex, limit);
+
+                if (issues == null || issues.Count == 0)
+                    break;
+
+                foreach (Issue issue in issues)
                 {
-                    List<Issue>? issues = await GetIssuesFromCloudDb(dateFrom, dateTo, startIndex, limit);
+                    await CheckAttributes(issue);
 
-                    if (issues == null || issues.Count == 0)
-                        break;
-
-                    foreach (Issue issue in issues)
-                    {
-                        await CheckAttributes(issue);
-
-                        await unitOfWork.Issue.CreateOrUpdate(issue);
-                        await unitOfWork.SaveAsync();
-                    }
-
-                    startIndex = issues.Last().Id;
-
-                    if (issues.Count < limit)
-                        break;
+                    await unitOfWork.Issue.CreateOrUpdate(issue);
+                    await unitOfWork.SaveAsync();
                 }
-            });
+
+                startIndex = issues.Last().Id;
+
+                if (issues.Count < limit)
+                    break;
+            }
 
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
         }

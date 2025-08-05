@@ -1,5 +1,6 @@
 ﻿using CRMService.Models.ConfigClass;
 using CRMService.Service.Entity;
+using CRMService.Service.Sync;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.HostedServices
@@ -16,12 +17,17 @@ namespace CRMService.HostedServices
                 using var scope = scopeFactory.CreateScope();
                 IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                 TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
+                EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
+
 
                 DateTime dateFrom = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour: 0, minute: 0, second: 0).AddDays(-1);
                 DateTime dateTo = new(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour: 23, minute: 59, second: 59);
 
-                await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi, nameof(OneDayReportHostedService));
-                await timeEntryService.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo);
+                await sync.RunExclusive(async () =>
+                {
+                    await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi, nameof(OneDayReportHostedService));
+                    await timeEntryService.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo);
+                });
 
                 DateTime nextDay = DateTime.Now.AddDays(1);
                 DateTime nextDayTime = new(nextDay.Year, nextDay.Month, nextDay.Day, hour: 0, minute: 0, second: 1);

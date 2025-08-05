@@ -1,4 +1,6 @@
-﻿namespace CRMService.HostedServices
+﻿using CRMService.Service.Sync;
+
+namespace CRMService.HostedServices
 {
     // Cлужба предназначена для обновления всех справочников каждые три часа
     public class UpdateDirectoriesHostedService(IServiceScopeFactory scopeFactory) : BackgroundService
@@ -12,11 +14,10 @@
                 using var scope = scopeFactory.CreateScope();
 
                 Service.Hosted.UpdateDirectoriesService updateDirectoriesService = scope.ServiceProvider.GetRequiredService<Service.Hosted.UpdateDirectoriesService>();
-
-                await updateDirectoriesService.RunUpdateDirectories();
+                EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 
                 TimeSpan remaining = DateTime.Now.AddHours(3) - DateTime.Now;
-
+                await sync.RunExclusive(updateDirectoriesService.RunUpdateDirectories);
                 await Task.Delay(remaining, stoppingToken);
             }
         }

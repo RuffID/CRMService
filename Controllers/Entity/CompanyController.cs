@@ -14,7 +14,7 @@ namespace CRMService.Controllers.Entity
     [Authorize]
     [Route("api/crm/[controller]")]
     [ApiController]
-    public class CompanyController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, CompanyService service) : Controller
+    public class CompanyController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, EntitySyncService sync, CompanyService service) : Controller
     {
 
         [HttpGet]
@@ -45,7 +45,10 @@ namespace CRMService.Controllers.Entity
             if (companyId == 0)
                 BadRequest("Company id not set.");
 
-            await service.UpdateCompanyFromCloudApi(companyId);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateCompanyFromCloudApi(companyId);
+            });
 
             return NoContent();
         }
@@ -53,7 +56,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
         public async Task<IActionResult> UpdateCompaniesFromCloudApi([FromQuery] int startIndexCategory = 0, int startIndexCompany = 0)
         {
-            await service.UpdateCompaniesFromCloudApi(startIndexCategory, startIndexCompany);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateCompaniesFromCloudApi(startIndexCategory, startIndexCompany);
+            });
 
             return NoContent();
         }
@@ -61,7 +67,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
         public async Task<IActionResult> UpdateCompaniesFromCloudDb([FromQuery] int startIndexCategory = 0, int startIndexCompany = 0)
         {
-            await service.UpdateCompaniesFromCloudDb(startIndexCategory, startIndexCompany);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateCompaniesFromCloudDb(startIndexCategory, startIndexCompany);
+            });
 
             return NoContent();
         }

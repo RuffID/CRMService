@@ -7,13 +7,15 @@ using Microsoft.Extensions.Options;
 using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Service.Sync;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/crm/[controller]")]
     [ApiController]
-    public class MaintenanceEntityController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWorkEntities unitOfWork, MaintenanceEntityService service) : Controller
+    public class MaintenanceEntityController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWorkEntities unitOfWork, 
+        EntitySyncService sync, MaintenanceEntityService service) : Controller
     {
 
         [HttpGet]
@@ -44,7 +46,10 @@ namespace CRMService.Controllers.Entity
             if (maintenanceEntityId == 0)
                 BadRequest("Maintenance entity id not set.");
 
-            await service.UpdateMaintenanceEntityFromCloudApi(maintenanceEntityId);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateMaintenanceEntityFromCloudApi(maintenanceEntityId);
+            });
 
             return NoContent();
         }
@@ -52,7 +57,10 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
         public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi([FromQuery] long startIndex = 0)
         {
-            await service.UpdateMaintenanceEntitiesFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await sync.RunExclusive(async () =>
+            {
+                await service.UpdateMaintenanceEntitiesFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+            });
 
             return NoContent();
         }
@@ -60,7 +68,7 @@ namespace CRMService.Controllers.Entity
         [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
         public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb()
         {
-            await service.UpdateMaintenanceEntitiesFromCloudDb();
+            await sync.RunExclusive(service.UpdateMaintenanceEntitiesFromCloudDb);
 
             return NoContent();
         }

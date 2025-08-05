@@ -6,12 +6,12 @@ using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
 using CRMService.Models.WebHook;
 using CRMService.Service.Entity;
-using CRMService.Service.Sync;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook
 {
-    public class IssueWebhookService(IUnitOfWorkEntities unitOfWork, IssueService issueService, TimeEntryService timeEntryService, IOptions<ApiEndpoint> endp, IRequestService request, IOptions<TelegramBotSettings> tgSettings, EntitySyncService sync, ILoggerFactory logger) : IWebhookHandler
+    public class IssueWebhookService(IUnitOfWorkEntities unitOfWork, IssueService issueService, TimeEntryService timeEntryService, IOptions<ApiEndpoint> endp,
+        IRequestService request, IOptions<TelegramBotSettings> tgSettings, ILoggerFactory logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
         private readonly TelegramNotification telegramNotification = new(request, endp.Value, logger);
@@ -19,42 +19,25 @@ namespace CRMService.Service.Webhook
 
         public async Task<bool> HandleWebhook(RootEvent @event)
         {
-            if (@event.Issue == null) 
+            if (@event.Issue == null)
                 return false;
 
-            _logger.LogInformation("[Method:{MethodName}] Webhook type processed: \"{WebhookType}\". Issue: {issueId}", 
-                nameof(IssueWebhookService), @event.Event!.Event_type, @event.Issue.Id);
             switch (@event.Event!.Event_type)
             {
                 case "new_ticket_status":
-                    await sync.RunExclusive(async () =>
-                    {
-                        await UpdateStatusAndSaveTimeEntries(@event);
-                    });
+                    await UpdateStatusAndSaveTimeEntries(@event);
                     break;
                 case "new_ticket":
-                    await sync.RunExclusive(async () =>
-                    {
-                        await CreateIssue(@event.Issue);
-                    });
+                    await CreateIssue(@event.Issue);
                     break;
                 case "new_assignee":
-                    await sync.RunExclusive(async () =>
-                    {
-                        await UpdateIssue(@event.Issue);
-                    });
+                    await UpdateIssue(@event.Issue);
                     break;
                 case "update_issue_work_type":
-                    await sync.RunExclusive(async () =>
-                    {
-                        await UpdateIssue(@event.Issue);
-                    });
+                    await UpdateIssue(@event.Issue);
                     break;
                 case "ticket_deleted":
-                    await sync.RunExclusive(async () =>
-                    {
-                        await MarkIssueAsDeletedAsync(@event.Issue);
-                    });
+                    await MarkIssueAsDeletedAsync(@event.Issue);
                     break;
                 case "new_comment":
                     await NewComment(@event);
@@ -73,7 +56,7 @@ namespace CRMService.Service.Webhook
             await issueService.CheckAttributes(issue);
             await unitOfWork.Issue.CreateOrUpdate(issue);
 
-            _logger.LogInformation("[Method:{MethodName}] Save issue from webhook: Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+            _logger.LogInformation("[Method:{MethodName}] Create issue from webhook: Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(CreateIssue), issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.Assignee?.Employee?.Id);
 
             await unitOfWork.SaveAsync();
@@ -94,7 +77,7 @@ namespace CRMService.Service.Webhook
             Issue issue = @event.Issue!.ConvertToIssue();
             await issueService.CheckAttributes(issue);
 
-            _logger.LogInformation("[Method:{MethodName}] Save issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+            _logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, @event.Issue.Id, @event.Issue.Status?.Code, @event.Issue.Priority?.Code, @event.Issue.Type?.Code, @event.Issue.Client?.Company?.Id, @event.Issue.Maintenance_entity?.Id, @event.Issue.Assignee?.Employee?.Id);
 
             await unitOfWork.Issue.CreateOrUpdate(issue);
@@ -121,7 +104,7 @@ namespace CRMService.Service.Webhook
 
                 await unitOfWork.TimeEntry.CreateOrUpdate(entries);
 
-                _logger.LogInformation("[Method:{MethodName}] Save time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
+                _logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.Assignee?.Employee?.Id);
 
                 await unitOfWork.SaveAsync();

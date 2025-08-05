@@ -10,7 +10,7 @@ namespace CRMService.HostedServices
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(TimeSpan.FromHours(12), stoppingToken);
+            await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -18,7 +18,6 @@ namespace CRMService.HostedServices
                 IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                 TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
                 EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
-
 
                 DateTime dateFrom = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour: 0, minute: 0, second: 0).AddDays(-1);
                 DateTime dateTo = new(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour: 23, minute: 59, second: 59);

@@ -10,7 +10,7 @@ namespace CRMService.HostedServices
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+            await Task.Delay(TimeSpan.FromDays(7), stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {

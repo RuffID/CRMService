@@ -33,7 +33,8 @@ namespace CRMService.Service.Hosted
             DateTime now = DateTime.Now;
             if (!dateFrom.HasValue)
                 dateFrom = new(now.Year, now.Month, now.Day - 1, hour: 0, minute: 0, second: 0);
-            DateTime dateTo = new(now.Year, now.Month, now.Day, hour: 23, minute: 59, second: 59);
+
+            DateTime dateTo = now.AddHours(-4); // Смещение на 4 часа назад, чтобы не затирались более новые данные устаревшими
 
             _logger.LogInformation("[Method:{MethodName}] Starting updating directories. Date from: {DateFrom}, date to: {DateTo}", nameof(RunUpdateDirectories), dateFrom.ToString(), dateTo.ToString());
 

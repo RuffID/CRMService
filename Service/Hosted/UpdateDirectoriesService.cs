@@ -26,13 +26,13 @@ namespace CRMService.Service.Hosted
         IOptions<DatabaseSettings> dbSettings,
         ILoggerFactory logger)
     {
-
         private readonly ILogger<UpdateDirectoriesService> _logger = logger.CreateLogger<UpdateDirectoriesService>();
 
-        public async Task RunUpdateDirectories()
+        public async Task RunUpdateDirectories(DateTime? dateFrom = null)
         {
             DateTime now = DateTime.Now;
-            DateTime dateFrom = new(now.Year, now.Month, now.Day - 1, hour: 0, minute: 0, second: 0);
+            if (!dateFrom.HasValue)
+                dateFrom = new(now.Year, now.Month, now.Day - 1, hour: 0, minute: 0, second: 0);
             DateTime dateTo = new(now.Year, now.Month, now.Day, hour: 23, minute: 59, second: 59);
 
             _logger.LogInformation("[Method:{MethodName}] Starting updating directories. Date from: {DateFrom}, date to: {DateTo}", nameof(RunUpdateDirectories), dateFrom.ToString(), dateTo.ToString());
@@ -67,9 +67,9 @@ namespace CRMService.Service.Hosted
 
             await status.UpdateIssueStatusesFromCloudDb();
 
-            await issue.UpdateIssuesFromCloudDb(dateFrom, dateTo, startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await issue.UpdateIssuesFromCloudDb(dateFrom.Value, dateTo, startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 
-            await time.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo);
+            await time.UpdateTimeEntriesFromCloudDb(dateFrom.Value, dateTo);
 
             await equipment.UpdateEquipmentsFromCloudDb(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 

@@ -115,7 +115,6 @@ namespace CRMService.Core
             services.AddHostedService<ThirtyMinutesReportHostedService>();
             services.AddHostedService<OneDayReportHostedService>();
             services.AddHostedService<WeekReportHostedService>();
-            services.AddHostedService<UpdateDirectoriesHostedService>();
             #endif
 
             return services;

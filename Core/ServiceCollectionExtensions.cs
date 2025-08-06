@@ -111,11 +111,11 @@ namespace CRMService.Core
             services.AddScoped<IWebhookHandler, EquipmentWebhookService>();
 
             // Запуск служб только в RELEASE режиме
-            #if !DEBUG
+#if !DEBUG
             services.AddHostedService<ThirtyMinutesReportHostedService>();
-            services.AddHostedService<OneDayReportHostedService>();
+            services.AddHostedService<UpdateDirectoriesHostedService>();
             services.AddHostedService<WeekReportHostedService>();
-            #endif
+#endif
 
             return services;
         }

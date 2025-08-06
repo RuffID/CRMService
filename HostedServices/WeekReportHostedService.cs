@@ -17,7 +17,7 @@ namespace CRMService.HostedServices
 
                 EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 
-                await sync.RunExclusive(async () => await updateDirectoriesService.RunUpdateDirectories(DateTime.Now.AddDays(-7)));
+                await sync.RunExclusive(async () => await updateDirectoriesService.RunUpdateDirectories(dateFrom: DateTime.Now.AddDays(-7)));
             }
         }
     }

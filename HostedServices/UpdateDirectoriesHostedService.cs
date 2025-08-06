@@ -2,18 +2,13 @@
 
 namespace CRMService.HostedServices
 {
-    public class OneDayReportHostedService(IServiceScopeFactory scopeFactory) : BackgroundService
+    public class UpdateDirectoriesHostedService(IServiceScopeFactory scopeFactory) : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                // Вычисляет задержку до ближайшей полуночи
-                DateTime now = DateTime.Now;
-                DateTime nextRun = now.Date.AddDays(1); // Завтра в 00:00
-                TimeSpan delay = nextRun - now;
-
-                await Task.Delay(delay, stoppingToken); // Ждёт до 00:00
+                await Task.Delay(TimeSpan.FromHours(3), stoppingToken);
 
                 using IServiceScope scope = scopeFactory.CreateScope();
 

@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using CRMService.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
@@ -8,6 +7,7 @@ using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
+using CRMService.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {

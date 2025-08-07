@@ -1,19 +1,22 @@
 ﻿using CRMService.API;
 using CRMService.Core.Filter;
+using CRMService.DataBase;
 using CRMService.DataBase.Postgresql;
+using CRMService.HostedServices;
 using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Server;
 using CRMService.Repository;
+using CRMService.Service.Authorization;
 using CRMService.Service.Entity;
 using CRMService.Service.Hosted;
 using CRMService.Service.Report;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Serilog.Context;
 using System.Text;
 
 namespace CRMService.Core
@@ -31,6 +34,10 @@ namespace CRMService.Core
                 configuration.GetSection(DatabaseSettings.CONNECTION_STRINGS));
             services.Configure<TelegramBotSettings>(
                 configuration.GetSection(TelegramBotSettings.TELEGRAM_BOT));
+            services.Configure<AuthOptions>(
+                configuration.GetSection(AuthOptions.AUTHORIZATION_OPTIONS));
+            services.Configure<HashSettings>(
+                configuration.GetSection(HashSettings.HASH_CONFIGURE));
 
             return services;
         }
@@ -53,6 +60,7 @@ namespace CRMService.Core
                     }
                 });
             });
+            services.AddDbContext<CrmAuthorizationContext>();
             services.AddControllers();
             services.AddLogging();
             services.AddAutoMapper(cfg => { }, typeof(MappingProfiles).Assembly);
@@ -76,19 +84,6 @@ namespace CRMService.Core
                     };
 
                     options.RequireHttpsMetadata = false;
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnMessageReceived = context =>
-                        {
-                            var path = context.HttpContext.Request.Path;
-                            if (context.HttpContext.Request.Headers.TryGetValue("Authorization", out var accessToken) && path.StartsWithSegments("/chat"))
-                            {
-                                accessToken = accessToken.ToString().Replace("Bearer", "").Trim();
-                                context.Token = accessToken;
-                            }
-                            return Task.CompletedTask;
-                        }
-                    };
                 });
 
             services.AddSingleton<EntitySyncService>();
@@ -98,7 +93,8 @@ namespace CRMService.Core
 
             services.AddScoped<IManageImage, ManageImage>();
             services.AddScoped<IUnitOfWorkEntities, UnitOfWorkEntities>();
-            services.AddScoped<IUnitOfWorkServerInfo, UnitOfWorkServerInfo>();
+            services.AddScoped<IUnitOfWorkAuthorization, UnitOfWorkAuthorization>();
+
 
             // Services
             services.AddScoped<GetItemService>();
@@ -121,18 +117,25 @@ namespace CRMService.Core
             services.AddScoped<RoleService>();
             services.AddScoped<TimeEntryService>();
             services.AddScoped<ReportService>();
+
             services.AddScoped<UpdateDirectoriesService>();
+
+            services.AddScoped<UserLoginService>();
+            services.AddScoped<UserRegistrationService>();
+            services.AddScoped<DataBaseHandler>();
+            services.AddScoped<BackupService>();
+            services.AddScoped<GenerateRandomString>();
+
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();
             services.AddScoped<IWebhookHandler, MaintenanceEntityWebhookService>();
             services.AddScoped<IWebhookHandler, EquipmentWebhookService>();
 
-            // Запуск служб только в RELEASE режиме
-#if !DEBUG
+
             services.AddHostedService<ThirtyMinutesReportHostedService>();
             services.AddHostedService<UpdateDirectoriesHostedService>();
             services.AddHostedService<WeekReportHostedService>();
-#endif
+
 
             return services;
         }

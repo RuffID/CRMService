@@ -6,10 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.DataBase;
 
-public partial class CRMEntitiesContext : DbContext
+public partial class CrmEntitiesContext : DbContext
 {
     private readonly DatabaseSettings _dbSettings;
-    public CRMEntitiesContext(IOptions<DatabaseSettings> dbSetings)
+    public CrmEntitiesContext(IOptions<DatabaseSettings> dbSetings)
     {
         _dbSettings = dbSetings.Value;
         Database.EnsureCreated();

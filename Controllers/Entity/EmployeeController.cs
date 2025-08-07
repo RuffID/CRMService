@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
-using CRMService.Dto;
 using CRMService.Core;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {

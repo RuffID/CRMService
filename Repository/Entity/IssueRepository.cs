@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueRepository(CRMEntitiesContext context, ILoggerFactory logger) : IIssueRepository
+    public class IssueRepository(CrmEntitiesContext context, ILoggerFactory logger) : IIssueRepository
     {
         private readonly ILogger<IssueRepository> _logger = logger.CreateLogger<IssueRepository>();
 

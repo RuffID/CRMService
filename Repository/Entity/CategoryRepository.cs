@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Entity
 {
-    public class CategoryRepository(CRMEntitiesContext context, ILoggerFactory logger) : ICompanyCategoryRepository
+    public class CategoryRepository(CrmEntitiesContext context, ILoggerFactory logger) : ICompanyCategoryRepository
     {
         private readonly ILogger<CategoryRepository> _logger = logger.CreateLogger<CategoryRepository>();
 
@@ -55,7 +55,6 @@ namespace CRMService.Repository.Entity
         public void Update(CompanyCategory oldItem, CompanyCategory newItem)
         {
             oldItem.CopyData(newItem);
-
         }
 
         public void Create(CompanyCategory item)

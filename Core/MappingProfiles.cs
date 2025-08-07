@@ -1,7 +1,7 @@
-﻿using CRMService.Dto;
-using AutoMapper;
+﻿using AutoMapper;
 using CRMService.Models.Entity;
 using CRMService.Models.WebHook;
+using CRMService.Dto.Entity;
 
 namespace CRMService.Core
 {
@@ -38,6 +38,13 @@ namespace CRMService.Core
             CreateMap<TaskTypeDto, IssueType>();
             CreateMap<IssueType, TaskTypeDto>();
             CreateMap<MaintenanceEntityWebHook, MaintenanceEntity>();
+            CreateMap<User, UserDto>();
+            CreateMap<UserDto, User>();
+            CreateMap<Role, RoleDto>();
+            CreateMap<RoleDto, Role>();
+            CreateMap<Session, SessionDto>();
+            CreateMap<UserRole, UserRoleDto>();
+            CreateMap<BlockReason, BlockReasonDto>();
         }
     }
 }

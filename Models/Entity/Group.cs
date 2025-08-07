@@ -1,4 +1,4 @@
-﻿using CRMService.Dto;
+﻿using CRMService.Dto.Entity;
 using CRMService.Interfaces.Entity;
 using System.ComponentModel.DataAnnotations.Schema;
 

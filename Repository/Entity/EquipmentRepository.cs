@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using CRMService.Dto;
 using CRMService.DataBase;
 using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Dto.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class EquipmentRepository(CRMEntitiesContext context, ILoggerFactory logger) : IEquipmentRepository
+    public class EquipmentRepository(CrmEntitiesContext context, ILoggerFactory logger) : IEquipmentRepository
     {
         private readonly ILogger<EquipmentRepository> _logger = logger.CreateLogger<EquipmentRepository>();
 

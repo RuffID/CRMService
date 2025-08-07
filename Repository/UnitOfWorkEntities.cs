@@ -14,7 +14,7 @@ namespace CRMService.Repository
     public class UnitOfWorkEntities(IOptions<DatabaseSettings> databaseSettings, ILoggerFactory logger) : IUnitOfWorkEntities
     {
         private bool disposed = false;
-        private readonly CRMEntitiesContext entitiesContext = new(databaseSettings);
+        private readonly CrmEntitiesContext entitiesContext = new(databaseSettings);
         private readonly ILogger<UnitOfWorkEntities> _logger = logger.CreateLogger<UnitOfWorkEntities>();
         private ICompanyRepository? companyRepository;
         private ICompanyCategoryRepository? categoryRepository;

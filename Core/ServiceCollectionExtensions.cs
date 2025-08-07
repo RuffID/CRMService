@@ -1,7 +1,6 @@
 ﻿using CRMService.API;
 using CRMService.Core.Filter;
 using CRMService.DataBase.Postgresql;
-using CRMService.HostedServices;
 using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
@@ -39,11 +38,29 @@ namespace CRMService.Core
         public static IServiceCollection ConfigureServices(
              this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddRazorPages(options =>
+            {
+                // Делает все ссылки на страницы to lower case
+                options.Conventions.AddFolderRouteModelConvention("/", model =>
+                {
+                    foreach (var selector in model.Selectors)
+                    {
+                        var attrRoute = selector.AttributeRouteModel;
+                        if (attrRoute?.Template != null)
+                        {
+                            attrRoute.Template = attrRoute.Template.ToLowerInvariant();
+                        }
+                    }
+                });
+            });
             services.AddControllers();
             services.AddLogging();
-            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            services.AddAutoMapper(cfg => { }, typeof(MappingProfiles).Assembly);
             services.AddHttpClient<IRequestService, RequestClient>();
-            services.AddSignalR();
+            services.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = true;
+            });
             services.AddAuthentication()
                 .AddJwtBearer(options =>
                 {

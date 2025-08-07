@@ -38,7 +38,7 @@ namespace CRMService.Service.Entity
 
             await unitOfWork.SaveAsync();
 
-            await DeleteDeletedTimeEntries(timeEntry.Time_Entries);
+            await DeleteMarkedAsDeketedTimeEntries(timeEntry.Time_Entries);
         }
 
         private async Task<List<TimeEntry>?> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long timeEntryId, long limit)
@@ -95,18 +95,18 @@ namespace CRMService.Service.Entity
             _logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
         }
 
-        private async Task DeleteDeletedTimeEntries(TimeEntry[] entriesFromCloudApi)
+        private async Task DeleteMarkedAsDeketedTimeEntries(TimeEntry[] entriesFromCloudApi)
         {
             foreach (TimeEntry entry in entriesFromCloudApi)
             {
                 if (entry.IssueId == null) continue;
                 // Получение всех записей сохранённых в локальной БД сервера
-                var timeEntriesFromLocalDB = await unitOfWork.TimeEntry.GetEntriesByIssue((int)entry.IssueId);
+                List<TimeEntry>? timeEntriesFromLocalDB = (await unitOfWork.TimeEntry.GetEntriesByIssue((int)entry.IssueId))?.ToList();
 
                 if (timeEntriesFromLocalDB == null || !timeEntriesFromLocalDB.Any()) continue;
 
-                // Прохоидит циклом по каждой записи из БД сервера для поиска удалённых в окдеске записей списанного времени
-                foreach (var entryFromLocalDB in timeEntriesFromLocalDB)
+                // Проходит циклом по каждой записи из БД сервера для поиска удалённых 
+                foreach (TimeEntry entryFromLocalDB in timeEntriesFromLocalDB)
                 {
                     // Если запись из локальной БД есть в записях полученных из API, значит она существует (не удалена) и проверяется следующая запись
                     if (entriesFromCloudApi.Any(te => te.Id == entryFromLocalDB.Id)) continue;
@@ -116,18 +116,21 @@ namespace CRMService.Service.Entity
                 }
             }
 
-            // Сохранение изменений
             await unitOfWork.SaveAsync();
         }
 
         public async Task CheckEmployeeAndIssue(TimeEntry entry)
         {
             if (entry.EmployeeId != null)
+            {
                 if (await unitOfWork.Employee.GetEmployeeById((int)entry.EmployeeId, false) == null)
                     entry.EmployeeId = null;
+            }
             if (entry.IssueId != null)
+            {
                 if (await unitOfWork.Issue.GetIssueById((int)entry.IssueId, false) == null)
                     entry.IssueId = null;
+            }
         }
     }
 }

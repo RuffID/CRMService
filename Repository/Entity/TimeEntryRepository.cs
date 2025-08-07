@@ -17,7 +17,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving time entry list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving time entry list. Start index - {startIndex}, limit - {limit}", nameof(GetItems), startIndex, limit);
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving time entry.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving time entry. Id - {entryId}", nameof(GetItem), item.Id);
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving time entries by issue id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving time entries by issue id - {issueId}.", nameof(GetEntriesByIssue), issueId);
                 return null;
             }
         }

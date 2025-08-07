@@ -53,9 +53,9 @@ namespace CRMService.Service.Hosted
 
             await category.UpdateCategoriesFromCloudDb();
 
-            await company.UpdateCompaniesFromCloudDb(startIndexCategory: 0, startIndexCompany: 0);
+            await company.UpdateCompaniesFromCloudApi(startIndexCategory: 0, startIndexCompany: 0);
 
-            await maintenance.UpdateMaintenanceEntitiesFromCloudDb();
+            await maintenance.UpdateMaintenanceEntitiesFromCloudApi(startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi);
 
             await role.UpdateRolesFromCloudApi();
 
@@ -73,7 +73,7 @@ namespace CRMService.Service.Hosted
 
             await time.UpdateTimeEntriesFromCloudDb(dateFrom.Value, dateTo.Value);
 
-            await equipment.UpdateEquipmentsFromCloudDb(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await equipment.UpdateEquipmentsFromCloudApi(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 
             _logger.LogInformation("[Method:{MethodName}] Directories update completed...", nameof(RunUpdateDirectories));
         }

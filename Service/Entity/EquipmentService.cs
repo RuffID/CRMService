@@ -85,6 +85,8 @@ namespace CRMService.Service.Entity
 
         public async Task UpdateEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0)
         {
+            _logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudApi));
+
             await foreach (List<Equipment>? equipments in GetEquipmentsFromCloudApi(startIndex, limit, companyId, maintenanceEntityId))
             {
                 if (equipments == null || equipments.Count == 0)
@@ -103,6 +105,8 @@ namespace CRMService.Service.Entity
 
                 await unitOfWork.SaveAsync();
             }
+
+            _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudApi));
         }
 
         public async Task UpdateEquipmentsFromCloudDb(int startIndex, int limit)

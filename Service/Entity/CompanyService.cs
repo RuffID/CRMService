@@ -101,6 +101,8 @@ namespace CRMService.Service.Entity
 
         public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany)
         {
+            _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudApi));
+
             IEnumerable<CompanyCategory>? categories = await unitOfWork.CompanyCategory.GetItems(startIndexCategory, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 
             if (categories == null || !categories.Any())
@@ -115,6 +117,8 @@ namespace CRMService.Service.Entity
 
                 await unitOfWork.SaveAsync();
             }
+
+            _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudApi));
         }
 
         public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany)

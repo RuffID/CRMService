@@ -13,7 +13,7 @@ namespace CRMService.HostedServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(TimeSpan.FromMinutes(45), stoppingToken); // Задержка при запуске сервиса 45 минут
+            await Task.Delay(TimeSpan.FromMinutes(timeout), stoppingToken); // Задержка при запуске сервиса 
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -23,18 +23,18 @@ namespace CRMService.HostedServices
                 TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
                 EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 
-                DateTime now = DateTime.Now;
-                DateTime dateTo = new(now.Year, now.Month, now.Day, hour: 23, minute: 59, second: 59);
+                DateTime dateTo = DateTime.Now;
+                DateTime dateFrom = dateTo.AddMinutes(-timeout);
 
-                // Обновление заявок через API за последние 30 минут
+                // Обновление заявок через API за определённый промежуток
                 await sync.RunExclusive(async () =>
                 {
-                    await issueService.UpdateIssuesFromCloudApi(now, dateTo, startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi, nameof(ThirtyMinutesReportHostedService));
+                    await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi, nameof(ThirtyMinutesReportHostedService));
 
-                    // Получение из БД заявок, которые были обновлены в течении 30 прошедших минут
-                    List<Issue>? issuesFromLocalDb = (await unitOfWork.Issue.GetIssuesBetweenUpdateDates(now, dateTo, startIndex: 0))?.ToList();
+                    // Получение из БД заявок, которые были обновлены за определённый промежуток времени
+                    List<Issue>? issuesFromLocalDb = (await unitOfWork.Issue.GetIssuesBetweenUpdateDates(dateFrom, dateTo, startIndex: 0))?.ToList();
 
-                    // Обновление списанного времени по каждой заявке, которая была обновлена в течении последних 30 минут
+                    // Обновление списанного времени по каждой заявке, которая была обновлена в течении определённого промежутка времени
                     if (issuesFromLocalDb != null && issuesFromLocalDb.Count > 0)
                     {
                         foreach (Issue issue in issuesFromLocalDb)
@@ -44,9 +44,7 @@ namespace CRMService.HostedServices
                     }
                 });
 
-                // Таймаут на 30 минут на следующий парсинг
-                TimeSpan remaining = DateTime.UtcNow.AddMinutes(timeout) - DateTime.UtcNow;
-                await Task.Delay(remaining, stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(timeout), stoppingToken);
             }
         }
     }

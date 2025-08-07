@@ -21,7 +21,7 @@ namespace CRMService.API
                 }
                 if (response.IsSuccessStatusCode == false)
                 {
-                    _logger.LogWarning("[Method:{MethodName}] Not success response code. Link: {Link}. Caller: {CallerMethod}", nameof(SendPost), link, caller);
+                    _logger.LogWarning("[Method:{MethodName}] Not success response code. Link: {Link}, response code: {responseCode}. Caller: {CallerMethod}", nameof(SendPost), link, response.StatusCode, caller);
                     return null;
                 }
 
@@ -43,7 +43,7 @@ namespace CRMService.API
 
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    _logger.LogWarning("[Method:{MethodName}] Wrong api key. Error: {Error}. Link: {Link}. Caller: {CallerMethod}", nameof(SendGet), responseString, link, caller);
+                    _logger.LogWarning("[Method:{MethodName}] Wrong api key. Error: {Error}. Link: {Link}, response code: {responseCode}. Caller: {CallerMethod}", nameof(SendGet), responseString, link, response.StatusCode, caller);
                     return null;
                 }
                 if (response.IsSuccessStatusCode == false)

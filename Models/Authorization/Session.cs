@@ -13,5 +13,10 @@ namespace CRMService.Models.Authorization
         public DateTime? ExpirationRefreshToken { get; set; }
 
         public virtual User? User { get; set; }
+
+        internal void CopyData(Session newItem)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

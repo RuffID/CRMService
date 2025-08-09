@@ -31,6 +31,14 @@ namespace CRMService.Models.Authorization
 
         public virtual ICollection<Session> Sessions { get; set; } = [];
         
-        public virtual ICollection<UserRole> UserRoles { get; set; } = [];        
+        public virtual ICollection<UserRole> UserRoles { get; set; } = [];
+
+        public void CopyData(User newItem)
+        {
+            Login = newItem.Login;
+            Email = newItem.Email;
+            PasswordHash = newItem.PasswordHash;
+            Active = newItem.Active;
+        }
     }
 }

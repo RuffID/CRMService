@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Manufacturers.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Manufacturers.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving manufacturer list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving manufacturer list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving manufacturer.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving manufacturer.", nameof(GetItem));
                 return null;
             }
         }

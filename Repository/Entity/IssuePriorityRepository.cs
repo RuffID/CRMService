@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssuePriorities.AsNoTracking().OrderBy(p => p.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.IssuePriorities.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(p => p.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue priority list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue priority list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue priority.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue priority.", nameof(GetItem));
                 return null;
             }
         }
@@ -42,11 +42,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssuePriorities.CountAsync();
+                return await context.IssuePriorities.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of issue priorities.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of issue priorities.", nameof(GetCountOfItems));
                 return 0;
             }
         }

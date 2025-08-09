@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Roles.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Roles.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role.", nameof(GetItem));
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role by name.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role by name.", nameof(GetRoleByName));
                 return null;
             }
         }

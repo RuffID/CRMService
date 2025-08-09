@@ -1,9 +1,8 @@
-﻿using CRMService.Interfaces.Repository.Auth;
-using CRMService.Interfaces.Repository.Authorization;
+﻿using CRMService.Interfaces.Repository.Authorization;
 
 namespace CRMService.Interfaces.Repository
 {
-    public interface IUnitOfWorkAuthorization
+    public interface IUnitOfWorkAuthorization : IDisposable
     {
         IBlockReasonRepository BlockReason { get; }
 

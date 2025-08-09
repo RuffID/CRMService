@@ -65,7 +65,7 @@ namespace LoginService.Controllers
                 return BadRequest($"Sessions not found.");
 
             // Удаление сессии
-            foreach (var session in sessions)
+            foreach (Session session in sessions)
                 unitOfWork.Session.Delete(session);
 
             await unitOfWork.SaveAsync();

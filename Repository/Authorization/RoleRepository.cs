@@ -18,20 +18,23 @@ namespace CRMService.Repository.Authorization
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list.", nameof(GetAllItem));
                 return null;
             }
         }
 
-        public async Task<Role?> GetItem(Role item)
+        public async Task<Role?> GetItem(Role item, bool? trackable = null)
         {
             try
             {
-                return await _context.Roles.FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
+                if (trackable == null || trackable == true)
+                    return await _context.Roles.FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
+
+                return await _context.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role.", nameof(GetItem));
                 return null;
             }
         }

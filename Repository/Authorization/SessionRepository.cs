@@ -1,6 +1,6 @@
-﻿using CRMService.Interfaces.Repository.Auth;
-using LoginService.DataBase;
-using LoginService.Model.Entity;
+﻿using CRMService.DataBase;
+using CRMService.Interfaces.Repository.Authorization;
+using CRMService.Models.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Authorization
@@ -13,24 +13,27 @@ namespace CRMService.Repository.Authorization
         {
             try
             {
-                return await context.Sessions.OrderBy(s => s.ExpirationRefreshToken).Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).ToListAsync();
+                return await context.Sessions.Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).OrderBy(s => s.ExpirationRefreshToken).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving session list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving session list.", nameof(GetAllItem));
                 return null;
             }
         }
 
-        public async Task<Session?> GetItem(Session item)
+        public async Task<Session?> GetItem(Session item, bool? trackable = null)
         {
             try
             {
-                return await context.Sessions.FirstOrDefaultAsync(se => se.RefreshToken == item.RefreshToken);
+                if (trackable == null || trackable == true)
+                    return await context.Sessions.FirstOrDefaultAsync(se => se.RefreshToken == item.RefreshToken);
+
+                return await context.Sessions.AsNoTracking().FirstOrDefaultAsync(se => se.RefreshToken == item.RefreshToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving session.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving session.", nameof(GetItem));
                 return null;
             }
         }
@@ -39,11 +42,11 @@ namespace CRMService.Repository.Authorization
         {
             try
             {
-                return await context.Sessions.CountAsync();
+                return await context.Sessions.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of sessions.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of sessions.", nameof(GetCountOfItems));
                 return 0;
             }
         }
@@ -53,9 +56,9 @@ namespace CRMService.Repository.Authorization
             context.Sessions.Add(item);
         }
 
-        public void Update(Session item)
+        public void Update(Session oldItem, Session newItem)
         {
-            context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
         }
 
         public void Delete(Session item)
@@ -71,7 +74,7 @@ namespace CRMService.Repository.Authorization
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting sessions by user id.");                
+                _logger.LogError(ex, "[Method:{MethodName}] Error deleting sessions by user id.", nameof(DeleteByUserId));                
             }
         }
 
@@ -85,7 +88,7 @@ namespace CRMService.Repository.Authorization
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting expired refresh tokens.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error deleting expired refresh tokens.", nameof(DeleteSessionsWithExpiredRefreshTokens));
             }
         }
     }

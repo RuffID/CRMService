@@ -1,12 +1,11 @@
-﻿using CRMService.Interfaces.Repository.Auth;
-using LoginService.Model.Authorization;
-using LoginService.Model.ConfigClass;
-using LoginService.Model.Entity;
+﻿using CRMService.Interfaces.Repository;
+using CRMService.Models.Authorization;
+using CRMService.Models.ConfigClass;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Authorization
 {
-    public class UserLoginService(IUnitOfWork unitOfWork, ILoggerFactory logger, IOptions<AuthOptions> authOptions)
+    public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthOptions> authOptions)
     {
         private readonly GenerateAccessToken _accessToken = new(authOptions);
         private readonly ILogger<UserLoginService> _logger = logger.CreateLogger<UserLoginService>();
@@ -66,9 +65,16 @@ namespace CRMService.Service.Authorization
                 return null;
             }
 
-            // Задать новые значения в сессию
-            SetSession(session, token, user);
-            unitOfWork.Session.Update(session);
+            Session? oldSession = await unitOfWork.Session.GetItem(session);
+            if (oldSession == null)
+                unitOfWork.Session.Create(session);
+            else
+            {
+                // Задать новые значения в сессию
+                SetSession(session, token, user);
+                unitOfWork.Session.Update(oldSession, session);
+            }
+
             await unitOfWork.SaveAsync();
 
             return token;

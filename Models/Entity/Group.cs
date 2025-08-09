@@ -14,8 +14,9 @@ namespace CRMService.Models.Entity
 
         public string? Description { get; set; }
 
-        [NotMapped]
-        public IEnumerable<EmployeeDto>? Employees { get; set; } = new List<EmployeeDto>();
+        public virtual IEnumerable<EmployeeDto>? Employees { get; set; } = new List<EmployeeDto>();
+
+        public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 
         public void CopyData(Group newItem)
         {

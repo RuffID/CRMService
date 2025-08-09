@@ -85,23 +85,20 @@ namespace CRMService.Controllers.Authorization
 
             // Обновление пароля пользователя
             user.PasswordHash = _hasher.Hash(newPassword);
-            unitOfWork.User.Update(user);
             await unitOfWork.SaveAsync();
 
             return NoContent();
         }
 
         [HttpPut("update_email"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> UpdateEmail([FromBody] UserDto user)
+        public async Task<IActionResult> UpdateEmail([FromBody] UserDto updateUser)
         {
-            var _user = await unitOfWork.User.GetItem(mapper.Map<User>(user));
+            User? user = await unitOfWork.User.GetItem(mapper.Map<User>(updateUser));
 
-            if (_user == null || string.IsNullOrEmpty(user.Email))
+            if (user == null || string.IsNullOrEmpty(updateUser.Email))
                 return NotFound("User not found or email not specified.");
 
-            _user.Email = user.Email;
-
-            unitOfWork.User.Update(_user);
+            user.Email = updateUser.Email;
             await unitOfWork.SaveAsync();
 
             return NoContent();
@@ -117,12 +114,12 @@ namespace CRMService.Controllers.Authorization
             if (user == null || string.IsNullOrEmpty(user.Login))
                 return NotFound("User not found.");
 
-            string newPassword = RandomString.GetString(length: 12);
+            string newPassword = GenerateRandomString.GetString(length: 12);
 
             // Обновление пароля пользователя
             user.PasswordHash = _hasher.Hash(newPassword);
-            unitOfWork.User.Update(user);
-
+            
+            //TODO починить почту
             // Отправка пароля на почту
             // Пока не работает
             /*MailMessage? mail = smtp.CreateMail(name: smtpSettings.Value.Name, emailFrom: smtpSettings.Value.Email, emailTo: user.Email, 

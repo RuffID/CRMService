@@ -21,7 +21,7 @@ namespace CRMService.Models.Entity
 
         public virtual Equipment? Equipment { get; set; }
 
-        public virtual KindsParameter? KindParameter { get; set; }
+        public virtual KindsParameter KindParameter { get; set; } = null!;
 
         public void CopyData(Parameter parameter)
         {

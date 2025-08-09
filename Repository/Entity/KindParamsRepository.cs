@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.KindParams.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.KindParams.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind params connections.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind params connections.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind params connections by kind id, id: {kindId}.", id);
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind params connections by kind id, id: {kindId}.", nameof(GetConnectionByKindId), id);
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind param connection.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind param connection.", nameof(GetItem));
                 return null;
             }
         }
@@ -65,7 +65,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind param connection by kind id, id: {kindId}.", id);
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind param connection by kind id, id: {kindId}.", nameof(GetConnectionByKindId), id);
                 return null;
             }
         }

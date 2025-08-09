@@ -1,4 +1,5 @@
 ﻿using CRMService.Interfaces.Authorization;
+using CRMService.Models.Authorization;
 
 namespace CRMService.Dto.Authorization
 {

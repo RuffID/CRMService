@@ -10,6 +10,10 @@ namespace CRMService.Models.Entity
 
         public int? GroupId { get; set; }
 
+        public virtual Employee Employee { get; set; } = null!;
+
+        public virtual Group Group { get; set; } = null!;
+
         internal void CopyData(EmployeeGroup newItem)
         {
             EmployeeId = newItem.EmployeeId;

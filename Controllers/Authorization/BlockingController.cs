@@ -44,7 +44,6 @@ namespace CRMService.Controllers.Authorization
                 return BadRequest("User already is deactivated.");
 
             user.Active = false;
-            unitOfWork.User.Update(user);
             await unitOfWork.SaveAsync();
 
             block.Id = Guid.NewGuid();
@@ -70,12 +69,10 @@ namespace CRMService.Controllers.Authorization
                 return BadRequest("The user is not blocked.");
 
             user.Active = true;
-            unitOfWork.User.Update(user);
             await unitOfWork.SaveAsync();
 
             block.UnblockingDate = DateTime.Now;
             block.UnblockingReason = reason_for_unblocking;
-            unitOfWork.BlockReason.Update(block);
             await unitOfWork.SaveAsync();
 
             return NoContent();

@@ -1,6 +1,6 @@
-﻿using CRMService.Interfaces.Repository.Auth;
-using LoginService.DataBase;
-using LoginService.Model.Entity;
+﻿using CRMService.DataBase;
+using CRMService.Interfaces.Repository.Authorization;
+using CRMService.Models.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Authorization
@@ -14,11 +14,11 @@ namespace CRMService.Repository.Authorization
         {
             try
             {
-                return await _context.UserRoles.OrderBy(ur => ur.UserId).Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).ToListAsync();
+                return await _context.UserRoles.AsNoTracking().Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving user role list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user role list.", nameof(GetAllItem));
                 return null;
             }
         }
@@ -27,52 +27,58 @@ namespace CRMService.Repository.Authorization
         {
             try
             {
-                return await (from role in _context.Roles
-                        join userRoles in _context.UserRoles on role.Id equals userRoles.RoleId
-                        join user in _context.Users on userRoles.UserId equals user.Id
-                        where userRoles.UserId == userId
-                        select new Role()
-                        {
-                            Id = role.Id,
-                            Name = role.Name
-                        }).ToListAsync();
+                return await _context.UserRoles
+                    .Where(ur => ur.UserId == userId && ur.Role != null)
+                    .Select(ur => new Role
+                    {
+                        Id = ur.Role.Id,
+                        Name = ur.Role.Name
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role list by user id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list by user id.", nameof(GetRolesByUserId));
                 return null;
             }
         }
 
-        public async Task<UserRole?> GetItem(UserRole item)
+        public async Task<UserRole?> GetItem(UserRole item, bool? trackable = null)
         {
             try
             {
-                return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.Id == item.Id || ur.UserId == item.UserId || ur.RoleId == item.RoleId);
+                if (trackable == null || trackable == true)
+                    return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.Id == item.Id || ur.UserId == item.UserId || ur.RoleId == item.RoleId);
+
+                return await _context.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.Id == item.Id || ur.UserId == item.UserId || ur.RoleId == item.RoleId);
+
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving user role.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user role.", nameof(GetItem));
                 return null;
             }
         }
 
-        public async Task<UserRole?> GetConnectionByUserAndRoleId(UserRole item)
+        public async Task<UserRole?> GetConnectionByUserAndRoleId(UserRole item, bool? trackable = null)
         {
             try
             {
-                return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
+                if (trackable == null || trackable == true)
+                    return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
+
+                return await _context.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving user role connection.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user role connection.", nameof(GetConnectionByUserAndRoleId));
                 return null;
             }
         }
 
-        public void Update(UserRole item)
+        public void Update(UserRole oldItem, UserRole newItem)
         {
-            _context.Entry(item).State = EntityState.Modified;
+            oldItem.CopyData(newItem);
         }
 
         public void Create(UserRole item)

@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.EmployeeGroups.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.EmployeeGroups.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee group list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee group list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee group.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee group.", nameof(GetItem));
                 return null;
             }
         }
@@ -46,7 +46,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving connection by employee group and group id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving connection by employee group and group id.", nameof(GetItem));
                 return null;
             }
         }
@@ -59,7 +59,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving connections employee group by employee.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving connections employee group by employee.", nameof(GetItem));
                 return null;
             }
         }
@@ -68,11 +68,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.EmployeeGroups.CountAsync();
+                return await context.EmployeeGroups.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of employee groups connection.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of employee groups connection.", nameof(GetItem));
                 return 0;
             }
         }

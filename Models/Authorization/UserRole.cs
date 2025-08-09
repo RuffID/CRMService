@@ -19,8 +19,14 @@ namespace CRMService.Models.Authorization
 
         public Guid RoleId { get; set; }
 
-        public virtual Role? Role { get; set; }
+        public virtual Role Role { get; set; } = null!;
 
-        public virtual User? User { get; set; }
+        public virtual User User { get; set; } = null!;
+
+        public void CopyData(UserRole newItem)
+        {
+            UserId = newItem.UserId;
+            RoleId = newItem.RoleId;
+        }
     }
 }

@@ -37,13 +37,10 @@ namespace CRMService.Controllers.Authorization
 
             Token? token = await userLoginService.LoginInService(user);
 
-            if (token != null)
-            {
-                // Возвращает токен
-                return Ok(token);
-            } 
-            else
+            if (token == null)
                 return StatusCode(500, "Internal server error while logging into the service.");
+         
+            return Ok(token);
         }
 
         [HttpPut("update_tokens"), AllowAnonymous]

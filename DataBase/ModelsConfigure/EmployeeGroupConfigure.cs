@@ -15,8 +15,22 @@ namespace CRMService.DataBase.ModelsConfigure
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnName("id");
-            builder.Property(e => e.EmployeeId).HasColumnName("employeeId");
-            builder.Property(e => e.GroupId).HasColumnName("groupId");
+
+            builder.Property(e => e.EmployeeId)
+                .HasColumnName("employeeId");
+
+            builder.Property(e => e.GroupId)
+                .HasColumnName("groupId");
+
+            builder.HasOne(e => e.Employee)
+                .WithMany(e => e.EmployeeGroups)
+                .HasForeignKey(e => e.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(e => e.Group)
+                .WithMany(g => g.EmployeeGroups)
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

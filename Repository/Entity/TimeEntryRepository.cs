@@ -13,7 +13,7 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.TimeEntries.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.TimeEntries.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {

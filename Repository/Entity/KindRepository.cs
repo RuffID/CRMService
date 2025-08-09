@@ -17,7 +17,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind.", nameof(GetItem));
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind by code.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind by code.", nameof(GetKindByCode));
                 return null;
             }
         }
@@ -58,11 +58,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssueStatuses.CountAsync();
+                return await context.IssueStatuses.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of kinds.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of kinds.", nameof(GetCountOfItems));
                 return 0;
             }
         }

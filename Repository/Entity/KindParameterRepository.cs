@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.KindsParameters.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.KindsParameters.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind parameter list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind parameter list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind parameter.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind parameter.", nameof(GetItem));
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving kind parameter by code.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind parameter by code.", nameof(GetKindParameterByCode));
                 return null;
             }
         }
@@ -58,11 +58,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.KindsParameters.CountAsync();
+                return await context.KindsParameters.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of kind parameters.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of kind parameters.", nameof(GetCountOfItems));
                 return 0;
             }
         }

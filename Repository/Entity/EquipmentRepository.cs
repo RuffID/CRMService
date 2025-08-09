@@ -14,11 +14,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Equipment.AsNoTracking().OrderBy(e => e.Id).Where(e => e.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Equipment.AsNoTracking().Where(e => e.Id >= startIndex).OrderBy(e => e.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving equipment list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment list.", nameof(GetItems));
                 return null;
             }
         }
@@ -27,42 +27,38 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await (from equipment in context.Equipment
-                              join kind in context.Kinds on equipment.KindId equals kind.Id into kindGroup
-                              from kind in kindGroup.DefaultIfEmpty()
-                              join manufacturers in context.Manufacturers on equipment.ManufacturerId equals manufacturers.Id into manufacturersGroup
-                              from manufacturers in manufacturersGroup.DefaultIfEmpty()
-                              join model in context.Models on equipment.ModelId equals model.Id into modelGroup
-                              from model in modelGroup.DefaultIfEmpty()
-                              where equipment.MaintenanceEntitiesId == maintenanceId
-                              select new EquipmentDto()
-                              {
-                                  Id = equipment.Id,
-                                  Serial_number = equipment.SerialNumber,
-                                  Inventory_number = equipment.InventoryNumber,
-                                  Kind = kind != null ? new()
-                                  {
-                                      Id = kind.Id,
-                                      Name = kind.Name,
-                                      Code = kind.Code
-                                  } : null,
-                                  Manufacturer = manufacturers != null ? new()
-                                  {
-                                      Id = manufacturers.Id,
-                                      Name = manufacturers.Name,
-                                      Code = manufacturers.Code
-                                  } : null,
-                                  Model = model != null ? new()
-                                  {
-                                      Id = model.Id,
-                                      Name = model.Name,
-                                      Code = model.Code
-                                  } : null
-                              }).ToListAsync();
+                return await context.Equipment
+                    .AsNoTracking()
+                    .Where(e => e.MaintenanceEntitiesId == maintenanceId)
+                    .Select(e => new EquipmentDto
+                    {
+                        Id = e.Id,
+                        Serial_number = e.SerialNumber,
+                        Inventory_number = e.InventoryNumber,
+                        Kind = e.Kind != null ? new KindDto
+                        {
+                            Id = e.Kind.Id,
+                            Name = e.Kind.Name,
+                            Code = e.Kind.Code
+                        } : null,
+                        Manufacturer = e.Manufacturer != null ? new ManufacturerDto
+                        {
+                            Id = e.Manufacturer.Id,
+                            Name = e.Manufacturer.Name,
+                            Code = e.Manufacturer.Code
+                        } : null,
+                        Model = e.Model != null ? new ModelDto
+                        {
+                            Id = e.Model.Id,
+                            Name = e.Model.Name,
+                            Code = e.Model.Code
+                        } : null
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving equipment list by maintenance entity.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment list by maintenance entity.", nameof(GetEquipmentsByMaintenanceEntity));
                 return null;
             }
         }
@@ -71,42 +67,38 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await (from equipment in context.Equipment
-                              join kind in context.Kinds on equipment.KindId equals kind.Id into kindGroup
-                              from kind in kindGroup.DefaultIfEmpty()
-                              join manufacturers in context.Manufacturers on equipment.ManufacturerId equals manufacturers.Id into manufacturersGroup
-                              from manufacturers in manufacturersGroup.DefaultIfEmpty()
-                              join model in context.Models on equipment.ModelId equals model.Id into modelGroup
-                              from model in modelGroup.DefaultIfEmpty()
-                              where equipment.CompanyId == companyId
-                              select new EquipmentDto()
-                              {
-                                  Id = equipment.Id,
-                                  Serial_number = equipment.SerialNumber,
-                                  Inventory_number = equipment.InventoryNumber,
-                                  Kind = kind != null ? new()
-                                  {
-                                      Id = kind.Id,
-                                      Name = kind.Name,
-                                      Code = kind.Code
-                                  } : null,
-                                  Manufacturer = manufacturers != null ? new()
-                                  {
-                                      Id = manufacturers.Id,
-                                      Name = manufacturers.Name,
-                                      Code = manufacturers.Code
-                                  } : null,
-                                  Model = model != null ? new()
-                                  {
-                                      Id = model.Id,
-                                      Name = model.Name,
-                                      Code = model.Code
-                                  } : null
-                              }).ToListAsync();
+                return await context.Equipment
+                    .AsNoTracking()
+                    .Where(e => e.CompanyId == companyId)
+                    .Select(e => new EquipmentDto
+                    {
+                        Id = e.Id,
+                        Serial_number = e.SerialNumber,
+                        Inventory_number = e.InventoryNumber,
+                        Kind = e.Kind != null ? new KindDto
+                        {
+                            Id = e.Kind.Id,
+                            Name = e.Kind.Name,
+                            Code = e.Kind.Code
+                        } : null,
+                        Manufacturer = e.Manufacturer != null ? new ManufacturerDto
+                        {
+                            Id = e.Manufacturer.Id,
+                            Name = e.Manufacturer.Name,
+                            Code = e.Manufacturer.Code
+                        } : null,
+                        Model = e.Model != null ? new ModelDto
+                        {
+                            Id = e.Model.Id,
+                            Name = e.Model.Name,
+                            Code = e.Model.Code
+                        } : null
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving equipment list by company.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment list by company.", nameof(GetEquipmentsByCompany));
                 return null;
             }
         }
@@ -115,42 +107,39 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await (from equipment in context.Equipment
-                              join kind in context.Kinds on equipment.KindId equals kind.Id into kindGroup
-                              from kind in kindGroup.DefaultIfEmpty()
-                              join manufacturers in context.Manufacturers on equipment.ManufacturerId equals manufacturers.Id into manufacturersGroup
-                              from manufacturers in manufacturersGroup.DefaultIfEmpty()
-                              join model in context.Models on equipment.ModelId equals model.Id into modelGroup
-                              from model in modelGroup.DefaultIfEmpty()
-                              where equipment.Id == equipmentId
-                              select new EquipmentDto()
-                              {
-                                  Id = equipment.Id,
-                                  Serial_number = equipment.SerialNumber,
-                                  Inventory_number = equipment.InventoryNumber,
-                                  Kind = kind != null ? new()
-                                  {
-                                      Id = kind.Id,
-                                      Name = kind.Name,
-                                      Code = kind.Code
-                                  } : null,
-                                  Manufacturer = manufacturers != null ? new()
-                                  {
-                                      Id = manufacturers.Id,
-                                      Name = manufacturers.Name,
-                                      Code = manufacturers.Code
-                                  } : null,
-                                  Model = model != null ? new()
-                                  {
-                                      Id = model.Id,
-                                      Name = model.Name,
-                                      Code = model.Code
-                                  } : null
-                              }).FirstOrDefaultAsync();
+                return await context.Equipment
+                    .AsNoTracking()
+                    .Where(e => e.Id == equipmentId)
+                    .Select(e => new EquipmentDto
+                    {
+                        Id = e.Id,
+                        Serial_number = e.SerialNumber,
+                        Inventory_number = e.InventoryNumber,
+                        Kind = e.Kind != null ? new KindDto
+                        {
+                            Id = e.Kind.Id,
+                            Name = e.Kind.Name,
+                            Code = e.Kind.Code
+                        } : null,
+                        Manufacturer = e.Manufacturer != null ? new ManufacturerDto
+                        {
+                            Id = e.Manufacturer.Id,
+                            Name = e.Manufacturer.Name,
+                            Code = e.Manufacturer.Code
+                        } : null,
+                        Model = e.Model != null ? new ModelDto
+                        {
+                            Id = e.Model.Id,
+                            Name = e.Model.Name,
+                            Code = e.Model.Code
+                        } : null
+                    })
+                    .FirstOrDefaultAsync();
+
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving equipment by id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment by id.", nameof(GetEquipmentById));
                 return null;
             }
         }
@@ -166,7 +155,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving equipment.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment.", nameof(GetItem));
                 return null;
             }
         }

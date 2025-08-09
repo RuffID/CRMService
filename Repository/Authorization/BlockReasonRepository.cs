@@ -19,7 +19,7 @@ namespace CRMService.Repository.Authorization
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving block reason list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving block reason list.", nameof(GetAllItem));
                 return null;
             }
         }
@@ -35,7 +35,7 @@ namespace CRMService.Repository.Authorization
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving block reason.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving block reason.", nameof(GetAllItem));
                 return null;
             }
         }
@@ -44,24 +44,27 @@ namespace CRMService.Repository.Authorization
         {
             try
             {
-                return await _context.BlockReasons.FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate == block.BlockingDate);
+                return await _context.BlockReasons.AsNoTracking().FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate == block.BlockingDate);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving block reason by user id and date.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving block reason by user id and date.", nameof(GetBlockByUserAndDate));
                 return null;
             }
         }
 
-        public async Task<BlockReason?> GetLastBlockOfUser(BlockReason block)
+        public async Task<BlockReason?> GetLastBlockOfUser(BlockReason block, bool? trackable = null)
         {
             try
             {
-                return await _context.BlockReasons.FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate != null && b.UnblockingDate == null);
+                if (trackable == null || trackable == true)
+                    return await _context.BlockReasons.FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate != null && b.UnblockingDate == null);
+
+                return await _context.BlockReasons.AsNoTracking().FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate != null && b.UnblockingDate == null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving last block reason.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving last block reason.", nameof(GetLastBlockOfUser));
                 return null;
             }
         }

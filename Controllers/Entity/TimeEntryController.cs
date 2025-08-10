@@ -6,7 +6,7 @@ using CRMService.Service.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class TimeEntryController(TimeEntryService service) : Controller
     {

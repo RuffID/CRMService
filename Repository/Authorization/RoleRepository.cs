@@ -10,7 +10,7 @@ namespace CRMService.Repository.Authorization
         private readonly CrmAuthorizationContext _context = context;
         private readonly ILogger<RoleRepository> _logger = logger.CreateLogger<RoleRepository>();
 
-        public async Task<IEnumerable<Role>?> GetAllItem(Range range)
+        public async Task<IEnumerable<Role>?> GetItems(Range range)
         {
             try
             {
@@ -18,8 +18,35 @@ namespace CRMService.Repository.Authorization
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list.", nameof(GetAllItem));
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list.", nameof(GetItems));
                 return null;
+            }
+        }
+
+        public async Task<ICollection<Role>> GetItems(IEnumerable<Role> items, bool trackable = true)
+        {
+            try
+            {
+                if (items == null || !items.Any())
+                    return new List<Role>();
+
+                IQueryable<Role> query = trackable
+                    ? _context.Roles
+                    : _context.Roles.AsNoTracking();
+
+                // Получает список Id и имён из входной коллекции
+                List<Guid> ids = items.Where(i => i.Id != Guid.Empty).Select(i => i.Id).ToList();
+                List<string> names = items.Where(i => !string.IsNullOrEmpty(i.Name)).Select(i => i.Name!).ToList();
+
+                // Выбирает роли, у которых Id или Name совпадают с переданными
+                return await query
+                    .Where(r => ids.Contains(r.Id) || names.Contains(r.Name!))
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list by collection.", nameof(GetItems));
+                return new List<Role>();
             }
         }
 

@@ -26,11 +26,13 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
                 .HasMaxLength(36)
                 .HasColumnName("user_id");
 
-            builder.HasOne(d => d.Role).WithMany(p => p.UserRoles)
+            builder.HasOne(d => d.Role)
+                .WithMany(p => p.UserRoles)
                 .HasForeignKey(d => d.RoleId)
                 .HasConstraintName("role_id");
 
-            builder.HasOne(d => d.User).WithMany(p => p.UserRoles)
+            builder.HasOne(d => d.User)
+                .WithMany(p => p.UserRoles)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("user_id");
         }

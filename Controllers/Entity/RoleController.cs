@@ -9,7 +9,7 @@ using CRMService.Interfaces.Repository;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class RoleController(IOptions<DatabaseSettings> _dbSettings, IUnitOfWorkEntities unitOfWork, RoleService service) : Controller
     {

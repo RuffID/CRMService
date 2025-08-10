@@ -7,5 +7,6 @@ namespace CRMService.Interfaces.Repository.Authorization
     {
         Task<IEnumerable<User>?> GetAllItem(Range range);
         Task<User?> GetItem(User user, bool? trackable = null);
+        Task<User?> GetUserWithRoles(User user, bool? trackable = null);
     }
 }

@@ -12,7 +12,7 @@ using CRMService.Dto.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class CategoryController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, CompanyCategoryService service) : Controller
     {

@@ -13,7 +13,7 @@ using CRMService.Dto.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class IssueController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, EntitySyncService sync, 
         IUnitOfWorkEntities unitOfWork, IssueService service) : Controller

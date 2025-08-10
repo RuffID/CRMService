@@ -11,7 +11,7 @@ using CRMService.Dto.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class KindParameterController(IMapper mapper, IUnitOfWorkEntities unitOfWork, IOptions<DatabaseSettings> dbSettings, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
     {

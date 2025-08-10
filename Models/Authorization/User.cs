@@ -24,14 +24,13 @@ namespace CRMService.Models.Authorization
 
         public bool? Active { get; set; }
 
-        [NotMapped]
-        public ICollection<Role> Roles { get; set; } = [];
-
         public virtual BlockReason? BlockReason { get; set; }
 
-        public virtual ICollection<Session> Sessions { get; set; } = [];
-        
-        public virtual ICollection<UserRole> UserRoles { get; set; } = [];
+        public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+
+        public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
+
+        public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
         public void CopyData(User newItem)
         {

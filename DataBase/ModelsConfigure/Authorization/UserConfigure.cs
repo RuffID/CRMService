@@ -31,6 +31,11 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
                 .HasMaxLength(45)
                 .HasColumnName("email");
             builder.Property(e => e.Active).HasColumnName("active");
+
+            builder
+                .HasMany(u => u.Roles)
+                .WithMany(r => r.Users)
+                .UsingEntity<UserRole>();
         }
     }
 }

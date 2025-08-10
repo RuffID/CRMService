@@ -11,7 +11,7 @@ using CRMService.Dto.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class EquipmentController(IUnitOfWorkEntities unitOfWork, IOptions<DatabaseSettings> dbSettings, EntitySyncService sync, IOptions<OkdeskSettings> okdSettings, EquipmentService service) : Controller
     {

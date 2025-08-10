@@ -12,7 +12,7 @@ using CRMService.Dto.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class IssuePriorityController(IMapper _mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, IssuePriorityService service) : Controller
     {

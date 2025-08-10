@@ -15,6 +15,6 @@ namespace CRMService.Dto.Authorization
 
         public bool? Active { get; set; }
 
-        public ICollection<Role> Roles { get; set; } = [];
+        public ICollection<Role> Roles { get; set; } = new List<Role>();
     }
 }

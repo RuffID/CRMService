@@ -13,11 +13,10 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class UserController(IOptions<HashSettings> hashSettings, ILoggerFactory logger, IUnitOfWorkAuthorization unitOfWork, IMapper mapper) : Controller
+    public class UserController(IOptions<HashSettings> hashSettings, IUnitOfWorkAuthorization unitOfWork, IMapper mapper) : Controller
     {
         private readonly HashVerify _hashVerify = new (hashSettings);
         private readonly Hasher _hasher = new (hashSettings);
-        private readonly SMTP smtp = new(logger);
 
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetUsers([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)

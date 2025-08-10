@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CRMService.Controllers.Report
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class ReportController(ReportService service) : Controller
     {

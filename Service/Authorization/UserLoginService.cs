@@ -12,13 +12,6 @@ namespace CRMService.Service.Authorization
 
         public async Task<Token?> LoginInService(User user)
         {
-            string? rolesError = await GetRoles(user);
-            if (!string.IsNullOrEmpty(rolesError))
-            {
-                _logger.LogError("[Method:{MethodName}] {error}", nameof(LoginInService), rolesError);
-                return null;
-            }
-
             // Генерация токена
             Token? token = GetToken(user);
             if (token == null)

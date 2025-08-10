@@ -15,7 +15,7 @@ namespace CRMService.Controllers.Authorization
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetRoles([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
         {
-            var roles = mapper.Map<IEnumerable<RoleDto>>(await unitOfWork.Role.GetAllItem(new Range(startIndex, endIndex)));
+            var roles = mapper.Map<IEnumerable<RoleDto>>(await unitOfWork.Role.GetItems(new Range(startIndex, endIndex)));
 
             if (roles == null)
                 return NotFound("Roles not found.");

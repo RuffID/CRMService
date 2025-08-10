@@ -5,11 +5,11 @@ using CRMService.Models.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace LoginService.Controllers
+namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
-    [Route("api/crm_login/[controller]")]
+    [Route("api/[controller]")]
     public class SessionController(IMapper mapper, IUnitOfWorkAuthorization unitOfWork) : Controller
     {
 

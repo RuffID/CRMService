@@ -13,6 +13,7 @@ namespace CRMService.DataBase
         public CrmAuthorizationContext(IOptions<DatabaseSettings> dbSetings)
         {
             _databaseSettings = dbSetings.Value;
+            Database.EnsureCreated();
         }
 
         public virtual DbSet<BlockReason> BlockReasons { get; set; } = null!;

@@ -12,7 +12,7 @@ using CRMService.Dto.Entity;
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class IssueStatusController(IMapper mapper, IOptions<OkdeskSettings> okdSettings, IUnitOfWorkEntities unitOfWork, IssueStatusService service) : Controller
     {

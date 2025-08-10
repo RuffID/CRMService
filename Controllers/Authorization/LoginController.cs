@@ -19,8 +19,7 @@ namespace CRMService.Controllers.Authorization
         [HttpPost, AllowAnonymous]
         public async Task<IActionResult> Login([FromQuery] string login, [FromQuery] string password)
         {
-            // Поиск пользователя
-            User? user = await unitOfWork.User.GetItem(new User(login: login));
+            User? user = await unitOfWork.User.GetUserWithRoles(new User(login: login), false);
 
             if (user == null)
                 return Unauthorized("Incorrect login or password.");

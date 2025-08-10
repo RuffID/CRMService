@@ -39,6 +39,22 @@ namespace CRMService.Repository.Authorization
             }
         }
 
+        public async Task<User?> GetUserWithRoles(User user, bool? trackable = null)
+        {
+            try
+            {
+                if (trackable == null || trackable == true)
+                    return await _context.Users.Include(u => u.Roles).FirstOrDefaultAsync(u => u.Login == user.Login );
+
+                return await _context.Users.Include(u => u.Roles).AsNoTracking().FirstOrDefaultAsync(u => u.Login == user.Login);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user with roles.", nameof(GetItem));
+                return null;
+            }
+        }
+
         public void Update(User oldItem, User newItem)
         {
             oldItem.CopyData(newItem);

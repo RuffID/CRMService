@@ -9,15 +9,15 @@ namespace CRMService.Repository.Authorization
     {
         private readonly ILogger<SessionRepository> _logger = logger.CreateLogger<SessionRepository>();
 
-        public async Task<IEnumerable<Session>?> GetAllItem(Range range)
+        public async Task<IEnumerable<Session>?> GetItems(Range range)
         {
             try
             {
-                return await context.Sessions.Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).OrderBy(s => s.ExpirationRefreshToken).ToListAsync();
+                return await context.Sessions.AsNoTracking().Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).OrderBy(s => s.ExpirationRefreshToken).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving session list.", nameof(GetAllItem));
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving session list.", nameof(GetItems));
                 return null;
             }
         }

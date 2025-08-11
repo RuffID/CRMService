@@ -2,9 +2,9 @@
 
 namespace CRMService.Service.Authorization
 {
-    public static class GenerateRefreshToken
+    public class GenerateRefreshToken
     {
-        public static string Generate()
+        public string Generate()
         {
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         }

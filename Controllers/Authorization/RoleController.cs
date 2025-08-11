@@ -15,7 +15,7 @@ namespace CRMService.Controllers.Authorization
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetRoles([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
         {
-            var roles = mapper.Map<IEnumerable<RoleDto>>(await unitOfWork.Role.GetItems(new Range(startIndex, endIndex)));
+            IEnumerable<RoleDto> roles = mapper.Map<IEnumerable<RoleDto>>(await unitOfWork.Role.GetItems(new Range(startIndex, endIndex)));
 
             if (roles == null)
                 return NotFound("Roles not found.");
@@ -26,9 +26,7 @@ namespace CRMService.Controllers.Authorization
         [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetRole([FromQuery] Guid id)
         {
-            Role newRole = new() { Id = id };
-
-            var role = mapper.Map<RoleDto>(await unitOfWork.Role.GetItem(newRole));
+            RoleDto role = mapper.Map<RoleDto>(await unitOfWork.Role.GetItem(new() { Id = id }, false));
 
             if (role == null)
                 return NotFound("Role not found.");
@@ -39,7 +37,7 @@ namespace CRMService.Controllers.Authorization
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> CreateRole([FromBody] RoleDto role)
         {
-            if (await unitOfWork.Role.GetItem(mapper.Map<Role>(role)) != null)
+            if (await unitOfWork.Role.GetItem(mapper.Map<Role>(role), false) != null)
                 return BadRequest($"Role {role.Name} is already exists.");
 
             role.Id = Guid.NewGuid();

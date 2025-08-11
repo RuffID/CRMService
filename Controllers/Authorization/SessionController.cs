@@ -16,7 +16,7 @@ namespace CRMService.Controllers.Authorization
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetSessions([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
         {
-            IEnumerable<SessionDto>? sessions = mapper.Map<IEnumerable<SessionDto>>(await unitOfWork.Session.GetAllItem(new Range(startIndex, endIndex)));
+            IEnumerable<SessionDto>? sessions = mapper.Map<IEnumerable<SessionDto>>(await unitOfWork.Session.GetItems(new Range(startIndex, endIndex)));
 
             if (sessions == null || !sessions.Any())
                 return NotFound("Sessions not found.");
@@ -27,9 +27,7 @@ namespace CRMService.Controllers.Authorization
         [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetSession([FromQuery] Guid id)
         {
-            Session newSession = new () { Id = id };
-
-            SessionDto? session = mapper.Map<SessionDto>(await unitOfWork.Session.GetItem(newSession));
+            SessionDto? session = mapper.Map<SessionDto>(await unitOfWork.Session.GetItem(new() { Id = id }, false));
 
             if (session == null)
                 return NotFound($"Session {id} not found.");
@@ -40,15 +38,11 @@ namespace CRMService.Controllers.Authorization
         [HttpDelete, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> DeleteSession([FromQuery] Guid id)
         {
-            Session newSession = new() { Id = id };
-
-            // Поиск сессии по id
-            Session? session = await unitOfWork.Session.GetItem(newSession);
+            Session? session = await unitOfWork.Session.GetItem(new() { Id = id });
 
             if (session == null)
                 return BadRequest($"Session {id} not found.");
 
-            // Удаление сессии
             unitOfWork.Session.Delete(session);
             await unitOfWork.SaveAsync();
 
@@ -58,13 +52,11 @@ namespace CRMService.Controllers.Authorization
         [HttpDelete("all"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> DeleteSessions()
         {
-            // Поиск сессии по id
-            IEnumerable<Session>? sessions = await unitOfWork.Session.GetAllItem(new Range(0, await unitOfWork.Session.GetCountOfItems()));
+            IEnumerable<Session>? sessions = await unitOfWork.Session.GetItems(new Range(0, await unitOfWork.Session.GetCountOfItems()));
 
             if (sessions == null || !sessions.Any())
                 return BadRequest($"Sessions not found.");
 
-            // Удаление сессии
             foreach (Session session in sessions)
                 unitOfWork.Session.Delete(session);
 
@@ -76,7 +68,6 @@ namespace CRMService.Controllers.Authorization
         [HttpDelete("by-userid"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> DeleteSessionsByUserId([FromQuery] Guid id)
         {
-            // Удаление сессии
             await unitOfWork.Session.DeleteByUserId(id);
             return NoContent();
         }

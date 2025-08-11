@@ -25,7 +25,7 @@ namespace CRMService.Service.Authorization
             ICollection<Role> roles = await unitOfWork.Role.GetItems(mapper.Map<User>(userDto).Roles);
             if (roles == null || roles.Count == 0)
             {
-                _logger.LogWarning("[Method:{MethodName}] The roles specified in the request body were not found in the system.", nameof(RegistrationUser));
+                _logger.LogWarning("[Method:{MethodName}] The roles specified in the request body were not found in the system. Login: {userLogin}.", nameof(RegistrationUser), userDto.Login);
                 return false;
             }
 

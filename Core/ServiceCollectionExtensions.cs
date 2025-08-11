@@ -16,7 +16,6 @@ using CRMService.Service.Report;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
 using Microsoft.IdentityModel.Tokens;
-using Serilog.Context;
 using System.Text;
 
 namespace CRMService.Core
@@ -125,6 +124,7 @@ namespace CRMService.Core
             services.AddScoped<DataBaseHandler>();
             services.AddScoped<BackupService>();
             services.AddScoped<GenerateRandomString>();
+            services.AddScoped<GenerateRefreshToken>();
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();

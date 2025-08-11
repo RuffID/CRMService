@@ -26,10 +26,10 @@ namespace CRMService.Controllers.Authorization
         [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetUserRoleConnection([FromQuery] Guid id)
         {
-            UserRoleDto? userRoleConnection = mapper.Map<UserRoleDto>(await unitOfWork.UserRole.GetItem(new UserRole() { Id = id }));
+            UserRoleDto? userRoleConnection = mapper.Map<UserRoleDto>(await unitOfWork.UserRole.GetItem(new UserRole() { Id = id }, false));
 
             if (userRoleConnection == null)
-                return NotFound($"User-role connection {id} not found.");
+                return NotFound($"User-role connection by {id} - not found.");
 
             return Ok(userRoleConnection);
         }
@@ -39,7 +39,7 @@ namespace CRMService.Controllers.Authorization
         {
             UserRole userRole = new () {Id = Guid.NewGuid(), UserId = userId, RoleId = roleId };
 
-            UserRoleDto? connect = mapper.Map<UserRoleDto>(await unitOfWork.UserRole.GetConnectionByUserAndRoleId(userRole));
+            UserRoleDto? connect = mapper.Map<UserRoleDto>(await unitOfWork.UserRole.GetConnectionByUserAndRoleId(userRole, false));
 
             if (connect != null)
                 return BadRequest($"User-role connection already exists.");
@@ -54,10 +54,10 @@ namespace CRMService.Controllers.Authorization
         public async Task<IActionResult> DeleteUserRoleConnection([FromQuery] Guid id)
         {
             // Поиск сессии по id
-            UserRole? connect = await unitOfWork.UserRole.GetItem(new UserRole() { Id = id});
+            UserRole? connect = await unitOfWork.UserRole.GetItem(new UserRole() { Id = id}, false);
 
             if (connect == null)
-                return BadRequest($"User-role connection {id} not found.");
+                return BadRequest($"User-role connection by {id} - not found.");
 
             // Удаление сессии
             unitOfWork.UserRole.Delete(connect);

@@ -7,8 +7,8 @@ namespace CRMService.Service.Authorization
     {
         private const string CHARTS = ConstSymbols.UPALPHABET + ConstSymbols.LOWALPHABET + ConstSymbols.NUMBERS + ConstSymbols.SYMBOLS;
 
-        private static readonly Random rand = new();
-        public static string GetString(int length)
+        private readonly Random rand = new();
+        public string GetString(int length = 12)
         {
             StringBuilder sb = new(length - 1);
             for (int i = 0; i < length; i++)

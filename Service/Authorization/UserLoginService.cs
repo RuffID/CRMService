@@ -5,9 +5,9 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Authorization
 {
-    public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthOptions> authOptions)
+    public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthOptions> authOptions, GenerateRefreshToken generateRefresh)
     {
-        private readonly GenerateAccessToken _accessToken = new(authOptions);
+        private readonly GenerateAccessToken _accessToken = new(authOptions);        
         private readonly ILogger<UserLoginService> _logger = logger.CreateLogger<UserLoginService>();
 
         public async Task<Token?> LoginInService(User user)
@@ -34,8 +34,7 @@ namespace CRMService.Service.Authorization
 
         public async Task<Token?> UpdateTokens(Session session)
         {
-            // Поиск пользователя
-            User? user = await unitOfWork.User.GetItem(new User() { Id = session.UserId });
+            User? user = await unitOfWork.User.GetUserWithRoles(new User() { Id = session.UserId }, false);
 
             if (user == null)
             {
@@ -43,14 +42,6 @@ namespace CRMService.Service.Authorization
                 return null;
             }
 
-            string? error = await GetRoles(user);
-            if (!string.IsNullOrEmpty(error))
-            {
-                _logger.LogError("[Method:{MethodName}] {error}", nameof(LoginInService), error);
-                return null;
-            }
-
-            // Генерация токена
             Token? token = GetToken(user);
             if (token == null)
             {
@@ -59,33 +50,14 @@ namespace CRMService.Service.Authorization
             }
 
             Session? oldSession = await unitOfWork.Session.GetItem(session);
-            if (oldSession == null)
+            if (oldSession != null)
+                SetSession(session, token, user);            
+            else            
                 unitOfWork.Session.Create(session);
-            else
-            {
-                // Задать новые значения в сессию
-                SetSession(session, token, user);
-                unitOfWork.Session.Update(oldSession, session);
-            }
 
             await unitOfWork.SaveAsync();
 
             return token;
-        }
-
-        private async Task<string?> GetRoles(User user)
-        {
-            //Получить ролей пользователя
-            IEnumerable<Role>? roles = await unitOfWork.UserRole.GetRolesByUserId(user.Id);
-
-            if (roles == null || !roles.Any())
-                return "Internal server error while retrieving user roles.";
-
-            // Т.к. у одного пользователя может быть несколько ролей - добавляет все найденные роли в список к пользователю
-            foreach (var role in roles)
-                user.Roles.Add(role);
-
-            return null;
         }
 
         private Token? GetToken(User user)
@@ -95,7 +67,7 @@ namespace CRMService.Service.Authorization
             {
                 // Срок действия access token указывается в конфиге
                 AccessToken = _accessToken.Generate(user),
-                RefreshToken = GenerateRefreshToken.Generate()
+                RefreshToken = generateRefresh.Generate()
             };
 
             if (string.IsNullOrEmpty(token.AccessToken) || string.IsNullOrEmpty(token.RefreshToken))

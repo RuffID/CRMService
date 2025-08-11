@@ -8,20 +8,16 @@ using System.Text;
 
 namespace CRMService.Service.Authorization
 {
-    public class GenerateAccessToken
+    public class GenerateAccessToken(IOptions<AuthOptions> authOptions)
     {
-        private readonly AuthOptions _authOptions;
-
-        public GenerateAccessToken(IOptions<AuthOptions> authOptions)
-        {
-            _authOptions = authOptions.Value;
-        }
+        private readonly AuthOptions _authOptions = authOptions.Value;
 
         public string? Generate(User user)
         {
             if (string.IsNullOrEmpty(user.Email))
                 return null;
-            var claims = new List<Claim>();
+
+            List<Claim> claims = new();
 
             if (!string.IsNullOrEmpty(user.Email))
                 claims.Add(new(ClaimTypes.Email, user.Email));
@@ -30,8 +26,8 @@ namespace CRMService.Service.Authorization
                 if (!string.IsNullOrEmpty(role.Name))
                     claims.Add(new(ClaimTypes.Role, role.Name));
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenDescriptor = new SecurityTokenDescriptor
+            JwtSecurityTokenHandler tokenHandler = new ();
+            SecurityTokenDescriptor tokenDescriptor = new()
             {                
                 Issuer = _authOptions.Issuer,
                 Audience = _authOptions.Audience,
@@ -40,7 +36,7 @@ namespace CRMService.Service.Authorization
                 SigningCredentials = new SigningCredentials(SymmetricSecurityKey, SecurityAlgorithms.HmacSha256Signature)
             };            
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
+            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
 

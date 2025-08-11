@@ -7,13 +7,14 @@ using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class UserController(IOptions<HashSettings> hashSettings, IUnitOfWorkAuthorization unitOfWork, IMapper mapper) : Controller
+    public class UserController(IOptions<HashSettings> hashSettings, IUnitOfWorkAuthorization unitOfWork, IMapper mapper, GenerateRandomString generateRandom) : Controller
     {
         private readonly HashVerify _hashVerify = new (hashSettings);
         private readonly Hasher _hasher = new (hashSettings);
@@ -59,7 +60,8 @@ namespace CRMService.Controllers.Authorization
             if (user.Active != null)
                 userFromDb.Active = user.Active;
 
-            // TODO ещё нужно обновлять роли
+            if (user.Roles != null && user.Roles.Count != 0)
+                userFromDb.Roles = user.Roles;
 
             await unitOfWork.SaveAsync();
 
@@ -75,11 +77,8 @@ namespace CRMService.Controllers.Authorization
             if (user == null)
                 return NotFound($"User not found.");
 
-            if (string.IsNullOrEmpty(user.PasswordHash))
-                return StatusCode(500, "Internal server error.");
-
             // Сравнение хеша текущего пароля введённого пользователем с текущим пролем из БД
-            if (!_hashVerify.Verify(oldPassword, user.PasswordHash))
+            if (string.IsNullOrEmpty(user.PasswordHash) || !_hashVerify.Verify(oldPassword, user.PasswordHash))
                 return Unauthorized("Password is incorrect.");
 
             // Обновление пароля пользователя
@@ -94,8 +93,8 @@ namespace CRMService.Controllers.Authorization
         {
             User? user = await unitOfWork.User.GetItem(mapper.Map<User>(updateUser));
 
-            if (user == null || string.IsNullOrEmpty(updateUser.Email))
-                return NotFound("User not found or email not specified.");
+            if (user == null)
+                return NotFound($"User by login {updateUser.Login} - not found.");
 
             user.Email = updateUser.Email;
             await unitOfWork.SaveAsync();
@@ -106,30 +105,18 @@ namespace CRMService.Controllers.Authorization
         [HttpPut("restore_password"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> RestoreUserPassword([FromQuery] string login)
         {
-            //TODO сначала отправлять код подтверждения, а только потом сбрасывать новый пароль
-
             User? user = await unitOfWork.User.GetItem(new User(login: login));
 
-            if (user == null || string.IsNullOrEmpty(user.Login))
-                return NotFound("User not found.");
+            if (user == null)
+                return NotFound($"User by login {login} - not found.");
 
-            string newPassword = GenerateRandomString.GetString(length: 12);
+            string newPassword = generateRandom.GetString(length: 12);
 
-            // Обновление пароля пользователя
-            user.PasswordHash = _hasher.Hash(newPassword);
-            
-            //TODO починить почту
-            // Отправка пароля на почту
-            // Пока не работает
-            /*MailMessage? mail = smtp.CreateMail(name: smtpSettings.Value.Name, emailFrom: smtpSettings.Value.Email, emailTo: user.Email, 
-                subject: "Новый пароль от сервиса", body: $"Пароль: {newPassword}");
-
-            if (!smtp.SendMail("smtp.gmail.com", 587, smtpSettings.Value.Email, smtpSettings.Value.Password, mail))
-                return StatusCode(500, "Internal server error while sending password to email.");  */          
+            user.PasswordHash = _hasher.Hash(newPassword);      
 
             await unitOfWork.SaveAsync();
 
-            return Ok("New password: " + newPassword);
+            return Ok("Password updated");
         }
     }
 }

@@ -9,7 +9,7 @@ namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/authorize/[controller]")]
     public class UserRoleController(IUnitOfWorkAuthorization unitOfWork, IMapper mapper) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]

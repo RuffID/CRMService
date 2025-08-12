@@ -14,9 +14,6 @@ namespace CRMService.Service.Authorization
 
         public string? Generate(User user)
         {
-            if (string.IsNullOrEmpty(user.Email))
-                return null;
-
             List<Claim> claims = new();
 
             if (!string.IsNullOrEmpty(user.Email))

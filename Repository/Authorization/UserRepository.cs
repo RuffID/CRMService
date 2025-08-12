@@ -28,9 +28,9 @@ namespace CRMService.Repository.Authorization
             try
             {
                 if (trackable == null || trackable == true)
-                    return await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id || u.Login == user.Login || u.Email == user.Email);
+                    return await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id || u.Login == user.Login);
 
-                return await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == user.Id || u.Login == user.Login || u.Email == user.Email);
+                return await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == user.Id || u.Login == user.Login);
             }
             catch (Exception ex)
             {

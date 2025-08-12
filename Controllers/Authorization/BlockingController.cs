@@ -9,7 +9,7 @@ namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/authorize/[controller]")]
     public class BlockingController(IMapper mapper, IUnitOfWorkAuthorization unitOfWork) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]

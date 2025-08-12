@@ -14,7 +14,6 @@ namespace CRMService.Service.Authorization
 
         public async Task<bool> RegistrationUser(UserDto userDto)
         {
-            // Поиск пользователя
             if (await unitOfWork.User.GetItem(mapper.Map<User>(userDto), false) != null)
             {
                 _logger.LogWarning("[Method:{MethodName}] User with login {userLogin} or email {email} already exists.", nameof(RegistrationUser), userDto.Login, userDto.Email);
@@ -34,7 +33,7 @@ namespace CRMService.Service.Authorization
                 Login = userDto.Login,
                 Email = userDto.Email,
                 Roles = roles,
-                PasswordHash = _hasher.Hash(userDto.PasswordHash!),
+                PasswordHash = _hasher.Hash(userDto.Password!),
                 Active = true
             };
 

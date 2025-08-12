@@ -10,11 +10,10 @@ namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
-    public class LoginController(UserLoginService userLoginService, ILoggerFactory logger, IUnitOfWorkAuthorization unitOfWork, IOptions<HashSettings> hashSettings) : Controller
+    [Route("api/authorize/[controller]")]
+    public class LoginController(UserLoginService userLoginService, IUnitOfWorkAuthorization unitOfWork, IOptions<HashSettings> hashSettings) : Controller
     {
         private readonly HashVerify hashVerify = new (hashSettings);
-        private readonly ILogger<LoginController> _logger = logger.CreateLogger<LoginController>();
 
         [HttpPost, AllowAnonymous]
         public async Task<IActionResult> Login([FromQuery] string login, [FromQuery] string password)
@@ -24,14 +23,8 @@ namespace CRMService.Controllers.Authorization
             if (user == null)
                 return Unauthorized("Incorrect login or password.");
 
-            if (string.IsNullOrEmpty(user.PasswordHash))
-            {
-                _logger.LogError("[Method:{MethodName}] Got user {UserLogin} with blank password, how did this happen?", nameof(Login), user.Login);
-                return StatusCode(500, "Internal server error while logging into the service.");
-            }
-
             // Хеширование пароля из запроса и сравнение с хешем из БД
-            if (user.Active == false || user.Active == null || !hashVerify.Verify(password, user.PasswordHash))
+            if (user.Active == false || user.Active == null || string.IsNullOrEmpty(user.PasswordHash) || !hashVerify.Verify(password, user.PasswordHash))
                 return Unauthorized("Incorrect login or password.");
 
             Token? token = await userLoginService.LoginInService(user);
@@ -45,7 +38,6 @@ namespace CRMService.Controllers.Authorization
         [HttpPut("update_tokens"), AllowAnonymous]
         public async Task<IActionResult> UpdateTokens([FromBody] RefreshModel refresh_token)
         {
-            // Поиск сессии с полученным refresh токеном
             Session? session = await unitOfWork.Session.GetItem(new() { RefreshToken = refresh_token.RefreshToken });
 
             if (session == null) 

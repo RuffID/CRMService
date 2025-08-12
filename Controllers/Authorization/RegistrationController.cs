@@ -8,14 +8,14 @@ namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/authorize/[controller]")]
     public class RegistrationController(UserRegistrationService _userRegistrationService) : Controller
     {
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> Registration([FromBody] UserDto user)
         {
             // Если не все поля для создания заполнены, то выдаёт ошибку
-            if (string.IsNullOrEmpty(user.Login) || string.IsNullOrEmpty(user.PasswordHash) || user.Roles == null || user.Roles.Count == 0)
+            if (string.IsNullOrEmpty(user.Login) || string.IsNullOrEmpty(user.Password) || user.Roles == null || user.Roles.Count == 0)
                 return BadRequest("The body with the user was not transferred or not all required fields were filled in.");
 
             if (!await _userRegistrationService.RegistrationUser(user))

@@ -49,7 +49,7 @@ namespace CRMService.Controllers.Entity
             if (category == null)
                 return BadRequest("Category not found.");
 
-            var categoryMap = mapper.Map<CompanyCategory>(updatedCategory);
+            CompanyCategory categoryMap = mapper.Map<CompanyCategory>(updatedCategory);
 
             unitOfWork.CompanyCategory.Update(category, categoryMap);
 

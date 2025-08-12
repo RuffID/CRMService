@@ -70,9 +70,10 @@ namespace CRMService.Service.Authorization
                 RefreshToken = generateRefresh.Generate()
             };
 
-            if (string.IsNullOrEmpty(token.AccessToken) || string.IsNullOrEmpty(token.RefreshToken))
-                return null;
-            else return token;
+            if (!string.IsNullOrEmpty(token.AccessToken) && !string.IsNullOrEmpty(token.RefreshToken))
+                return token;
+
+            return null;
         }
 
         private void SetSession(Session session, Token token, User user)

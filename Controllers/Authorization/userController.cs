@@ -7,13 +7,12 @@ using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Serilog;
 
 namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/authorize/[controller]")]
     public class UserController(IOptions<HashSettings> hashSettings, IUnitOfWorkAuthorization unitOfWork, IMapper mapper, GenerateRandomString generateRandom) : Controller
     {
         private readonly HashVerify _hashVerify = new (hashSettings);
@@ -51,8 +50,8 @@ namespace CRMService.Controllers.Authorization
                 return NotFound($"User not found.");
 
             // Обновление пароля пользователя
-            if (!string.IsNullOrEmpty(userFromDb.PasswordHash) && !string.IsNullOrEmpty(user.PasswordHash))
-                user.PasswordHash = _hasher.Hash(user.PasswordHash);
+            if (!string.IsNullOrEmpty(userFromDb.PasswordHash) && !string.IsNullOrEmpty(user.Password))
+                user.Password = _hasher.Hash(user.Password);
             
             if (!string.IsNullOrEmpty(user.Email))
                 userFromDb.Email = user.Email;

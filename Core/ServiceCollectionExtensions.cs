@@ -74,11 +74,11 @@ namespace CRMService.Core
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
-                        ValidIssuer = configuration["BearerToken:Issuer"],
+                        ValidIssuer = configuration["AuthorizationOptions:Issuer"],
                         ValidateAudience = true,
-                        ValidAudience = configuration["BearerToken:Audience"],
+                        ValidAudience = configuration["AuthorizationOptions:Audience"],
                         ValidateLifetime = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["BearerToken:JWTKey"] ?? "")),
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["AuthorizationOptions:SymmetricSecurityKey"] ?? "")),
                         ValidateIssuerSigningKey = true,
                     };
 

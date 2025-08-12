@@ -14,9 +14,11 @@ namespace CRMService.Models.Authorization
 
         public virtual User? User { get; set; }
 
-        internal void CopyData(Session newItem)
+        public void CopyData(Session newItem)
         {
-            throw new NotImplementedException();
+            UserId = newItem.UserId;
+            RefreshToken = newItem.RefreshToken;
+            ExpirationRefreshToken = newItem.ExpirationRefreshToken;
         }
     }
 }

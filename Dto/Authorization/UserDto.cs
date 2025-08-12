@@ -11,8 +11,6 @@ namespace CRMService.Dto.Authorization
 
         public string? Email { get; set; }
 
-        public string? PasswordHash { get; set; }
-
         public bool? Active { get; set; }
 
         public ICollection<Role> Roles { get; set; } = new List<Role>();

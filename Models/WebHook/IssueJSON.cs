@@ -49,5 +49,5 @@ namespace CRMService.Models.WebHook
 
             return convertIssue;
         }
-    }    
+    }
 }

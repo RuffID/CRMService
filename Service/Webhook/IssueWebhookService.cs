@@ -81,9 +81,8 @@ namespace CRMService.Service.Webhook
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, @event.Issue.Id, @event.Issue.Status?.Code, @event.Issue.Priority?.Code, @event.Issue.Type?.Code, @event.Issue.Client?.Company?.Id, @event.Issue.Maintenance_entity?.Id, @event.Issue.Assignee?.Employee?.Id);
 
             await unitOfWork.Issue.CreateOrUpdate(issue);
-            await unitOfWork.SaveAsync();
 
-            List<TimeEntry> entries = [];
+            List<TimeEntry> entries = new ();
             if (@event.Event!.Time_entries != null && @event.Event!.Time_entries.Length != 0)
             {
                 foreach (TimeEntryWebHook entry in @event.Event.Time_entries)
@@ -92,7 +91,7 @@ namespace CRMService.Service.Webhook
                     {
                         Id = entry.Id,
                         SpentTime = entry.Spent_time,
-                        EmployeeId = entry.Employee?.Id ?? 0,
+                        EmployeeId = entry.Employee?.Id,
                         IssueId = issue.Id,
                         CreatedAt = DateTime.Now,
                         LoggedAt = entry.Logged_at
@@ -100,15 +99,16 @@ namespace CRMService.Service.Webhook
                 }
 
                 foreach (TimeEntry? entry in entries)
-                    await timeEntryService.CheckEmployeeAndIssue(entry);
+                    await timeEntryService.CheckEmployeeAndIssue(entry, issue.Id);
 
                 await unitOfWork.TimeEntry.CreateOrUpdate(entries);
 
                 _logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.Assignee?.Employee?.Id);
 
-                await unitOfWork.SaveAsync();
             }
+            
+            await unitOfWork.SaveAsync();
         }
 
         private async Task UpdateIssue(IssueJSON issueJson)
@@ -139,15 +139,14 @@ namespace CRMService.Service.Webhook
 
         private async Task NewComment(RootEvent @event)
         {
-            if (@event.Event?.Author?.Type != "contact" || string.IsNullOrEmpty(@event.Event?.Comment?.Content))
+            if (@event.Event?.Author?.Type != AUTHOR_CONTACT_TYPE || string.IsNullOrEmpty(@event.Event?.Comment?.Content))
                 return;
 
-            DateTime evening = DateTime.Now;
-            evening = new DateTime(evening.Year, evening.Month, evening.Day, hour: 18, minute: 0, second: 0);
-            DateTime morning = new(evening.Year, evening.Month, evening.Day, hour: 9, minute: 0, second: 0);
+            DateTime now = DateTime.Now;
+            DateTime evening = new DateTime(now.Year, now.Month, now.Day, hour: 18, minute: 0, second: 0);
+            DateTime morning = new(now.Year, now.Month, now.Day, hour: 9, minute: 0, second: 0);
 
-            // Если новый комментарий от клиента был добавлен после 09:00 утра и раньше 18:00 вечера, то уведомлять не нужно
-
+            // Не уведомлять, если сейчас между 09:00 и 18:00
             if (DateTime.Now > morning && DateTime.Now < evening)
                 return;
 

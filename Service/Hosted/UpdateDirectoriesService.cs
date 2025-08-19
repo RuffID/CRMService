@@ -69,7 +69,7 @@ namespace CRMService.Service.Hosted
 
             await status.UpdateIssueStatusesFromCloudDb();
 
-            await issue.UpdateIssuesFromCloudDb(dateFrom.Value, dateTo.Value, startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await issue.UpdateIssuesFromCloudApi(dateFrom.Value, dateTo.Value, startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 
             await time.UpdateTimeEntriesFromCloudDb(dateFrom.Value, dateTo.Value);
 

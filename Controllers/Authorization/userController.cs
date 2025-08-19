@@ -3,6 +3,7 @@ using CRMService.Dto.Authorization;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Request;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,7 +42,7 @@ namespace CRMService.Controllers.Authorization
         }
 
         [HttpPut("update_user"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> UpdateUser([FromBody] UserDto user)
+        public async Task<IActionResult> UpdateUser([FromBody] UserRequestDto user)
         {
             // Поиск пользователя по логину
             User? userFromDb = await unitOfWork.User.GetItem(mapper.Map<User>(user));
@@ -60,7 +61,11 @@ namespace CRMService.Controllers.Authorization
                 userFromDb.Active = user.Active;
 
             if (user.Roles != null && user.Roles.Count != 0)
-                userFromDb.Roles = user.Roles;
+                userFromDb.Roles = user.Roles.Select(r => new Role()
+                {
+                    Id = r.Id,
+                    Name = r.Name
+                }).ToList(); ;
 
             await unitOfWork.SaveAsync();
 
@@ -88,7 +93,7 @@ namespace CRMService.Controllers.Authorization
         }
 
         [HttpPut("update_email"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> UpdateEmail([FromBody] UserDto updateUser)
+        public async Task<IActionResult> UpdateEmail([FromBody] UserRequestDto updateUser)
         {
             User? user = await unitOfWork.User.GetItem(mapper.Map<User>(updateUser));
 

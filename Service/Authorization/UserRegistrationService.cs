@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using CRMService.Dto.Authorization;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Request;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Authorization
@@ -12,7 +12,7 @@ namespace CRMService.Service.Authorization
         private readonly Hasher _hasher = new(hashSettings);
         private readonly ILogger<UserRegistrationService> _logger = logger.CreateLogger<UserRegistrationService>();
 
-        public async Task<bool> RegistrationUser(UserDto userDto)
+        public async Task<bool> RegistrationUser(UserRequestDto userDto)
         {
             if (await unitOfWork.User.GetItem(mapper.Map<User>(userDto), false) != null)
             {
@@ -21,7 +21,7 @@ namespace CRMService.Service.Authorization
             }
 
             // Поиск ролей и присвоение найденных ролей пользователю
-            ICollection<Role> roles = await unitOfWork.Role.GetItems(mapper.Map<User>(userDto).Roles);
+            ICollection<Role> roles = await unitOfWork.Role.GetItems(mapper.Map<User>(userDto).Roles, false);
             if (roles == null || roles.Count == 0)
             {
                 _logger.LogWarning("[Method:{MethodName}] The roles specified in the request body were not found in the system. Login: {userLogin}.", nameof(RegistrationUser), userDto.Login);

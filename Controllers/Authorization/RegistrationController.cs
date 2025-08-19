@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using CRMService.Dto.Authorization;
 using CRMService.Service.Authorization;
 using CRMService.Models.Authorization;
+using CRMService.Models.Request;
 
 namespace CRMService.Controllers.Authorization
 {
@@ -12,7 +13,7 @@ namespace CRMService.Controllers.Authorization
     public class RegistrationController(UserRegistrationService _userRegistrationService) : Controller
     {
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> Registration([FromBody] UserDto user)
+        public async Task<IActionResult> Registration([FromBody] UserRequestDto user)
         {
             // Если не все поля для создания заполнены, то выдаёт ошибку
             if (string.IsNullOrEmpty(user.Login) || string.IsNullOrEmpty(user.Password) || user.Roles == null || user.Roles.Count == 0)

@@ -119,7 +119,7 @@ namespace CRMService.Service.Entity
             await unitOfWork.SaveAsync();
         }
 
-        public async Task CheckEmployeeAndIssue(TimeEntry entry, int currentIssueId)
+        public async Task CheckEmployeeAndIssue(TimeEntry entry)
         {
             // Проверяет наличие сотрудника; при отсутствии зануляет
             if (entry.EmployeeId != null)
@@ -131,9 +131,6 @@ namespace CRMService.Service.Entity
             // Сохраняет IssueId, если это текущая задача в изменяемом графе
             if (entry.IssueId != null)
             {
-                if (entry.IssueId == currentIssueId)
-                    return; // Оставляет связь на текущий Issue, который будет сохранён тем же SaveChanges
-
                 if (await unitOfWork.Issue.GetIssueById((int)entry.IssueId, false) == null)
                     entry.IssueId = null;
             }

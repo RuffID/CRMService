@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook
 {
-    public class IssueWebhookService(IUnitOfWorkEntities unitOfWork, IssueService issueService, TimeEntryService timeEntryService, IOptions<ApiEndpoint> endp,
+    public class IssueWebhookService(IUnitOfWorkEntities unitOfWork, IssueService issueService, IOptions<ApiEndpoint> endp,
         IRequestService request, IOptions<TelegramBotSettings> tgSettings, ILoggerFactory logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
@@ -98,14 +98,10 @@ namespace CRMService.Service.Webhook
                     });
                 }
 
-                foreach (TimeEntry? entry in entries)
-                    await timeEntryService.CheckEmployeeAndIssue(entry, issue.Id);
-
                 await unitOfWork.TimeEntry.CreateOrUpdate(entries);
 
                 _logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.Assignee?.Employee?.Id);
-
             }
             
             await unitOfWork.SaveAsync();
@@ -143,7 +139,7 @@ namespace CRMService.Service.Webhook
                 return;
 
             DateTime now = DateTime.Now;
-            DateTime evening = new DateTime(now.Year, now.Month, now.Day, hour: 18, minute: 0, second: 0);
+            DateTime evening = new (now.Year, now.Month, now.Day, hour: 18, minute: 0, second: 0);
             DateTime morning = new(now.Year, now.Month, now.Day, hour: 9, minute: 0, second: 0);
 
             // Не уведомлять, если сейчас между 09:00 и 18:00

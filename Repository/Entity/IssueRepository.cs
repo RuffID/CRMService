@@ -97,19 +97,10 @@ namespace CRMService.Repository.Entity
         {
             var existingItem = await GetItem(item);
 
-            if (existingItem == null)
-            {
+            if (existingItem == null)            
                 Create(item);
-                return;
-            }
-
-            if (item.EmployeesUpdatedAt.HasValue)
-            {
-                if (!existingItem.EmployeesUpdatedAt.HasValue || item.EmployeesUpdatedAt >= existingItem.EmployeesUpdatedAt)
-                {
-                    Update(existingItem, item);
-                }
-            }
+            else
+                Update(existingItem, item);                
         }
     }
 }

@@ -1,19 +1,22 @@
 ﻿using CRMService.API;
 using CRMService.Core.Filter;
+using CRMService.DataBase;
 using CRMService.DataBase.Postgresql;
-using CRMService.HostedServices;
 using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Server;
 using CRMService.Repository;
+using CRMService.Service.DataBase;
 using CRMService.Service.Entity;
 using CRMService.Service.Hosted;
 using CRMService.Service.Report;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -32,6 +35,8 @@ namespace CRMService.Core
                 configuration.GetSection(DatabaseSettings.CONNECTION_STRINGS));
             services.Configure<TelegramBotSettings>(
                 configuration.GetSection(TelegramBotSettings.TELEGRAM_BOT));
+            services.Configure<BearerToken>(
+                configuration.GetSection(BearerToken.BEARER_TOKEN));
 
             return services;
         }
@@ -41,40 +46,45 @@ namespace CRMService.Core
         {
             services.AddControllers();
             services.AddLogging();
-            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            services.AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies());
             services.AddHttpClient<IRequestService, RequestClient>();
             services.AddSignalR();
-            services.AddAuthentication()
-                .AddJwtBearer(options =>
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<BearerToken>>((options, bearerOpt) =>
                 {
+                    BearerToken settings = bearerOpt.Value;
+
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
-                        ValidIssuer = configuration["BearerToken:Issuer"],
+                        ValidIssuer = settings.Issuer,
                         ValidateAudience = true,
-                        ValidAudience = configuration["BearerToken:Audience"],
+                        ValidAudience = settings.Audience,
                         ValidateLifetime = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["BearerToken:JWTKey"] ?? "")),
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JWTKey ?? "")),
                         ValidateIssuerSigningKey = true,
                     };
 
                     options.RequireHttpsMetadata = false;
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnMessageReceived = context =>
-                        {
-                            var path = context.HttpContext.Request.Path;
-                            if (context.HttpContext.Request.Headers.TryGetValue("Authorization", out var accessToken) && path.StartsWithSegments("/chat"))
-                            {
-                                accessToken = accessToken.ToString().Replace("Bearer", "").Trim();
-                                context.Token = accessToken;
-                            }
-                            return Task.CompletedTask;
-                        }
-                    };
                 });
 
+            services.AddDbContext<CRMEntitiesContext>(options =>
+            {
+                string connectionSting = configuration["DatabaseSettings:MySqlMainCRM"] ?? "";
+                options.UseMySql(connectionSting, ServerVersion.AutoDetect(connectionSting));
+            });
+
+            services.AddScoped<BackupService<CRMEntitiesContext>>(sp =>
+            {
+                CRMEntitiesContext db = sp.GetRequiredService<CRMEntitiesContext>();
+                string backupDirectory = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
+                ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                return new BackupService<CRMEntitiesContext>(db, backupDirectory, loggerFactory);
+            });
+
             services.AddSingleton<EntitySyncService>();
+            services.AddScoped<MigrationService<CRMEntitiesContext>>();
             services.AddSingleton<ServerData>();
             services.AddScoped<PGSelect>();
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
@@ -83,7 +93,6 @@ namespace CRMService.Core
             services.AddScoped<IUnitOfWorkEntities, UnitOfWorkEntities>();
             services.AddScoped<IUnitOfWorkServerInfo, UnitOfWorkServerInfo>();
 
-            // Services
             services.AddScoped<GetItemService>();
 
             services.AddScoped<CompanyCategoryService>();

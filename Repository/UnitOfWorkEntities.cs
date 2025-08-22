@@ -2,19 +2,16 @@
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Repository.Entity;
 using CRMService.Interfaces.Repository.Report;
-using CRMService.Models.ConfigClass;
 using CRMService.Repository.Entity;
 using CRMService.Repository.Report;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Repository
 {
-    public class UnitOfWorkEntities(IOptions<DatabaseSettings> databaseSettings, ILoggerFactory logger) : IUnitOfWorkEntities
+    public class UnitOfWorkEntities(CRMEntitiesContext entitiesContext, ILoggerFactory logger) : IUnitOfWorkEntities
     {
         private bool disposed = false;
-        private readonly CRMEntitiesContext entitiesContext = new(databaseSettings);
         private readonly ILogger<UnitOfWorkEntities> _logger = logger.CreateLogger<UnitOfWorkEntities>();
         private ICompanyRepository? companyRepository;
         private ICompanyCategoryRepository? categoryRepository;

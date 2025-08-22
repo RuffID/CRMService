@@ -1,4 +1,6 @@
 using CRMService.Core;
+using CRMService.DataBase;
+using CRMService.Service.DataBase;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using System.Net;
@@ -25,10 +27,26 @@ try
 
     WebApplication app = builder.Build();
 
+    Log.Information("[Class:{ClassName}] CRM service started.", nameof(Program));
+
     using (IServiceScope scope = app.Services.CreateScope())
     {
         ILogger<Program> logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("[Class:{ClassName}] CRM service started.", nameof(Program));
+        IHostApplicationLifetime lifetime = scope.ServiceProvider.GetRequiredService<IHostApplicationLifetime>();
+
+        try
+        {
+            CRMEntitiesContext db = scope.ServiceProvider.GetRequiredService<CRMEntitiesContext>();
+            MigrationService<CRMEntitiesContext> migrationService = scope.ServiceProvider.GetRequiredService<MigrationService<CRMEntitiesContext>>();
+            await migrationService.MigrateDatabaseWithBackup();
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "[Class:{ClassName}] Migration failed. Stopping application.", nameof(Program));
+            lifetime.StopApplication();
+            return;
+        }
+
     }
 
     app.UseForwardedHeaders(new ForwardedHeadersOptions

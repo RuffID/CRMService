@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
 using AutoMapper;
-using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Dto.Entity;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class GroupController(IOptions<OkdeskSettings> okdSettings, IUnitOfWorkEntities unitOfWork, IMapper mapper, GroupService service) : Controller
+    public class GroupController(IOptions<OkdeskSettings> okdSettings, IUnitOfWork unitOfWork, IMapper mapper, GroupService service) : Controller
     {
 
         [HttpGet("list")]
@@ -27,7 +27,7 @@ namespace CRMService.Controllers.Entity
             return Ok(groups);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateGroupsFromCloudApi()
         {
             await service.UpdateGroupsFromCloudApi();
@@ -35,7 +35,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateGroupsFromCloudDb()
         {
             await service.UpdateGroupsFromCloudDb();

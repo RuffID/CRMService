@@ -9,7 +9,7 @@ using System.Data;
 namespace CRMService.Service.Entity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpoint> endpoint, IOptions<DatabaseSettings> dbSettings, 
-        IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<MaintenanceEntityService> _logger = logger.CreateLogger<MaintenanceEntityService>();
 

@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using CRMService.Dto.Authorization;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Dto.Authorization;
 using CRMService.Models.Request;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -61,7 +61,7 @@ namespace CRMService.Controllers.Authorization
                 userFromDb.Active = user.Active;
 
             if (user.Roles != null && user.Roles.Count != 0)
-                userFromDb.Roles = user.Roles.Select(r => new Role()
+                userFromDb.Roles = user.Roles.Select(r => new CrmRole()
                 {
                     Id = r.Id,
                     Name = r.Name

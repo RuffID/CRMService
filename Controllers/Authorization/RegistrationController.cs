@@ -10,7 +10,7 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class RegistrationController(UserRegistrationService _userRegistrationService) : Controller
+    public class RegistrationController(RegistrationService _userRegistrationService) : Controller
     {
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> Registration([FromBody] UserRequestDto user)

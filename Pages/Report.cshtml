@@ -4,3 +4,29 @@
 @{
     ViewData["Title"] = "Отчёт";
 }
+
+<!-- Вставляет скрытую форму только ради получения fresh антифорджери-токена -->
+<form id="af" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="container py-4">
+    <div class="table-responsive">
+        <table class="table table-hover table-striped align-middle" id="grid">
+            <thead class="table-light">
+                <tr>
+                    <th>ФИО сотрудника</th>
+                    <th class="text-center">Решённые заявки</th>
+                    <th class="text-center">Текущие заявки</th>
+                    <th class="text-center">Списанное время</th>
+                </tr>
+            </thead>
+            <tbody id="rows">
+                <!-- Заполняет JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="~/js/requests/request.js" asp-append-version="true"></script>
+<script src="~/js/report.js" asp-append-version="true"></script>

@@ -2,11 +2,11 @@
 using CRMService.DataBase;
 using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
-using CRMService.Dto.Entity;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class ParameterRepository(CrmEntitiesContext context, ILoggerFactory logger) : IParameterRepository
+    public class ParameterRepository(ApplicationContext context, ILoggerFactory logger) : IParameterRepository
     {
         private readonly ILogger<ParameterRepository> _logger = logger.CreateLogger<ParameterRepository>();
 

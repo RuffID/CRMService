@@ -5,15 +5,15 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class RoleRepository(CrmEntitiesContext context, ILoggerFactory logger) : IRoleRepository
+    public class RoleRepository(ApplicationContext context, ILoggerFactory logger) : IRoleRepository
     {
         private readonly ILogger<RoleRepository> _logger = logger.CreateLogger<RoleRepository>();
 
-        public async Task<IEnumerable<Role>?> GetItems(int startIndex, int limit)
+        public async Task<IEnumerable<OkdeskRole>?> GetItems(int startIndex, int limit)
         {
             try
             {
-                return await context.Roles.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
+                return await context.OkdeskRoles.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
@@ -22,14 +22,14 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public async Task<Role?> GetItem(Role item, bool? trackable = null)
+        public async Task<OkdeskRole?> GetItem(OkdeskRole item, bool? trackable = null)
         {
             try
             {
                 if (trackable == null || trackable == true)
-                    return await context.Roles.FirstOrDefaultAsync(c => c.Id == item.Id);
+                    return await context.OkdeskRoles.FirstOrDefaultAsync(c => c.Id == item.Id);
 
-                return await context.Roles.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
+                return await context.OkdeskRoles.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
             }
             catch (Exception ex)
             {
@@ -38,14 +38,14 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public async Task<Role?> GetRoleByName(string name, bool? trackable = null)
+        public async Task<OkdeskRole?> GetRoleByName(string name, bool? trackable = null)
         {
             try
             {
                 if (trackable == null || trackable == true)
-                    return await context.Roles.FirstOrDefaultAsync(c => c.Name == name);
+                    return await context.OkdeskRoles.FirstOrDefaultAsync(c => c.Name == name);
 
-                return await context.Roles.AsNoTracking().FirstOrDefaultAsync(c => c.Name == name);
+                return await context.OkdeskRoles.AsNoTracking().FirstOrDefaultAsync(c => c.Name == name);
             }
             catch (Exception ex)
             {
@@ -54,17 +54,17 @@ namespace CRMService.Repository.Entity
             }
         }
 
-        public void Update(Role oldItem, Role newItem)
+        public void Update(OkdeskRole oldItem, OkdeskRole newItem)
         {
             oldItem.CopyData(newItem);
         }
 
-        public void Create(Role item)
+        public void Create(OkdeskRole item)
         {
-            context.Roles.Add(item);
+            context.OkdeskRoles.Add(item);
         }
 
-        public async Task CreateOrUpdate(IEnumerable<Role> items)
+        public async Task CreateOrUpdate(IEnumerable<OkdeskRole> items)
         {
             foreach (var item in items)
             {

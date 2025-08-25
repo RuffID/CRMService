@@ -5,11 +5,11 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class CompanyCategoryService(PGSelect pGSelect, IUnitOfWorkEntities unitOfWork, ILoggerFactory logger)
+    public class CompanyCategoryService(PGSelect pGSelect, IUnitOfWork unitOfWork, ILoggerFactory logger)
     {
         private readonly PGSelect _pGSelect = pGSelect;
         private readonly ILogger<CompanyCategoryService> _logger = logger.CreateLogger<CompanyCategoryService>();
-        private readonly IUnitOfWorkEntities _unitOfWork = unitOfWork;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         private async Task<List<CompanyCategory>?> GetCategoriesFromCloudDb()
         {

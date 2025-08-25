@@ -5,7 +5,7 @@ using CRMService.Service.Entity;
 
 namespace CRMService.Service.Webhook
 {
-    public class EquipmentWebhookService(IUnitOfWorkEntities unitOfWork, EquipmentService equipmentService) : IWebhookHandler
+    public class EquipmentWebhookService(IUnitOfWork unitOfWork, EquipmentService equipmentService) : IWebhookHandler
     {
         public async Task<bool> HandleWebhook(RootEvent @event)
         {

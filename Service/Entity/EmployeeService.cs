@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class EmployeeService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, GetItemService _request, ILoggerFactory logger)
+    public class EmployeeService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetItemService _request, ILoggerFactory logger)
     {
         private readonly ILogger<EmployeeService> _logger = logger.CreateLogger<EmployeeService>();
 
@@ -90,11 +90,11 @@ namespace CRMService.Service.Entity
                 if (employee.Roles == null || !employee.Roles.Any())
                     continue;
 
-                foreach (Role role in employee.Roles)
+                foreach (OkdeskRole role in employee.Roles)
                 {
                     if (string.IsNullOrWhiteSpace(role.Name)) continue;
 
-                    Role? roleFromDb = await unitOfWork.Role.GetRoleByName(role.Name);
+                    OkdeskRole? roleFromDb = await unitOfWork.Role.GetRoleByName(role.Name);
 
                     if (roleFromDb == null) continue;
                     // Понадобится для удаления

@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
-using CRMService.Dto.Authorization;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
+using CRMService.Models.Dto.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

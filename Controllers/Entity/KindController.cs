@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.ConfigClass;
 using Microsoft.Extensions.Options;
-using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Dto.Entity;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, KindService service) : Controller
+    public class KindController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, KindService service) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetKinds([FromQuery] int startIndex = 0)
@@ -26,7 +26,7 @@ namespace CRMService.Controllers.Entity
             return Ok(kinds);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateKindsFromCloudApi([FromQuery] int startIndex = 0)
         {
             await service.UpdateKindsFromCloudApi(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb);

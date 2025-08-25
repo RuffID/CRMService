@@ -1,5 +1,4 @@
 ﻿using CRMService.Interfaces.Authorization;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Authorization
 {
@@ -26,7 +25,7 @@ namespace CRMService.Models.Authorization
 
         public virtual BlockReason? BlockReason { get; set; }
 
-        public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+        public virtual ICollection<CrmRole> Roles { get; set; } = new List<CrmRole>();
 
         public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
 

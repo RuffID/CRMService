@@ -5,16 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Authorization
 {
-    public class RoleRepository(CrmAuthorizationContext context, ILoggerFactory logger) : IRoleRepository
+    public class RoleRepository(CrmAuthorizationContext context, ILoggerFactory logger) : ICrmRoleRepository
     {
         private readonly CrmAuthorizationContext _context = context;
         private readonly ILogger<RoleRepository> _logger = logger.CreateLogger<RoleRepository>();
 
-        public async Task<IEnumerable<Role>?> GetItems(Range range)
+        public async Task<IEnumerable<CrmRole>?> GetItems(Range range)
         {
             try
             {
-                return await _context.Roles.OrderBy(r => r.Name).Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).ToListAsync();
+                return await _context.CrmRoles.OrderBy(r => r.Name).Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).ToListAsync();
             }
             catch (Exception ex)
             {
@@ -23,16 +23,16 @@ namespace CRMService.Repository.Authorization
             }
         }
 
-        public async Task<ICollection<Role>> GetItems(IEnumerable<Role> items, bool trackable = true)
+        public async Task<ICollection<CrmRole>> GetItems(IEnumerable<CrmRole> items, bool trackable = true)
         {
             try
             {
                 if (items == null || !items.Any())
-                    return new List<Role>();
+                    return new List<CrmRole>();
 
-                IQueryable<Role> query = trackable
-                    ? _context.Roles
-                    : _context.Roles.AsNoTracking();
+                IQueryable<CrmRole> query = trackable
+                    ? _context.CrmRoles
+                    : _context.CrmRoles.AsNoTracking();
 
                 // Получает список Id и имён из входной коллекции
                 List<Guid> ids = items.Where(i => i.Id != Guid.Empty).Select(i => i.Id).ToList();
@@ -46,18 +46,18 @@ namespace CRMService.Repository.Authorization
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list by collection.", nameof(GetItems));
-                return new List<Role>();
+                return new List<CrmRole>();
             }
         }
 
-        public async Task<Role?> GetItem(Role item, bool? trackable = null)
+        public async Task<CrmRole?> GetItem(CrmRole item, bool? trackable = null)
         {
             try
             {
                 if (trackable == null || trackable == true)
-                    return await _context.Roles.FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
+                    return await _context.CrmRoles.FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
 
-                return await _context.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
+                return await _context.CrmRoles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == item.Id || r.Name == item.Name);
             }
             catch (Exception ex)
             {
@@ -66,7 +66,7 @@ namespace CRMService.Repository.Authorization
             }
         }
 
-        public void Create(Role item)
+        public void Create(CrmRole item)
         {
             _context.Add(item);
         }

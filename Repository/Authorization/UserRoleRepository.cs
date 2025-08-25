@@ -23,13 +23,13 @@ namespace CRMService.Repository.Authorization
             }
         }
 
-        public async Task<IEnumerable<Role>?> GetRolesByUserId(Guid userId)
+        public async Task<IEnumerable<CrmRole>?> GetRolesByUserId(Guid userId)
         {
             try
             {
                 return await _context.UserRoles
                     .Where(ur => ur.UserId == userId && ur.Role != null)
-                    .Select(ur => new Role
+                    .Select(ur => new CrmRole
                     {
                         Id = ur.Role.Id,
                         Name = ur.Role.Name

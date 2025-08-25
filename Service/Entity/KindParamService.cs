@@ -5,7 +5,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class KindParamService(IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindParamService(IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<KindParamService> _logger = logger.CreateLogger<KindParamService>();
 

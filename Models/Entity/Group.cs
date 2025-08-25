@@ -1,5 +1,5 @@
-﻿using CRMService.Dto.Entity;
-using CRMService.Interfaces.Entity;
+﻿using CRMService.Interfaces.Entity;
+using CRMService.Models.Dto.Entity;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity

@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
-using CRMService.Dto.Authorization;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
+using CRMService.Models.Dto.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,11 +37,11 @@ namespace CRMService.Controllers.Authorization
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> CreateRole([FromBody] RoleDto role)
         {
-            if (await unitOfWork.Role.GetItem(mapper.Map<Role>(role), false) != null)
+            if (await unitOfWork.Role.GetItem(mapper.Map<CrmRole>(role), false) != null)
                 return BadRequest($"Role {role.Name} is already exists.");
 
             role.Id = Guid.NewGuid();
-            unitOfWork.Role.Create(mapper.Map<Role>(role));
+            unitOfWork.Role.Create(mapper.Map<CrmRole>(role));
             await unitOfWork.SaveAsync();
 
             return NoContent();

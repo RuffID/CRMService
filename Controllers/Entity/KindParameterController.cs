@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
-using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Dto.Entity;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindParameterController(IMapper mapper, IUnitOfWorkEntities unitOfWork, IOptions<DatabaseSettings> dbSettings, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
+    public class KindParameterController(IMapper mapper, IUnitOfWork unitOfWork, IOptions<DatabaseSettings> dbSettings, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
     {
 
         [HttpGet("list")]
@@ -27,7 +27,7 @@ namespace CRMService.Controllers.Entity
             return Ok(kindParameters);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateKindParametersFromCloudApi()
         {
             await kindParameterService.UpdateKindParametersFromCloudApi();
@@ -36,7 +36,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateKindParametersFromCloudDb()
         {
             await kindParameterService.UpdateKindParametersFromCloudDb();
@@ -44,7 +44,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateConnectionsFromCloudApi()
         {
             await kindParamService.UpdateConnectionsFromCloudDb();

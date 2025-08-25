@@ -6,7 +6,7 @@ namespace CRMService.Interfaces.Repository
     {
         IBlockReasonRepository BlockReason { get; }
 
-        IRoleRepository Role { get; }
+        ICrmRoleRepository Role { get; }
 
         ISessionRepository Session { get; }
 

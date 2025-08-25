@@ -1,9 +1,10 @@
 ﻿using AutoMapper;
 using CRMService.Models.Entity;
 using CRMService.Models.WebHook;
-using CRMService.Dto.Entity;
 using CRMService.Models.Authorization;
-using CRMService.Dto.Authorization;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Authorization;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Core
 {
@@ -42,8 +43,8 @@ namespace CRMService.Core
             CreateMap<MaintenanceEntityWebHook, MaintenanceEntity>();
             CreateMap<User, UserDto>();
             CreateMap<UserDto, User>();
-            CreateMap<Models.Authorization.Role, RoleDto>();
-            CreateMap<RoleDto, Models.Authorization.Role>();
+            CreateMap<Models.Authorization.CrmRole, RoleDto>();
+            CreateMap<RoleDto, Models.Authorization.CrmRole>();
             CreateMap<Session, SessionDto>();
             CreateMap<UserRole, UserRoleDto>();
             CreateMap<BlockReason, BlockReasonDto>();

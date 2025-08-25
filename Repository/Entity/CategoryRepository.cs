@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Entity
 {
-    public class CategoryRepository(CrmEntitiesContext context, ILoggerFactory logger) : ICompanyCategoryRepository
+    public class CategoryRepository(ApplicationContext context, ILoggerFactory logger) : ICompanyCategoryRepository
     {
         private readonly ILogger<CategoryRepository> _logger = logger.CreateLogger<CategoryRepository>();
 

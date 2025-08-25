@@ -3,18 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
-using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
-using CRMService.Dto.Entity;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CompanyController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, EntitySyncService sync, CompanyService service) : Controller
+    public class CompanyController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, EntitySyncService sync, CompanyService service) : Controller
     {
 
         [HttpGet]
@@ -53,7 +53,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateCompaniesFromCloudApi([FromQuery] int startIndexCategory = 0, int startIndexCompany = 0)
         {
             await sync.RunExclusive(async () =>
@@ -64,7 +64,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateCompaniesFromCloudDb([FromQuery] int startIndexCategory = 0, int startIndexCompany = 0)
         {
             await sync.RunExclusive(async () =>

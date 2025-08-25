@@ -2,16 +2,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
-using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Models.Enum;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class RoleController(IOptions<DatabaseSettings> _dbSettings, IUnitOfWorkEntities unitOfWork, RoleService service) : Controller
+    public class RoleController(IOptions<DatabaseSettings> _dbSettings, IUnitOfWork unitOfWork, RoleService service) : Controller
     {
 
         [HttpGet("list")]
@@ -25,7 +25,7 @@ namespace CRMService.Controllers.Entity
             return Ok(roles);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateRolesFromCloudApi()
         {
             await service.UpdateRolesFromCloudApi();

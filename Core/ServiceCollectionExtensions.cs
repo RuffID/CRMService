@@ -2,7 +2,7 @@
 using CRMService.Core.Filter;
 using CRMService.DataBase;
 using CRMService.DataBase.Postgresql;
-using CRMService.HostedServices;
+using CRMService.Service.HostedServices;
 using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
@@ -59,7 +59,7 @@ namespace CRMService.Core
                     }
                 });
             });
-            services.AddDbContext<CrmAuthorizationContext>();
+            services.AddDbContext<ApplicationContext>();
             services.AddControllers();
             services.AddLogging();
             services.AddAutoMapper(cfg => { }, typeof(MappingProfiles).Assembly);
@@ -91,7 +91,7 @@ namespace CRMService.Core
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
 
             services.AddScoped<IManageImage, ManageImage>();
-            services.AddScoped<IUnitOfWorkEntities, UnitOfWorkEntities>();
+            services.AddScoped<IUnitOfWork, UnitOfWorkEntities>();
             services.AddScoped<IUnitOfWorkAuthorization, UnitOfWorkAuthorization>();
 
 
@@ -120,7 +120,7 @@ namespace CRMService.Core
             services.AddScoped<UpdateDirectoriesService>();
 
             services.AddScoped<UserLoginService>();
-            services.AddScoped<UserRegistrationService>();
+            services.AddScoped<RegistrationService>();
             services.AddScoped<DataBaseHandler>();
             services.AddScoped<BackupService>();
             services.AddScoped<GenerateRandomString>();

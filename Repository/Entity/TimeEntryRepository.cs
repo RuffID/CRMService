@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class TimeEntryRepository(CrmEntitiesContext context, ILoggerFactory logger) : ITimeEntryRepository
+    public class TimeEntryRepository(ApplicationContext context, ILoggerFactory logger) : ITimeEntryRepository
     {
         private readonly ILogger<TimeEntryRepository> _logger = logger.CreateLogger<TimeEntryRepository>();
 

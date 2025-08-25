@@ -3,10 +3,11 @@ using CRMService.DataBase;
 using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
 using CRMService.Dto.Entity;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class EquipmentRepository(CrmEntitiesContext context, ILoggerFactory logger) : IEquipmentRepository
+    public class EquipmentRepository(ApplicationContext context, ILoggerFactory logger) : IEquipmentRepository
     {
         private readonly ILogger<EquipmentRepository> _logger = logger.CreateLogger<EquipmentRepository>();
 

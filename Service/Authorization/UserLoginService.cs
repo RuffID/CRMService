@@ -7,7 +7,7 @@ namespace CRMService.Service.Authorization
 {
     public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthOptions> authOptions, GenerateRefreshToken generateRefresh)
     {
-        private readonly GenerateAccessToken _accessToken = new(authOptions);        
+        private readonly JwtTokenService _accessToken = new(authOptions);        
         private readonly ILogger<UserLoginService> _logger = logger.CreateLogger<UserLoginService>();
 
         public async Task<Token?> LoginInService(User user)
@@ -66,7 +66,7 @@ namespace CRMService.Service.Authorization
             Token token = new()
             {
                 // Срок действия access token указывается в конфиге
-                AccessToken = _accessToken.Generate(user),
+                AccessToken = _accessToken.Create(user),
                 RefreshToken = generateRefresh.Generate()
             };
 

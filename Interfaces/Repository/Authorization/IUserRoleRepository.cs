@@ -7,7 +7,7 @@ namespace CRMService.Interfaces.Repository.Authorization
     {
         Task<IEnumerable<UserRole>?> GetAllItem(Range range);
         Task<UserRole?> GetItem(UserRole item, bool? trackable = null);
-        Task<IEnumerable<Role>?> GetRolesByUserId(Guid userId);
+        Task<IEnumerable<CrmRole>?> GetRolesByUserId(Guid userId);
         Task<UserRole?> GetConnectionByUserAndRoleId(UserRole item, bool? trackable = null);
     }
 }

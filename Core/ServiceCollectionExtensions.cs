@@ -131,11 +131,11 @@ namespace CRMService.Core
             services.AddScoped<IWebhookHandler, MaintenanceEntityWebhookService>();
             services.AddScoped<IWebhookHandler, EquipmentWebhookService>();
 
-
+#if !DEBUG
             services.AddHostedService<ThirtyMinutesReportHostedService>();
             services.AddHostedService<UpdateDirectoriesHostedService>();
             services.AddHostedService<WeekReportHostedService>();
-
+#endif
 
             return services;
         }

@@ -49,8 +49,6 @@
   <ItemGroup>
     <Folder Include="Interfaces\Entity\" />
     <Folder Include="Config\" />
-    <Folder Include="wwwroot\" />
-    <Folder Include="Pages\" />
   </ItemGroup>
 
 </Project>

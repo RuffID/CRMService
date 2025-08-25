@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class EmployeeRoleRepository(CRMEntitiesContext context, ILoggerFactory logger) : IEmployeeRoleRepository
+    public class EmployeeRoleRepository(ApplicationContext context, ILoggerFactory logger) : IEmployeeRoleRepository
     {
         private readonly ILogger<EmployeeRoleRepository> _logger = logger.CreateLogger<EmployeeRoleRepository>();
 
@@ -17,7 +17,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee role list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee role list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee role.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee role.", nameof(GetItem));
                 return null;
             }
         }
@@ -46,7 +46,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee role list by employee id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee role list by employee id.", nameof(GetConnectionsByEmployee));
                 return null;
             }
         }

@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueRepository(CRMEntitiesContext context, ILoggerFactory logger) : IIssueRepository
+    public class IssueRepository(ApplicationContext context, ILoggerFactory logger) : IIssueRepository
     {
         private readonly ILogger<IssueRepository> _logger = logger.CreateLogger<IssueRepository>();
 
@@ -13,7 +13,7 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Issues.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Issues.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
@@ -26,7 +26,8 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Issues.AsNoTracking()
+                return await context.Issues
+                    .AsNoTracking()
                     .Where(c => c.Id >= startIndex && c.EmployeesUpdatedAt >= dateFrom && c.EmployeesUpdatedAt <= dateTo)
                     .OrderBy(c => c.Id)
                     .ToListAsync();

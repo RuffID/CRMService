@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueStatusRepository(CRMEntitiesContext context, ILoggerFactory logger) : IIssueStatusRepository
+    public class IssueStatusRepository(ApplicationContext context, ILoggerFactory logger) : IIssueStatusRepository
     {
         private readonly ILogger<IssueStatusRepository> _logger = logger.CreateLogger<IssueStatusRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssueStatuses.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.IssueStatuses.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue status list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue status list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue status.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue status.", nameof(GetItem));
                 return null;
             }
         }
@@ -42,11 +42,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssueStatuses.CountAsync();
+                return await context.IssueStatuses.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of issue statuses.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of issue statuses.", nameof(GetCountOfItems));
                 return 0;
             }
         }

@@ -2,13 +2,14 @@
 using CRMService.Core.Filter;
 using CRMService.DataBase;
 using CRMService.DataBase.Postgresql;
+using CRMService.Service.HostedServices;
 using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Server;
 using CRMService.Repository;
-using CRMService.Service.DataBase;
+using CRMService.Service.Authorization;
 using CRMService.Service.Entity;
 using CRMService.Service.Hosted;
 using CRMService.Service.Report;
@@ -35,8 +36,10 @@ namespace CRMService.Core
                 configuration.GetSection(DatabaseSettings.CONNECTION_STRINGS));
             services.Configure<TelegramBotSettings>(
                 configuration.GetSection(TelegramBotSettings.TELEGRAM_BOT));
-            services.Configure<BearerToken>(
-                configuration.GetSection(BearerToken.BEARER_TOKEN));
+            services.Configure<AuthOptions>(
+                configuration.GetSection(AuthOptions.AUTHORIZATION_OPTIONS));
+            services.Configure<HashSettings>(
+                configuration.GetSection(HashSettings.HASH_CONFIGURE));
 
             return services;
         }
@@ -44,6 +47,22 @@ namespace CRMService.Core
         public static IServiceCollection ConfigureServices(
              this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddRazorPages(options =>
+            {
+                // Делает все ссылки на страницы to lower case
+                options.Conventions.AddFolderRouteModelConvention("/", model =>
+                {
+                    foreach (var selector in model.Selectors)
+                    {
+                        var attrRoute = selector.AttributeRouteModel;
+                        if (attrRoute?.Template != null)
+                        {
+                            attrRoute.Template = attrRoute.Template.ToLowerInvariant();
+                        }
+                    }
+                });
+            });
+            services.AddDbContext<ApplicationContext>();
             services.AddControllers();
             services.AddLogging();
             services.AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies());
@@ -90,8 +109,9 @@ namespace CRMService.Core
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
 
             services.AddScoped<IManageImage, ManageImage>();
-            services.AddScoped<IUnitOfWorkEntities, UnitOfWorkEntities>();
-            services.AddScoped<IUnitOfWorkServerInfo, UnitOfWorkServerInfo>();
+            services.AddScoped<IUnitOfWork, UnitOfWorkEntities>();
+            services.AddScoped<IUnitOfWorkAuthorization, UnitOfWorkAuthorization>();
+
 
             services.AddScoped<GetItemService>();
 
@@ -113,13 +133,21 @@ namespace CRMService.Core
             services.AddScoped<RoleService>();
             services.AddScoped<TimeEntryService>();
             services.AddScoped<ReportService>();
+
             services.AddScoped<UpdateDirectoriesService>();
+
+            services.AddScoped<UserLoginService>();
+            services.AddScoped<RegistrationService>();
+            services.AddScoped<DataBaseHandler>();
+            services.AddScoped<BackupService>();
+            services.AddScoped<GenerateRandomString>();
+            services.AddScoped<GenerateRefreshToken>();
+
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();
             services.AddScoped<IWebhookHandler, MaintenanceEntityWebhookService>();
             services.AddScoped<IWebhookHandler, EquipmentWebhookService>();
 
-            // Запуск служб только в RELEASE режиме
 #if !DEBUG
             services.AddHostedService<ThirtyMinutesReportHostedService>();
             services.AddHostedService<UpdateDirectoriesHostedService>();

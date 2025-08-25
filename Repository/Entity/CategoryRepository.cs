@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Entity
 {
-    public class CategoryRepository(CRMEntitiesContext context, ILoggerFactory logger) : ICompanyCategoryRepository
+    public class CategoryRepository(ApplicationContext context, ILoggerFactory logger) : ICompanyCategoryRepository
     {
         private readonly ILogger<CategoryRepository> _logger = logger.CreateLogger<CategoryRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.CompanyCategories.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.CompanyCategories.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving company category list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving company category list.", nameof(GetItems));
                 return null;
             }
         }
@@ -34,7 +34,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving company category.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving company category.", nameof(GetItem));
                 return null;
             }
         }
@@ -43,11 +43,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.CompanyCategories.CountAsync();
+                return await context.CompanyCategories.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of company categories.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of company categories.", nameof(GetCountOfItems));
                 return 0;
             }
         }
@@ -55,7 +55,6 @@ namespace CRMService.Repository.Entity
         public void Update(CompanyCategory oldItem, CompanyCategory newItem)
         {
             oldItem.CopyData(newItem);
-
         }
 
         public void Create(CompanyCategory item)

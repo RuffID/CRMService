@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook
 {
-    public class IssueWebhookService(IUnitOfWorkEntities unitOfWork, IssueService issueService, IOptions<ApiEndpoint> endp,
+    public class IssueWebhookService(IUnitOfWork unitOfWork, IssueService issueService, TimeEntryService timeEntryService, IOptions<ApiEndpoint> endp,
         IRequestService request, IOptions<TelegramBotSettings> tgSettings, ILoggerFactory logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";

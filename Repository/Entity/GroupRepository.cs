@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class GroupRepository(CRMEntitiesContext context, ILoggerFactory logger) : IGroupRepository
+    public class GroupRepository(ApplicationContext context, ILoggerFactory logger) : IGroupRepository
     {
         private readonly ILogger<GroupRepository> _logger = logger.CreateLogger<GroupRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Groups.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Groups.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving group list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving group list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving group.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving group.", nameof(GetItem));
                 return null;
             }
         }

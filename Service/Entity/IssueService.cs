@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Service.Entity
 {
     public class IssueService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService itemService, 
-        IUnitOfWorkEntities unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueService> _logger = logger.CreateLogger<IssueService>();
 

@@ -1,7 +1,10 @@
 ﻿using CRMService.DataBase;
 using CRMService.Interfaces.Repository;
+using CRMService.Interfaces.Repository.Authorization;
 using CRMService.Interfaces.Repository.Entity;
 using CRMService.Interfaces.Repository.Report;
+using CRMService.Models.ConfigClass;
+using CRMService.Repository.Authorization;
 using CRMService.Repository.Entity;
 using CRMService.Repository.Report;
 using Microsoft.EntityFrameworkCore;
@@ -34,12 +37,17 @@ namespace CRMService.Repository
         private ITimeEntryRepository? timeEntryRepository;
         private IEquipmentRepository? equipmentRepository;
         private IReportRepository? reportRepository;
+        private IBlockReasonRepository? _blockRepository;
+        private ICrmRoleRepository? _roleRepository;
+        private ISessionRepository? _sessionRepository;
+        private IUserRepository? _userRepository;
+        private IUserRoleRepository? _userRoleRepository;
 
         public ICompanyRepository Company
         {
             get
             {
-                companyRepository ??= new CompanyRepository(entitiesContext, logger);
+                companyRepository ??= new CompanyRepository(_context, logger);
                 return companyRepository;
             }
         }
@@ -48,7 +56,7 @@ namespace CRMService.Repository
         {
             get
             {
-                categoryRepository ??= new CategoryRepository(entitiesContext, logger);
+                categoryRepository ??= new CategoryRepository(_context, logger);
                 return (CategoryRepository)categoryRepository;
             }
         }
@@ -57,7 +65,7 @@ namespace CRMService.Repository
         {
             get
             {
-                parameter ??= new ParameterRepository(entitiesContext, logger);
+                parameter ??= new ParameterRepository(_context, logger);
                 return (ParameterRepository)parameter;
             }
         }
@@ -66,7 +74,7 @@ namespace CRMService.Repository
         {
             get
             {
-                employeeGroupRepository ??= new EmployeeGroupRepository(entitiesContext, logger);
+                employeeGroupRepository ??= new EmployeeGroupRepository(_context, logger);
                 return (EmployeeGroupRepository)employeeGroupRepository;
             }
         }
@@ -75,7 +83,7 @@ namespace CRMService.Repository
         {
             get
             {
-                employeeRepository ??= new EmployeeRepository(entitiesContext, logger);
+                employeeRepository ??= new EmployeeRepository(_context, logger);
                 return (EmployeeRepository)employeeRepository;
             }
         }
@@ -84,7 +92,7 @@ namespace CRMService.Repository
         {
             get
             {
-                employeeRoleRepository ??= new EmployeeRoleRepository(entitiesContext, logger);
+                employeeRoleRepository ??= new EmployeeRoleRepository(_context, logger);
                 return (EmployeeRoleRepository)employeeRoleRepository;
             }
         }
@@ -93,7 +101,7 @@ namespace CRMService.Repository
         {
             get
             {
-                groupRepository ??= new GroupRepository(entitiesContext, logger);
+                groupRepository ??= new GroupRepository(_context, logger);
                 return (GroupRepository)groupRepository;
             }
         }
@@ -102,7 +110,7 @@ namespace CRMService.Repository
         {
             get
             {
-                issuePriorityRepository ??= new IssuePriorityRepository(entitiesContext, logger);
+                issuePriorityRepository ??= new IssuePriorityRepository(_context, logger);
                 return (IssuePriorityRepository)issuePriorityRepository;
             }
         }
@@ -111,7 +119,7 @@ namespace CRMService.Repository
         {
             get
             {
-                issueRepository ??= new IssueRepository(entitiesContext, logger);
+                issueRepository ??= new IssueRepository(_context, logger);
                 return (IssueRepository)issueRepository;
             }
         }
@@ -120,7 +128,7 @@ namespace CRMService.Repository
         {
             get
             {
-                issueStatusRepository ??= new IssueStatusRepository(entitiesContext, logger);
+                issueStatusRepository ??= new IssueStatusRepository(_context, logger);
                 return (IssueStatusRepository)issueStatusRepository;
             }
         }
@@ -129,7 +137,7 @@ namespace CRMService.Repository
         {
             get
             {
-                issueTypeRepository ??= new IssueTypeRepository(entitiesContext, logger);
+                issueTypeRepository ??= new IssueTypeRepository(_context, logger);
                 return (IssueTypeRepository)issueTypeRepository;
             }
         }
@@ -138,7 +146,7 @@ namespace CRMService.Repository
         {
             get
             {
-                kindParamsRepository ??= new KindParamsRepository(entitiesContext, logger);
+                kindParamsRepository ??= new KindParamsRepository(_context, logger);
                 return (KindParamsRepository)kindParamsRepository;
             }
         }
@@ -147,7 +155,7 @@ namespace CRMService.Repository
         {
             get
             {
-                kindRepository ??= new KindRepository(entitiesContext, logger);
+                kindRepository ??= new KindRepository(_context, logger);
                 return (KindRepository)kindRepository;
             }
         }
@@ -156,7 +164,7 @@ namespace CRMService.Repository
         {
             get
             {
-                kindParameterRepository ??= new KindParameterRepository(entitiesContext, logger);
+                kindParameterRepository ??= new KindParameterRepository(_context, logger);
                 return (KindParameterRepository)kindParameterRepository;
             }
         }
@@ -165,7 +173,7 @@ namespace CRMService.Repository
         {
             get
             {
-                maintenanceEntityRepository ??= new MaintenanceEntityRepository(entitiesContext, logger);
+                maintenanceEntityRepository ??= new MaintenanceEntityRepository(_context, logger);
                 return (MaintenanceEntityRepository)maintenanceEntityRepository;
             }
         }
@@ -174,7 +182,7 @@ namespace CRMService.Repository
         {
             get
             {
-                manufacturerRepository ??= new ManufacturerRepository(entitiesContext, logger);
+                manufacturerRepository ??= new ManufacturerRepository(_context, logger);
                 return (ManufacturerRepository)manufacturerRepository;
             }
         }
@@ -183,7 +191,7 @@ namespace CRMService.Repository
         {
             get
             {
-                modelRepository ??= new ModelRepository(entitiesContext, logger);
+                modelRepository ??= new ModelRepository(_context, logger);
                 return (ModelRepository)modelRepository;
             }
         }
@@ -192,7 +200,7 @@ namespace CRMService.Repository
         {
             get
             {
-                roleRepository ??= new RoleRepository(entitiesContext, logger);
+                roleRepository ??= new RoleRepository(_context, logger);
                 return (RoleRepository)roleRepository;
             }
         }
@@ -201,7 +209,7 @@ namespace CRMService.Repository
         {
             get
             {
-                timeEntryRepository ??= new TimeEntryRepository(entitiesContext, logger);
+                timeEntryRepository ??= new TimeEntryRepository(_context, logger);
                 return (TimeEntryRepository)timeEntryRepository;
             }
         }
@@ -210,7 +218,7 @@ namespace CRMService.Repository
         {
             get
             {
-                equipmentRepository ??= new EquipmentRepository(entitiesContext, logger);
+                equipmentRepository ??= new EquipmentRepository(_context, logger);
                 return (EquipmentRepository)equipmentRepository;
             }
         }
@@ -219,8 +227,53 @@ namespace CRMService.Repository
         {
             get
             {
-                reportRepository ??= new ReportRepository(entitiesContext, logger);
+                reportRepository ??= new ReportRepository(_context, logger);
                 return (ReportRepository)reportRepository;
+            }
+        }
+
+        public IBlockReasonRepository BlockReason
+        {
+            get
+            {
+                _blockRepository ??= new BlockReasonRepository(_context, logger);
+                return (BlockReasonRepository)_blockRepository;
+            }
+        }
+
+        public ICrmRoleRepository Role
+        {
+            get
+            {
+                _roleRepository ??= new RoleRepository(_context, logger);
+                return (RoleRepository)_roleRepository;
+            }
+        }
+
+        public ISessionRepository Session
+        {
+            get
+            {
+                _sessionRepository ??= new SessionRepository(_context, logger);
+                return (SessionRepository)_sessionRepository;
+            }
+        }
+
+        public IUserRepository User
+        {
+            get
+            {
+                _userRepository ??= new UserRepository(_context, logger);
+                return (UserRepository)_userRepository;
+            }
+        }
+
+        public IUserRoleRepository UserRole
+        {
+            get
+            {
+                _userRoleRepository ??= new UserRoleRepository(_context, logger);
+                return (UserRoleRepository)_userRoleRepository;
             }
         }
 
@@ -228,7 +281,7 @@ namespace CRMService.Repository
         {
             try
             {
-                await entitiesContext.SaveChangesAsync();
+                await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -254,7 +307,7 @@ namespace CRMService.Repository
             {
                 if (disposing)
                 {
-                    entitiesContext.Dispose();
+                    _context.Dispose();
                 }
                 disposed = true;
             }

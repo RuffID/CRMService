@@ -5,66 +5,66 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class RoleRepository(CRMEntitiesContext context, ILoggerFactory logger) : IRoleRepository
+    public class RoleRepository(ApplicationContext context, ILoggerFactory logger) : IRoleRepository
     {
         private readonly ILogger<RoleRepository> _logger = logger.CreateLogger<RoleRepository>();
 
-        public async Task<IEnumerable<Role>?> GetItems(int startIndex, int limit)
+        public async Task<IEnumerable<OkdeskRole>?> GetItems(int startIndex, int limit)
         {
             try
             {
-                return await context.Roles.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.OkdeskRoles.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list.", nameof(GetItems));
                 return null;
             }
         }
 
-        public async Task<Role?> GetItem(Role item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Roles.FirstOrDefaultAsync(c => c.Id == item.Id);
-
-                return await context.Roles.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving role.");
-                return null;
-            }
-        }
-
-        public async Task<Role?> GetRoleByName(string name, bool? trackable = null)
+        public async Task<OkdeskRole?> GetItem(OkdeskRole item, bool? trackable = null)
         {
             try
             {
                 if (trackable == null || trackable == true)
-                    return await context.Roles.FirstOrDefaultAsync(c => c.Name == name);
+                    return await context.OkdeskRoles.FirstOrDefaultAsync(c => c.Id == item.Id);
 
-                return await context.Roles.AsNoTracking().FirstOrDefaultAsync(c => c.Name == name);
+                return await context.OkdeskRoles.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving role by name.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role.", nameof(GetItem));
                 return null;
             }
         }
 
-        public void Update(Role oldItem, Role newItem)
+        public async Task<OkdeskRole?> GetRoleByName(string name, bool? trackable = null)
+        {
+            try
+            {
+                if (trackable == null || trackable == true)
+                    return await context.OkdeskRoles.FirstOrDefaultAsync(c => c.Name == name);
+
+                return await context.OkdeskRoles.AsNoTracking().FirstOrDefaultAsync(c => c.Name == name);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role by name.", nameof(GetRoleByName));
+                return null;
+            }
+        }
+
+        public void Update(OkdeskRole oldItem, OkdeskRole newItem)
         {
             oldItem.CopyData(newItem);
         }
 
-        public void Create(Role item)
+        public void Create(OkdeskRole item)
         {
-            context.Roles.Add(item);
+            context.OkdeskRoles.Add(item);
         }
 
-        public async Task CreateOrUpdate(IEnumerable<Role> items)
+        public async Task CreateOrUpdate(IEnumerable<OkdeskRole> items)
         {
             foreach (var item in items)
             {

@@ -3,9 +3,9 @@ using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IRoleRepository : IGetRepository<Role>, IUpdateRepository<Role>, ICreateRepository<Role>
+    public interface IRoleRepository : IGetRepository<OkdeskRole>, IUpdateRepository<OkdeskRole>, ICreateRepository<OkdeskRole>
     {
-        Task<Role?> GetRoleByName(string name, bool? trackable = null);
-        public Task CreateOrUpdate(IEnumerable<Role> items);
+        Task<OkdeskRole?> GetRoleByName(string name, bool? trackable = null);
+        public Task CreateOrUpdate(IEnumerable<OkdeskRole> items);
     }
 }

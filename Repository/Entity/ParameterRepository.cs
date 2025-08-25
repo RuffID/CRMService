@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using CRMService.Dto;
 using CRMService.DataBase;
 using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class ParameterRepository(CRMEntitiesContext context, ILoggerFactory logger) : IParameterRepository
+    public class ParameterRepository(ApplicationContext context, ILoggerFactory logger) : IParameterRepository
     {
         private readonly ILogger<ParameterRepository> _logger = logger.CreateLogger<ParameterRepository>();
 
@@ -14,11 +14,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Parameters.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Parameters.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving parameter list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving parameter list.", nameof(GetItems));
                 return null;
             }
         }
@@ -34,7 +34,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving parameter.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving parameter.", nameof(GetItem));
                 return null;
             }
         }
@@ -43,20 +43,21 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await (from parameter in context.Parameters
-                              join kinds_parameters in context.KindsParameters on parameter.KindParameterId equals kinds_parameters.Id
-                              where parameter.EquipmentId == equipmentId
-                              select new EquipmentParameterDto()
-                              {
-                                  Id = parameter.Id,
-                                  Name = kinds_parameters.Name,
-                                  Code = kinds_parameters.Code,
-                                  Value = Convert.ToString(parameter.Value)
-                              }).ToListAsync();
+                return await context.Parameters
+                    .AsNoTracking()
+                    .Where(p => p.EquipmentId == equipmentId && p.KindParameter != null)
+                    .Select(p => new EquipmentParameterDto
+                    {
+                        Id = p.Id,
+                        Name = p.KindParameter.Name,
+                        Code = p.KindParameter.Code,
+                        Value = Convert.ToString(p.Value)
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving parameter by equipment id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving parameter by equipment id.", nameof(GetParameterByEquipmentId));
                 return null;
             }
         }
@@ -72,7 +73,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving parameter by equipment and kind parameter id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving parameter by equipment and kind parameter id.", nameof(GetParameterByEquipmentAndKindParameterId));
                 return null;
             }
         }

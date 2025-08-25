@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class EmployeeRepository(CRMEntitiesContext context, ILoggerFactory logger) : IEmployeeRepository
+    public class EmployeeRepository(ApplicationContext context, ILoggerFactory logger) : IEmployeeRepository
     {
         private readonly ILogger<EmployeeRepository> _logger = logger.CreateLogger<EmployeeRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Employees.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Employees.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee.", nameof(GetItem));
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employee by id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee by id.", nameof(GetEmployeeById));
                 return null;
             }
         }
@@ -58,28 +58,28 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await (from employee in context.Employees
-                              join employeeGroups in context.EmployeeGroups on employee.Id equals employeeGroups.EmployeeId
-                              where employeeGroups.GroupId == groupId && employee.Id >= startIndex
-                              orderby employee.Id
-                              select new Employee()
-                              {
-                                  Id = employee.Id,
-                                  FirstName = employee.FirstName,
-                                  LastName = employee.LastName,
-                                  Patronymic = employee.Patronymic,
-                                  Email = employee.Email,
-                                  Active = employee.Active,
-                                  Phone = employee.Phone,
-                                  Login = employee.Login,
-                                  Position = employee.Position
-                              })
-                              .Take(limit)
-                              .ToListAsync();
+                return await context.EmployeeGroups
+                    .AsNoTracking()
+                    .Where(eg => eg.GroupId == groupId && eg.Employee.Id >= startIndex)
+                    .OrderBy(eg => eg.Employee.Id)
+                    .Take(limit)
+                    .Select(eg => new Employee
+                    {
+                        Id = eg.Employee.Id,
+                        FirstName = eg.Employee.FirstName,
+                        LastName = eg.Employee.LastName,
+                        Patronymic = eg.Employee.Patronymic,
+                        Email = eg.Employee.Email,
+                        Active = eg.Employee.Active,
+                        Phone = eg.Employee.Phone,
+                        Login = eg.Employee.Login,
+                        Position = eg.Employee.Position
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving employees by group id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employees by group id.", nameof(GetEmployeesByGroup));
                 return null;
             }
         }
@@ -88,11 +88,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Employees.CountAsync();
+                return await context.Employees.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of employees.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of employees.", nameof(GetCountOfItems));
                 return 0;
             }
         }

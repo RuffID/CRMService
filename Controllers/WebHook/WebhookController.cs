@@ -7,7 +7,7 @@ using CRMService.Service.Sync;
 namespace CRMService.Controllers.WebHook
 {
     [ApiController]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ServiceFilter(typeof(IpOkdeskWebHookActionFilterAttribute))]
     public class WebhookController(IEnumerable<IWebhookHandler> handlers, EntitySyncService sync) : Controller
     {

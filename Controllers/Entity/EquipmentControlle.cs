@@ -2,18 +2,18 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.ConfigClass;
 using Microsoft.Extensions.Options;
-using CRMService.Dto;
-using CRMService.Core;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class EquipmentController(IUnitOfWorkEntities unitOfWork, IOptions<DatabaseSettings> dbSettings, EntitySyncService sync, IOptions<OkdeskSettings> okdSettings, EquipmentService service) : Controller
+    public class EquipmentController(IUnitOfWork unitOfWork, IOptions<DatabaseSettings> dbSettings, EntitySyncService sync, IOptions<OkdeskSettings> okdSettings, EquipmentService service) : Controller
     {
 
         [HttpGet]
@@ -90,7 +90,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateEquipmentsFromCloudApi([FromQuery] int startIndex = 0)
         {
             await sync.RunExclusive(async () =>
@@ -101,7 +101,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk([FromQuery] int startIndex = 0)
         {
             await sync.RunExclusive(async () =>

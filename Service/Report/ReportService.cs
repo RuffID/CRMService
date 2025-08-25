@@ -4,7 +4,7 @@ using CRMService.Models.Report;
 
 namespace CRMService.Service.Report
 {
-    public class ReportService(IUnitOfWorkEntities unitOfWork)
+    public class ReportService(IUnitOfWork unitOfWork)
     {
         public async Task<List<ReportInfo>?> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, CancellationToken cancellation)
         {

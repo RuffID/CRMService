@@ -1,20 +1,20 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using CRMService.Dto;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.ConfigClass;
 using Microsoft.Extensions.Options;
-using CRMService.Core;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class IssueTypeController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, IssueTypeService service) : Controller
+    public class IssueTypeController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, IssueTypeService service) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueTypes([FromQuery] int startIndex)
@@ -38,7 +38,7 @@ namespace CRMService.Controllers.Entity
             return Ok(type);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateIssueTypesFromCloudApi()
         {
             await service.UpdateIssueTypesFromCloudApi();
@@ -46,7 +46,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdatetIssueTypesFromCloudDb()
         {
             await service.UpdateIssueTypesFromCloudDb();

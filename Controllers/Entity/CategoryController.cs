@@ -1,20 +1,20 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using CRMService.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
-using CRMService.Core;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWorkEntities unitOfWork, CompanyCategoryService service) : Controller
+    public class CategoryController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, CompanyCategoryService service) : Controller
     {
 
         [HttpGet("list")]
@@ -39,7 +39,7 @@ namespace CRMService.Controllers.Entity
             return Ok(category);
         }        
 
-        [HttpPut, Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut, Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateCategory([FromBody] CategoryDto updatedCategory)
         {
             if (string.IsNullOrEmpty(updatedCategory.Code) || string.IsNullOrEmpty(updatedCategory.Color) || string.IsNullOrEmpty(updatedCategory.Name))
@@ -49,7 +49,7 @@ namespace CRMService.Controllers.Entity
             if (category == null)
                 return BadRequest("Category not found.");
 
-            var categoryMap = mapper.Map<CompanyCategory>(updatedCategory);
+            CompanyCategory categoryMap = mapper.Map<CompanyCategory>(updatedCategory);
 
             unitOfWork.CompanyCategory.Update(category, categoryMap);
 
@@ -58,7 +58,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPost, Authorize(Roles = UserRole.ADMIN)]
+        [HttpPost, Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> CreateCategory([FromBody] CategoryDto categoryCreate)
         {
             if (string.IsNullOrEmpty(categoryCreate.Code) || string.IsNullOrEmpty(categoryCreate.Color) || string.IsNullOrEmpty(categoryCreate.Name))
@@ -76,7 +76,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateCategoriesFromCloudDb()
         {
             await service.UpdateCategoriesFromCloudDb();
@@ -84,7 +84,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("check_anonymous_category"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("check_anonymous_category"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> CheckAnonymousCategory()
         {
             await service.CheckAnonymousCategory();

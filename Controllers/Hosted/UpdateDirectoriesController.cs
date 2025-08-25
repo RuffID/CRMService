@@ -1,12 +1,12 @@
-﻿using CRMService.Core;
+﻿using CRMService.Models.Enum;
 using CRMService.Service.Sync;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRMService.Controllers.Hosted
 {
-    [Authorize, Authorize(Roles = UserRole.ADMIN)]
-    [Route("api/crm/[controller]")]
+    [Authorize, Authorize(Roles = nameof(UserRole.Admin))]
+    [Route("api/[controller]")]
     [ApiController]
     public class UpdateDirectoriesController(Service.Hosted.UpdateDirectoriesService service, EntitySyncService sync) : Controller
     {

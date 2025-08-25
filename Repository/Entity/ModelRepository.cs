@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class ModelRepository(CRMEntitiesContext context, ILoggerFactory logger) : IModelRepository
+    public class ModelRepository(ApplicationContext context, ILoggerFactory logger) : IModelRepository
     {
         private readonly ILogger<ModelRepository> _logger = logger.CreateLogger<ModelRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Models.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Models.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving model list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving model list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving model.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving model.", nameof(GetItem));
                 return null;
             }
         }

@@ -6,7 +6,7 @@ namespace CRMService.Controllers.Server
 {
     [Authorize]
     [ApiController]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     public class ServerstatusController(ServerData data) : Controller
     {
 

@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class TimeEntryRepository(CRMEntitiesContext context, ILoggerFactory logger) : ITimeEntryRepository
+    public class TimeEntryRepository(ApplicationContext context, ILoggerFactory logger) : ITimeEntryRepository
     {
         private readonly ILogger<TimeEntryRepository> _logger = logger.CreateLogger<TimeEntryRepository>();
 
@@ -13,7 +13,7 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.TimeEntries.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.TimeEntries.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {

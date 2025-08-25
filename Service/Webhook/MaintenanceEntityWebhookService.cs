@@ -6,7 +6,7 @@ using CRMService.Models.WebHook;
 
 namespace CRMService.Service.Webhook
 {
-    public class MaintenanceEntityWebhookService(IUnitOfWorkEntities unitOfWork, IMapper mapper) : IWebhookHandler
+    public class MaintenanceEntityWebhookService(IUnitOfWork unitOfWork, IMapper mapper) : IWebhookHandler
     {
         public async Task<bool> HandleWebhook(RootEvent @event)
         {

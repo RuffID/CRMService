@@ -9,19 +9,18 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
     .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Config"))
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+    .AddJsonFile("appsettings.json");
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.With(new SimpleClassNameEnricher())
-    .ReadFrom.Configuration(builder.Configuration) // Читает из appsettings.json
+    .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
-
-builder.Host.UseSerilog();
 
 Log.Information("[Class:{ClassName}] Starting CRM service.", nameof(Program));
 
 try
 {
+    builder.Host.UseSerilog();
     builder.Services.AddConfig(builder.Configuration);
     builder.Services.ConfigureServices(builder.Configuration);   
 
@@ -59,9 +58,14 @@ try
         },
     });
 
+    if (!app.Environment.IsDevelopment())    
+        app.UseExceptionHandler("/Error");    
+
+    app.UseStaticFiles();
     app.UseRouting();
     app.UseAuthentication();
     app.UseAuthorization();
+    app.MapRazorPages();
     app.MapControllers();    
 
     app.Run();

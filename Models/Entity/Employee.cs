@@ -27,11 +27,13 @@ namespace CRMService.Models.Entity
         public string? Phone { get; set; }
 
         [NotMapped]
-        public ICollection<Role>? Roles { get; set; } = new List<Role>();
+        public ICollection<OkdeskRole>? Roles { get; set; } = new List<OkdeskRole>();
 
         public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 
         public virtual ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
+
+        public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 
         public Employee() { }
 

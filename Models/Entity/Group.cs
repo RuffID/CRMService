@@ -1,5 +1,5 @@
-﻿using CRMService.Dto;
-using CRMService.Interfaces.Entity;
+﻿using CRMService.Interfaces.Entity;
+using CRMService.Models.Dto.Entity;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity
@@ -14,8 +14,9 @@ namespace CRMService.Models.Entity
 
         public string? Description { get; set; }
 
-        [NotMapped]
-        public IEnumerable<EmployeeDto>? Employees { get; set; } = new List<EmployeeDto>();
+        public virtual IEnumerable<EmployeeDto>? Employees { get; set; } = new List<EmployeeDto>();
+
+        public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 
         public void CopyData(Group newItem)
         {

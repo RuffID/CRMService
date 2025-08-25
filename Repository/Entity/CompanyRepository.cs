@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Entity
 {
-    public class CompanyRepository(CRMEntitiesContext context, ILoggerFactory logger) : ICompanyRepository
+    public class CompanyRepository(ApplicationContext context, ILoggerFactory logger) : ICompanyRepository
     {
         private readonly ILogger<CompanyRepository> _logger = logger.CreateLogger<CompanyRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.Companies.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.Companies.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving company list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving company list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving company.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving company.", nameof(GetItem));
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving company by id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving company by id.", nameof(GetCompanyById));
                 return null;
             }
         }
@@ -58,25 +58,24 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await (from company in context.Companies
-                              join category in context.CompanyCategories on company.CategoryId equals category.Id
-                              where category.Code == categoryCode && company.Id >= startIndexCompany
-                              orderby company.Id
-                              select new Company()
-                              {
-                                  Id = company.Id,
-                                  Name = company.Name,
-                                  AdditionalName = company.AdditionalName,
-                                  Active = company.Active,
-                                  CategoryId = company.CategoryId
-                              })
-                        .AsNoTracking()
-                        .Take(limit)
-                        .ToListAsync();
+                return await context.Companies
+                    .AsNoTracking()
+                    .Where(c => c.Category != null && c.Category.Code == categoryCode && c.Id >= startIndexCompany)                    
+                    .OrderBy(c => c.Id)
+                    .Take(limit)
+                    .Select(c => new Company
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        AdditionalName = c.AdditionalName,
+                        Active = c.Active,
+                        CategoryId = c.CategoryId
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving company list by category code.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving company list by category code.", nameof(GetCompaniesByCategoryCode));
                 return null;
             }
         }

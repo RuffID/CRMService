@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class MaintenanceEntityRepository(CRMEntitiesContext context, ILoggerFactory logger) : IMaintenanceEntityRepository
+    public class MaintenanceEntityRepository(ApplicationContext context, ILoggerFactory logger) : IMaintenanceEntityRepository
     {
         private readonly ILogger<MaintenanceEntityRepository> _logger = logger.CreateLogger<MaintenanceEntityRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.MaintenanceEntities.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.MaintenanceEntities.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving maintenance entity list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving maintenance entity list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving maintenance entity.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving maintenance entity.", nameof(GetItem));
                 return null;
             }
         }
@@ -49,7 +49,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving maintenance entity by id.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving maintenance entity by id.", nameof(GetMaintenanceEntityById));
                 return null;
             }
         }

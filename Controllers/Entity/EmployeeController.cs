@@ -3,18 +3,18 @@ using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
 using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
-using CRMService.Dto;
-using CRMService.Core;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
+using CRMService.Models.Enum;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
-    [Route("api/crm/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWorkEntities unitOfWork, EmployeeService service) : Controller
+    public class EmployeeController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWork unitOfWork, EmployeeService service) : Controller
     {
 
         [HttpGet]
@@ -61,7 +61,7 @@ namespace CRMService.Controllers.Entity
             return Ok(employees);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateEmployeesFromCloudApi([FromQuery] long startIndexEmployee = 0)
         {
             await service.UpdateEmployeesFromCloudApi(startIndexEmployee, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
@@ -69,7 +69,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = UserRole.ADMIN)]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateEmployeesFromCloudDb([FromQuery] int startIndexEmployee = 0)
         {
             await service.UpdateEmployeesFromCloudDb(startIndexEmployee, dbSettings.Value.LimitForRetrievingEntitiesFromDb);

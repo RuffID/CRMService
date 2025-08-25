@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Repository.Report
 {
-    public class ReportRepository(CRMEntitiesContext context, ILoggerFactory logger) : IReportRepository
+    public class ReportRepository(ApplicationContext context, ILoggerFactory logger) : IReportRepository
     {
         private readonly ILogger<ReportRepository> _logger = logger.CreateLogger<ReportRepository>();
 

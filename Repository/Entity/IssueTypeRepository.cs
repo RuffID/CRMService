@@ -5,7 +5,7 @@ using CRMService.Interfaces.Repository.Entity;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueTypeRepository(CRMEntitiesContext context, ILoggerFactory logger) : IIssueTypeRepository
+    public class IssueTypeRepository(ApplicationContext context, ILoggerFactory logger) : IIssueTypeRepository
     {
         private readonly ILogger<IssueTypeRepository> _logger = logger.CreateLogger<IssueTypeRepository>();
 
@@ -13,11 +13,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssueTypes.AsNoTracking().OrderBy(t => t.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
+                return await context.IssueTypes.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(t => t.Id).Take(limit).ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue type list.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue type list.", nameof(GetItems));
                 return null;
             }
         }
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Entity
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving issue type.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue type.", nameof(GetItem));
                 return null;
             }
         }
@@ -42,11 +42,11 @@ namespace CRMService.Repository.Entity
         {
             try
             {
-                return await context.IssueTypes.CountAsync();
+                return await context.IssueTypes.AsNoTracking().CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving count of issue types.");
+                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of issue types.", nameof(GetCountOfItems));
                 return 0;
             }
         }

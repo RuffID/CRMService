@@ -8,16 +8,13 @@ using System.Text;
 
 namespace CRMService.Service.Authorization
 {
-    public class JwtTokenService(IOptions<AuthOptions> authOptions)
+    public class JwtTokenService(IOptions<AuthorizationOptions> authOptions)
     {
-        private readonly AuthOptions _authOptions = authOptions.Value;
+        private readonly AuthorizationOptions _authOptions = authOptions.Value;
 
-        public string? Create(User user)
+        public string Create(User user)
         {
             List<Claim> claims = new();
-
-            if (!string.IsNullOrEmpty(user.Email))
-                claims.Add(new(ClaimTypes.Email, user.Email));
 
             foreach (CrmRole role in user.Roles)
                 if (!string.IsNullOrEmpty(role.Name))
@@ -37,12 +34,12 @@ namespace CRMService.Service.Authorization
             return tokenHandler.WriteToken(token);
         }
 
-        private SymmetricSecurityKey? SymmetricSecurityKey
+        private SymmetricSecurityKey SymmetricSecurityKey
         {
             get
             {
                 if (string.IsNullOrEmpty(_authOptions.SymmetricSecurityKey))
-                    return null;
+                    throw new InvalidOperationException("Not set symmetric security key in server config.");
                 return new(Encoding.UTF8.GetBytes(_authOptions.SymmetricSecurityKey));
             }
         }

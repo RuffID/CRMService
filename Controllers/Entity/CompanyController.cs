@@ -1,75 +1,68 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
 using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
+using CRMService.Models.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CompanyController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, EntitySyncService sync, CompanyService service) : Controller
+    public class CompanyController(IMapper mapper, IUnitOfWork unitOfWork, EntitySyncService sync, CompanyService service) : Controller
     {
-
         [HttpGet]
-        public async Task<IActionResult> GetCompany([FromQuery] int id)
+        public async Task<IActionResult> GetCompany([FromQuery] int id, CancellationToken ct)
         {
-            var companyFromDB = mapper.Map<CompanyDto>(await unitOfWork.Company.GetCompanyById(id));
+            Company? companyFromDB = await unitOfWork.Company.GetItemById(id, false, ct);
 
             if (companyFromDB == null)
-                return NotFound("Company not found.");
+                return NotFound();
 
-            return Ok(companyFromDB);
+            return Ok(mapper.Map<CompanyDto>(companyFromDB));
         }
 
         [HttpGet("by_category")]
-        public async Task<IActionResult> GetCompaniesByCategory([FromQuery] string categoryCode, [FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetCompaniesByCategory([FromQuery] string categoryCode, [FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            IEnumerable<CompanyDto>? companies = mapper.Map<IEnumerable<CompanyDto>>(await unitOfWork.Company.GetCompaniesByCategoryCode(categoryCode, startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<Company> companies = await unitOfWork.Company.GetCompaniesByCategoryCode(categoryCode: categoryCode, startIndexCompany: startIndex, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
 
-            if (companies == null || !companies.Any())
-                return NotFound();
-
-            return Ok(companies);
+            return Ok(mapper.Map<List<CompanyDto>>(companies));
         }        
 
         [HttpPut("update_company_from_cloud_api")]
-        public async Task<IActionResult> UpdateCompanyFromCloudApi([FromQuery] int companyId)
+        public async Task<IActionResult> UpdateCompanyFromCloudApi([FromQuery] int companyId, CancellationToken ct)
         {
-            if (companyId == 0)
-                BadRequest("Company id not set.");
-
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateCompanyFromCloudApi(companyId);
+                await service.UpdateCompanyFromCloudApi(companyId, ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateCompaniesFromCloudApi([FromQuery] int startIndexCategory = 0, int startIndexCompany = 0)
+        public async Task<IActionResult> UpdateCompaniesFromCloudApi([FromQuery] int startIndexCategory, int startIndexCompany, CancellationToken ct)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateCompaniesFromCloudApi(startIndexCategory, startIndexCompany);
+                await service.UpdateCompaniesFromCloudApi(startIndexCategory, startIndexCompany, ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateCompaniesFromCloudDb([FromQuery] int startIndexCategory = 0, int startIndexCompany = 0)
+        public async Task<IActionResult> UpdateCompaniesFromCloudDb([FromQuery] int startIndexCategory, int startIndexCompany, CancellationToken ct)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateCompaniesFromCloudDb(startIndexCategory, startIndexCompany);
+                await service.UpdateCompaniesFromCloudDb(startIndexCategory, startIndexCompany, ct);
             });
 
             return NoContent();

@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class ManufacturerService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<ManufacturerService> _logger = logger.CreateLogger<ManufacturerService>();
 
@@ -32,12 +32,12 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(manufacture => new Manufacturer
                 {
-                    Code = manufacture.Field<string>("code"),
+                    Code = manufacture.Field<string>("code") ?? "",
                     Name = manufacture.Field<string>("name")
                 }).ToList();
         }
 
-        public async Task UpdateManufacturersFromCloudApi(long startIndex, long limit)
+        public async Task UpdateManufacturersFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating manufacturers.", nameof(UpdateManufacturersFromCloudApi));
 
@@ -45,24 +45,24 @@ namespace CRMService.Service.Entity
             {
                 if (manufacturers == null || manufacturers.Count == 0) return;
 
-                await unitOfWork.Manufacturer.CreateOrUpdate(manufacturers);
+                await unitOfWork.Manufacturer.UpsertByCodes(manufacturers, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Manufacturers update completed.", nameof(UpdateManufacturersFromCloudApi));
         }
 
-        public async Task UpdateManufacturersFromCloudDb()
+        public async Task UpdateManufacturersFromCloudDb(CancellationToken ct)
         {
             List<Manufacturer>? manufacturers = await GetManufacturersFromCloudDb();
 
             if (manufacturers == null || manufacturers.Count == 0)
                 return;
 
-            await unitOfWork.Manufacturer.CreateOrUpdate(manufacturers);
+            await unitOfWork.Manufacturer.UpsertByCodes(manufacturers, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

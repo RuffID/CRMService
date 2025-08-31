@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace CRMService.Models.Entity
 {
-    public class MaintenanceEntity : IEntity
+    public class MaintenanceEntity : IEntity<int>, ICopyable<MaintenanceEntity>
     {
         public int Id { get; set; }
 
@@ -14,15 +14,15 @@ namespace CRMService.Models.Entity
         public bool? Active { get; set; }
 
         [JsonProperty("Company_id")]
-        public int? CompanyId { get; set; }
+        public int CompanyId { get; set; }
 
-        public virtual Company? Company { get; set; }
+        public virtual Company Company { get; set; } = null!;
 
         public virtual ICollection<Equipment> Equipment { get; set; } = new List<Equipment>();
 
         public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 
-        internal void CopyData(MaintenanceEntity newItem)
+        public void CopyData(MaintenanceEntity newItem)
         {
             Name = newItem.Name;
             Address = newItem.Address;

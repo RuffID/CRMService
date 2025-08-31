@@ -1,93 +1,37 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
+using System.Linq.Expressions;
+using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 
 namespace CRMService.Repository.Entity
 {
-    public class KindRepository(ApplicationContext context, ILoggerFactory logger) : IKindRepository
+    public class KindRepository(IGetItemByIdRepository<Kind, int> _getById,
+        IGetItemByCodeRepository<Kind> _getByCode,
+        ICreateItemRepository<Kind> _create,
+        IUpsertItemByCodeRepository<Kind> _upsert) : IKindRepository
     {
-        private readonly ILogger<KindRepository> _logger = logger.CreateLogger<KindRepository>();
+        public Task<Kind?> GetItemByCode(string code, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Kind, object>>[] includes)
+            => _getByCode.GetItemByCode(code, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<Kind>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.Kinds.AsNoTracking().OrderBy(c => c.Id).Skip(startIndex).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<Kind?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Kind, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<Kind?> GetItem(Kind item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Kinds.FirstOrDefaultAsync(c => c.Code == item.Code);
+        public Task<List<Kind>> GetItemsByPredicateAndSortById(Expression<Func<Kind, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Kind, object>>[] includes)
+            => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-                return await context.Kinds.AsNoTracking().FirstOrDefaultAsync(c => c.Code == item.Code);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind.", nameof(GetItem));
-                return null;
-            }
-        }
+        public void Create(Kind item) => _create.Create(item);
 
-        public async Task<Kind?> GetKindByCode(string code, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Kinds.FirstOrDefaultAsync(c => c.Code == code);
+        public Task UpsertByCode(Kind item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(item, ct);
 
-                return await context.Kinds.AsNoTracking().FirstOrDefaultAsync(c => c.Code == code);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind by code.", nameof(GetKindByCode));
-                return null;
-            }
-        }
+        public Task UpsertByCode(string oldCode, Kind item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(oldCode, item, ct);
 
-        public async Task<int> GetCountOfItems()
-        {
-            try
-            {
-                return await context.IssueStatuses.AsNoTracking().CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of kinds.", nameof(GetCountOfItems));
-                return 0;
-            }
-        }
+        public Task UpsertByCodePairs(IEnumerable<(string OldCode, Kind Item)> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodePairs(items, ct);
 
-        public void Update(Kind oldItem, Kind newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(Kind item)
-        {
-            context.Kinds.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<Kind> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task UpsertByCodes(IEnumerable<Kind> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodes(items, ct);
     }
 }

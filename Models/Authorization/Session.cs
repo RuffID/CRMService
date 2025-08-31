@@ -1,22 +1,21 @@
-﻿using CRMService.Interfaces.Authorization;
+﻿using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.Authorization
 {
-    public class Session : IEntity
+    public class Session : IEntity<Guid>, ICopyable<Session>
     {
         public Guid Id { get; set; }
 
         public Guid UserId { get; set; }
 
-        public string? RefreshToken { get; set; }
+        public string RefreshToken { get; set; } = string.Empty;
 
-        public DateTime? ExpirationRefreshToken { get; set; }
+        public DateTime ExpirationRefreshToken { get; set; }
 
-        public virtual User? User { get; set; }
+        public virtual User User { get; set; } = null!;
 
         public void CopyData(Session newItem)
         {
-            UserId = newItem.UserId;
             RefreshToken = newItem.RefreshToken;
             ExpirationRefreshToken = newItem.ExpirationRefreshToken;
         }

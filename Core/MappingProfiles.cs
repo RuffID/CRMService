@@ -2,7 +2,6 @@
 using CRMService.Models.Entity;
 using CRMService.Models.WebHook;
 using CRMService.Models.Authorization;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Authorization;
 using CRMService.Models.Dto.Entity;
 
@@ -24,8 +23,8 @@ namespace CRMService.Core
             CreateMap<KindParameterDto, KindsParameter>();
             CreateMap<Model, ModelDto>();
             CreateMap<ModelDto, Model>();
-            CreateMap<Parameter, EquipmentParameterDto>();
-            CreateMap<EquipmentParameterDto, Parameter>();
+            CreateMap<EquipmentParameter, EquipmentParameterDto>();
+            CreateMap<EquipmentParameterDto, EquipmentParameter>();
             CreateMap<MaintenanceEntity, MaintenanceEntityDto>();
             CreateMap<MaintenanceEntityDto, MaintenanceEntity>();
             CreateMap<EquipmentDto, Equipment>();
@@ -46,7 +45,7 @@ namespace CRMService.Core
             CreateMap<Models.Authorization.CrmRole, RoleDto>();
             CreateMap<RoleDto, Models.Authorization.CrmRole>();
             CreateMap<Session, SessionDto>();
-            CreateMap<UserRole, UserRoleDto>();
+            CreateMap<Models.Authorization.UserRole, UserRoleDto>();
             CreateMap<BlockReason, BlockReasonDto>();
         }
     }

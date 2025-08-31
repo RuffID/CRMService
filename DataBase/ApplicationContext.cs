@@ -1,19 +1,17 @@
 ﻿using CRMService.DataBase.ModelsConfigure;
 using CRMService.DataBase.ModelsConfigure.Authorization;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace CRMService.DataBase;
 
 public partial class ApplicationContext : DbContext
 {
-    private readonly DatabaseSettings _dbSettings;
-    public ApplicationContext(IOptions<DatabaseSettings> dbSetings)
+    //private readonly DatabaseSettings _dbSettings;
+    public ApplicationContext(/*IOptions<DatabaseSettings> dbSetings*/)
     {
-        _dbSettings = dbSetings.Value;
+        //_dbSettings = dbSetings.Value;
         Database.EnsureCreated();
     }
 
@@ -34,7 +32,7 @@ public partial class ApplicationContext : DbContext
     public virtual DbSet<MaintenanceEntity> MaintenanceEntities { get; set; }
     public virtual DbSet<Manufacturer> Manufacturers { get; set; }
     public virtual DbSet<Model> Models { get; set; }
-    public virtual DbSet<Parameter> Parameters { get; set; }
+    public virtual DbSet<EquipmentParameter> Parameters { get; set; }
     public virtual DbSet<OkdeskRole> OkdeskRoles { get; set; }
     public virtual DbSet<TimeEntry> TimeEntries { get; set; }
     public virtual DbSet<BlockReason> BlockReasons { get; set; }
@@ -43,11 +41,11 @@ public partial class ApplicationContext : DbContext
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseMySql(_dbSettings.MySqlMainCRM,
                 new MySqlServerVersion(new Version(_dbSettings.MySqlVersion)));
-    }
+    }*/
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,7 +71,7 @@ public partial class ApplicationContext : DbContext
             .ApplyConfiguration(new MaintenanceEntityConfigure())
             .ApplyConfiguration(new ModelConfigure())
             .ApplyConfiguration(new ManufacturerConfigure())
-            .ApplyConfiguration(new ParameterConfigure())
+            .ApplyConfiguration(new EquipmentParameterConfigure())
             .ApplyConfiguration(new OkdeskRoleConfigure())
             .ApplyConfiguration(new TimeEntryConfigure());
 

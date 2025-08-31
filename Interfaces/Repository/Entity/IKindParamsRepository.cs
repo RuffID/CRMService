@@ -1,11 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IKindParamsRepository : IGetRepository<KindParam>, ICreateRepository<KindParam>, IDeleteRepository<KindParam>
+    public interface IKindParamsRepository : IGetItemByPredicateRepository<KindParam>, ICreateItemRepository<KindParam>, IDeleteItemRepository<KindParam>
     {
-        Task<IEnumerable<KindParam>?> GetConnectionsByKind(int id, bool? trackable = null);
-        Task<KindParam?> GetConnectionByKindId(int id, bool? trackable = null);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using CRMService.Interfaces.Repository;
+using CRMService.Models.Authorization;
 using CRMService.Models.PageModels;
+using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -7,36 +9,32 @@ using System.Security.Claims;
 
 namespace CRMService.PageHandlers
 {
-    public class SignInHandler(IUnitOfWork unitOfWork, CryptographyService crypto, IHttpContextAccessor context)
+    public class SignInHandler(IUnitOfWork unitOfWork, Hasher hasher, HashVerify hashVerify, IHttpContextAccessor context)
     {
-        public async Task<bool> SignIn(UserPage? user, ModelStateDictionary modelState)
+        public async Task<bool> SignIn(UserPage userPage, ModelStateDictionary modelState, CancellationToken ct)
         {
-            if (user == null || string.IsNullOrEmpty(user.Login) || string.IsNullOrEmpty(user.Password))
+            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == userPage.Login, asNoTracking: true, ct);
+
+            if (user is null || !user.Active || !hashVerify.Verify(hasher.Hash(userPage.Password), user.Password))
             {
-                modelState.AddModelError($"{nameof(UserPage)}.{nameof(UserPage.Login)}", "Логин или пароль не могут быть пустыми.");
+                modelState.AddModelError("", "Wrong login or password.");
                 return false;
             }
 
-            User? userFromDb = await unitOfWork.User.GetUserByLogin(user.Login);
+            List<Claim> claims =
+            [
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, user.Name)
+            ];
 
-            if (userFromDb is null || !userFromDb.Active || userFromDb.Password != crypto.GetUserSaltPass(user.Login, user.Password))
+            if (user.Roles.Count > 0)
             {
-                modelState.AddModelError($"{nameof(UserPage)}.{nameof(user.Login)}", "Неправильный логин или пароль.");
-                return false;
+                foreach (var role in user.Roles)
+                    claims.Add(new Claim(ClaimTypes.Role, role.Name));
             }
 
-            List<Claim> claims = new()
-            {
-                new(ClaimTypes.NameIdentifier, userFromDb.Id.ToString()),
-                new(ClaimTypes.Name, userFromDb.Name ?? "unknown"),
-                new(ClaimsIdentity.DefaultRoleClaimType, userFromDb.Role.ToString() ?? "unknown"),
-                new("LoginDate", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")),
-                new(nameof(User.OrganizationId), userFromDb.OrganizationId.ToString()),
-                new(ClaimTypes.Role, userFromDb.Role.ToString())
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+            ClaimsIdentity claimsIdentity = new (claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            ClaimsPrincipal claimsPrincipal = new (claimsIdentity);
 
             HttpContext? httpContext = context.HttpContext;
 

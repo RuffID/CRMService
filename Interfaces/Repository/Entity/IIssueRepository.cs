@@ -1,13 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IIssueRepository : IGetRepository<Issue>, IUpdateRepository<Issue>, ICreateRepository<Issue>
+    public interface IIssueRepository : IGetItemByIdRepository<Issue, int>, IUpsertItemByIdRepository<Issue, int>, ICreateItemRepository<Issue>
     {
-        Task<IEnumerable<Issue>?> GetIssuesBetweenUpdateDates(DateTime dateFrom, DateTime dateTo, int startIndex);
-        Task CreateOrUpdate(IEnumerable<Issue> items);
-        Task CreateOrUpdate(Issue item);
-        Task<Issue?> GetIssueById(int id, bool? trackable = null);
+        Task<List<Issue>> GetIssuesBetweenUpdateDates(DateTime dateFrom, DateTime dateTo, int startIndex, CancellationToken ct);
     }
 }

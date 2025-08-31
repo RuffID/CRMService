@@ -1,94 +1,44 @@
-﻿using CRMService.DataBase;
-using CRMService.Interfaces.Repository.Authorization;
+﻿using CRMService.Interfaces.Repository.Authorization;
+using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Authorization;
-using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Authorization
 {
-    public class UserRoleRepository(CrmAuthorizationContext context, ILoggerFactory logger) : IUserRoleRepository
+    public class UserRoleRepository(IGetItemByPredicateRepository<UserRole> getByPredicate,
+        ICreateItemRepository<UserRole> create,
+        IDeleteItemRepository<UserRole> delete) : IUserRoleRepository
     {
-        private readonly ILogger _logger = logger.CreateLogger<UserRoleRepository>();
-        private readonly CrmAuthorizationContext _context = context;
-
-        public async Task<IEnumerable<UserRole>?> GetAllItem(Range range)
+        /*public async Task<IEnumerable<CrmRole>?> GetRolesByUserId(Guid userId)
         {
-            try
-            {
-                return await _context.UserRoles.AsNoTracking().Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user role list.", nameof(GetAllItem));
-                return null;
-            }
-        }
-
-        public async Task<IEnumerable<CrmRole>?> GetRolesByUserId(Guid userId)
-        {
-            try
-            {
-                return await _context.UserRoles
-                    .Where(ur => ur.UserId == userId && ur.Role != null)
-                    .Select(ur => new CrmRole
-                    {
-                        Id = ur.Role.Id,
-                        Name = ur.Role.Name
-                    })
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving role list by user id.", nameof(GetRolesByUserId));
-                return null;
-            }
-        }
-
-        public async Task<UserRole?> GetItem(UserRole item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.Id == item.Id || ur.UserId == item.UserId || ur.RoleId == item.RoleId);
-
-                return await _context.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.Id == item.Id || ur.UserId == item.UserId || ur.RoleId == item.RoleId);
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user role.", nameof(GetItem));
-                return null;
-            }
+            return await _context.UserRoles
+                .Where(ur => ur.UserId == userId && ur.Role != null)
+                .Select(ur => new CrmRole
+                {
+                    Id = ur.Role.Id,
+                    Name = ur.Role.Name
+                })
+                .ToListAsync();
         }
 
         public async Task<UserRole?> GetConnectionByUserAndRoleId(UserRole item, bool? trackable = null)
         {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
+            if (trackable == null || trackable == true)
+                return await _context.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
 
-                return await _context.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving user role connection.", nameof(GetConnectionByUserAndRoleId));
-                return null;
-            }
-        }
+            return await _context.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.UserId == item.UserId && ur.RoleId == item.RoleId);
+        }*/
 
-        public void Update(UserRole oldItem, UserRole newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
 
-        public void Create(UserRole item)
-        {            
-            _context.UserRoles.Add(item);
-        }
+        public Task<UserRole?> GetItemByPredicate(Expression<Func<UserRole, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<UserRole, object>>[] includes)
+            => getByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
 
-        public void Delete(UserRole item)
-        {
-            _context.Remove(item);
-        }        
+        public Task<List<UserRole>> GetItemsByPredicate(Expression<Func<UserRole, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<UserRole, object>>[] includes)
+            => getByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+
+        public void Create(UserRole item) => create.Create(item);
+
+        public void Delete(UserRole item) => delete.Delete(item);
     }
 }

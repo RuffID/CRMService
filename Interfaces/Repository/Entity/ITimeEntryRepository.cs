@@ -1,11 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface ITimeEntryRepository : IGetRepository<TimeEntry>, IUpdateRepository<TimeEntry>, ICreateRepository<TimeEntry>, IDeleteRepository<TimeEntry>
+    public interface ITimeEntryRepository : IGetItemByIdRepository<TimeEntry, int>, IUpsertItemByIdRepository<TimeEntry, int>, ICreateItemRepository<TimeEntry>, IDeleteItemRepository<TimeEntry>
     {
-        Task<IEnumerable<TimeEntry>?> GetEntriesByIssue(int issueId, bool? trackable = null);
-        public Task CreateOrUpdate(IEnumerable<TimeEntry> items);
+        Task<List<TimeEntry>> GetEntriesByIssue(int issueId, bool asNoTracking = false, CancellationToken ct = default);
     }
 }

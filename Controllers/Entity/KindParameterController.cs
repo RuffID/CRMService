@@ -1,53 +1,49 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Options;
-using CRMService.Models.ConfigClass;
-using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Models.Enum;
+using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Entity;
+using CRMService.Models.Entity;
+using CRMService.Models.Enum;
+using CRMService.Service.Entity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindParameterController(IMapper mapper, IUnitOfWork unitOfWork, IOptions<DatabaseSettings> dbSettings, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
+    public class KindParameterController(IMapper mapper, IUnitOfWork unitOfWork, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
     {
-
         [HttpGet("list")]
-        public async Task<IActionResult> GetKindParameters([FromQuery] int startIndex)
+        public async Task<IActionResult> GetKindParameters([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            var kindParameters = mapper.Map<ICollection<KindParameterDto>>(await unitOfWork.KindParameter.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<KindsParameter> kindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAndSortById(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (kindParameters == null || kindParameters.Count <= 0)
-                return NotFound();
-
-            return Ok(kindParameters);
+            return Ok(mapper.Map<List<KindParameterDto>>(kindParameters));
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateKindParametersFromCloudApi()
+        public async Task<IActionResult> UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
-            await kindParameterService.UpdateKindParametersFromCloudApi();
-            await kindParamService.UpdateConnectionsFromCloudDb();
+            await kindParameterService.UpdateKindParametersFromCloudApi(ct);
+            await kindParamService.UpdateConnectionsFromCloudDb(ct);
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateKindParametersFromCloudDb()
+        public async Task<IActionResult> UpdateKindParametersFromCloudDb(CancellationToken ct)
         {
-            await kindParameterService.UpdateKindParametersFromCloudDb();
+            await kindParameterService.UpdateKindParametersFromCloudDb(ct);
 
             return NoContent();
         }
 
         [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateConnectionsFromCloudApi()
+        public async Task<IActionResult> UpdateConnectionsFromCloudApi(CancellationToken ct)
         {
-            await kindParamService.UpdateConnectionsFromCloudDb();
+            await kindParamService.UpdateConnectionsFromCloudDb(ct);
 
             return NoContent();
         }

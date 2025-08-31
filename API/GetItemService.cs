@@ -1,13 +1,12 @@
 ﻿using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Entity;
 using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.API
 {
-    public class GetItemService(IRequestService client, IOptions<OkdeskSettings> okdSettings, ILoggerFactory logger)
+    public class GetItemService(IRequestService client, ILoggerFactory logger)
     {
         private readonly ILogger<GetItemService> _logger = logger.CreateLogger<GetItemService>();
 
@@ -20,7 +19,7 @@ namespace CRMService.API
                 if (collection == null || collection.Count == 0)
                     yield break;
                 
-                if (collection.Last() is IEntity entity)
+                if (collection.Last() is IEntity<int> entity)
                     startIndex = entity.Id + 1;
 
                 if (pageNubmer != 0)
@@ -38,8 +37,8 @@ namespace CRMService.API
             // Задержка чтобы не посылать запросы слишком часто
             await Task.Delay(2000);
 
-            if (limit > okdSettings.Value.LimitForRetrievingEntitiesFromApi) 
-                limit = okdSettings.Value.LimitForRetrievingEntitiesFromApi;
+            if (limit > LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API) 
+                limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API;
 
             if (limit != 0 || startIndex != 0)
                 link += $"&page[size]={limit}&page[direction]=forward&page[from_id]={startIndex}";

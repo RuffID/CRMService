@@ -12,11 +12,12 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
 
             entity.ToTable("crm_role");
 
-            entity.HasIndex(e => e.Id, "id_UNIQUE").IsUnique();
-
             entity.Property(e => e.Id)
                 .HasMaxLength(36)
-                .HasColumnName("id");
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("UUID()");
+
             entity.Property(e => e.Name)
                 .HasMaxLength(45)                
                 .HasColumnName("name");

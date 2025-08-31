@@ -8,19 +8,22 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<CompanyCategory> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("company_category");
+
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
+
             builder.Property(e => e.Code)
                 .HasMaxLength(50)
                 .HasColumnName("code");
+
             builder.Property(e => e.Color)
                 .HasMaxLength(30)
                 .HasColumnName("color");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");

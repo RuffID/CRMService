@@ -5,7 +5,7 @@ using CRMService.Service.Entity;
 
 namespace CRMService.Service.Webhook
 {
-    public class CompanyWebhookService(IUnitOfWork unitOfWork, CompanyService companyService) : IWebhookHandler
+    public class CompanyWebhookService(IUnitOfWork unitOfWork, CompanyService companyService, CancellationToken ct) : IWebhookHandler
     {
         public async Task<bool> HandleWebhook(RootEvent @event)
         {
@@ -15,19 +15,19 @@ namespace CRMService.Service.Webhook
             switch (@event.Event!.Event_type)
             {
                 case "new_company":
-                    if (await companyService.CheckCompanyCategory(@event.Company))
-                        await unitOfWork.Company.CreateOrUpdate([@event.Company]);
+                    if (await companyService.CheckCompanyCategory(@event.Company, ct))
+                        await unitOfWork.Company.Upsert(@event.Company, ct);
                     break;
 
                 case "change_company":
-                    if (await companyService.CheckCompanyCategory(@event.Company))
-                        await unitOfWork.Company.CreateOrUpdate([@event.Company]);
+                    if (await companyService.CheckCompanyCategory(@event.Company, ct))
+                        await unitOfWork.Company.Upsert(@event.Company, ct);
                     break;
                 default:
                     return false;
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return true;
         }

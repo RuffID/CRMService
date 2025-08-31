@@ -8,9 +8,9 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Model> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("model");
+
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.HasIndex(e => e.KindId, "kindId_idx");
 
@@ -18,18 +18,24 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.Property(e => e.Id)
                 .HasColumnName("id")
-                .ValueGeneratedOnAdd();
+                .ValueGeneratedNever();
+
             builder.Property(e => e.Code)
                 .HasMaxLength(30)
                 .HasColumnName("code");
+
             builder.Property(e => e.Description)
                 .HasMaxLength(200)
                 .HasColumnName("description");
+
             builder.Property(e => e.KindId).HasColumnName("kindId");
+
             builder.Property(e => e.ManufacturerId).HasColumnName("manufacturerId");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
+
             builder.Property(e => e.Visible).HasColumnName("visible");
 
             builder.HasOne(d => d.Kind).WithMany(p => p.Models)

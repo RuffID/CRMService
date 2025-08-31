@@ -3,29 +3,33 @@ using Newtonsoft.Json;
 
 namespace CRMService.Models.Entity
 {
-    public class TimeEntry : IEntity
+    public class TimeEntry : IEntity<int>, ICopyable<TimeEntry>
     {
         public int Id { get; set; }
-        public int? EmployeeId { get; set; }
+
+        public int EmployeeId { get; set; }
+
         [JsonProperty("spent_time")]
-        public double? SpentTime { get; set; }
-        public int? IssueId { get; set; }
+        public double SpentTime { get; set; }
+
+        public int IssueId { get; set; }
+
         [JsonProperty("logged_at")]
-        public DateTime? LoggedAt { get; set; }
-        public DateTime? CreatedAt { get; set; }
-        public virtual Employee? Employee { get; set; }
-        public virtual Issue? Issue { get; set; }
+        public DateTime LoggedAt { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public virtual Employee Employee { get; set; } = null!;
+
+        public virtual Issue Issue { get; set; } = null!;
 
         public void CopyData(TimeEntry item)
         {
-            Id = item.Id;
             EmployeeId = item.EmployeeId;
             SpentTime = item.SpentTime;
             IssueId = item.IssueId;
-            if (item.LoggedAt.HasValue)
-                LoggedAt = item.LoggedAt;
-            if (item.CreatedAt.HasValue)
-                CreatedAt = item.CreatedAt;
+            LoggedAt = item.LoggedAt;
+            CreatedAt = item.CreatedAt;
         }
     }
 }

@@ -1,108 +1,50 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class EmployeeGroupRepository(ApplicationContext context, ILoggerFactory logger) : IEmployeeGroupRepository
-    {
-        private readonly ILogger<EmployeeGroupRepository> _logger = logger.CreateLogger<EmployeeGroupRepository>();
+    public class EmployeeGroupRepository(IGetItemByPredicateRepository<EmployeeGroup> _getByPredicate,
+        IUpsertByPredicateRepository<EmployeeGroup> _upsertByPredicate,
+        ICreateItemRepository<EmployeeGroup> _create,
+        ICountItemRepository<EmployeeGroup> _count,
+        IDeleteItemRepository<EmployeeGroup> _delete) : IEmployeeGroupRepository
+    {       
+        public Task<EmployeeGroup?> GetItem(int employeeId, int groupId, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<EmployeeGroup, object>>[] includes)
+            => _getByPredicate.GetItemByPredicate(eg => eg.EmployeeId == employeeId && eg.GroupId == groupId, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<EmployeeGroup>?> GetItems(int startIndex, int limit)
+        public Task<List<EmployeeGroup>> GetItems(int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<EmployeeGroup, object>>[] includes)
+            => _getByPredicate.GetItemsByPredicate(skip: skip, take: take, asNoTracking: asNoTracking, ct: ct, includes: includes);
+
+        public async Task<List<Employee>> GetEmployeesByGroup(int groupId, int startIndex, int limit, bool asNoTracking, CancellationToken ct = default)
         {
-            try
-            {
-                return await context.EmployeeGroups.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee group list.", nameof(GetItems));
-                return null;
-            }
+            List<EmployeeGroup> groups = await _getByPredicate.GetItemsByPredicate(
+                predicate: eg => eg.GroupId == groupId && eg.EmployeeId >= startIndex, asNoTracking: asNoTracking, ct: ct,
+                includes: eg => eg.Employee);
+
+            return groups
+                .Select(eg => eg.Employee)
+                .OrderBy(e => e.Id)
+                .Take(limit)
+                .ToList();
         }
 
-        public async Task<EmployeeGroup?> GetItem(EmployeeGroup item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.EmployeeGroups.FirstOrDefaultAsync(c => c.Id == item.Id);
+        public Task<int> GetCountOfItems(Expression<Func<EmployeeGroup, bool>>? predicate = null, CancellationToken ct = default)
+            => _count.GetCountOfItems(predicate, ct);
 
-                return await context.EmployeeGroups.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee group.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task<List<EmployeeGroup>> GetConnectionsByGroup(int groupId, bool asNoTracking = false, CancellationToken ct = default)
+            => _getByPredicate.GetItemsByPredicate(eg => eg.GroupId == groupId, asNoTracking: asNoTracking, ct: ct);
 
-        public async Task<EmployeeGroup?> GetConnectionByEmployeeAndGroup(int employeeId, int groupId)
-        {
-            try
-            {
-                return await context.EmployeeGroups.AsNoTracking().FirstOrDefaultAsync(c => c.EmployeeId == employeeId && c.GroupId == groupId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving connection by employee group and group id.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task Upsert(EmployeeGroup item, Expression<Func<EmployeeGroup, bool>> predicate, CancellationToken ct = default)
+            => _upsertByPredicate.Upsert(item, predicate, ct);
 
-        public async Task<IEnumerable<EmployeeGroup>?> GetConnectionsByGroup(int groupId)
-        {
-            try
-            {
-                return await context.EmployeeGroups.AsNoTracking().Where(c => c.GroupId == groupId).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving connections employee group by employee.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task Upsert(IEnumerable<EmployeeGroup> items, Func<EmployeeGroup, Expression<Func<EmployeeGroup, bool>>> predicateFactory, CancellationToken ct = default)
+            => _upsertByPredicate.Upsert(items, predicateFactory, ct);
 
-        public async Task<int> GetCountOfItems()
-        {
-            try
-            {
-                return await context.EmployeeGroups.AsNoTracking().CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of employee groups connection.", nameof(GetItem));
-                return 0;
-            }
-        }
+        public void Create(EmployeeGroup item) => _create.Create(item);
 
-        public void Update(EmployeeGroup oldItem, EmployeeGroup newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(EmployeeGroup item)
-        {
-            context.EmployeeGroups.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<EmployeeGroup> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
-
-        public void Delete(EmployeeGroup item)
-        {
-            context.EmployeeGroups.Remove(item);
-        }
+        public void Delete(EmployeeGroup item) => _delete.Delete(item);        
     }
 }

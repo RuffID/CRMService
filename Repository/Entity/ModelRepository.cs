@@ -1,64 +1,37 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class ModelRepository(ApplicationContext context, ILoggerFactory logger) : IModelRepository
+    public class ModelRepository(IGetItemByIdRepository<Model, int> _getById,
+        IGetItemByCodeRepository<Model> _getByCode,
+        ICreateItemRepository<Model> _create,
+        IUpsertItemByCodeRepository<Model> _upsert) : IModelRepository
     {
-        private readonly ILogger<ModelRepository> _logger = logger.CreateLogger<ModelRepository>();
+        public Task<Model?> GetItemByCode(string code, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Model, object>>[] includes)
+            => _getByCode.GetItemByCode(code, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<Model>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.Models.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving model list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<Model?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Model, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<Model?> GetItem(Model item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Models.FirstOrDefaultAsync(c => c.Code == item.Code);
+        public Task<List<Model>> GetItemsByPredicateAndSortById(Expression<Func<Model, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Model, object>>[] includes)
+            => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-                return await context.Models.AsNoTracking().FirstOrDefaultAsync(c => c.Code == item.Code);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving model.", nameof(GetItem));
-                return null;
-            }
-        }
+        public void Create(Model item) => _create.Create(item);
 
-        public void Update(Model oldItem, Model newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
+        public Task UpsertByCode(Model item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(item, ct);
 
-        public void Create(Model item)
-        {
-            context.Models.Add(item);
-        }
+        public Task UpsertByCode(string oldCode, Model item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(oldCode, item, ct);
 
-        public async Task CreateOrUpdate(IEnumerable<Model> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
+        public Task UpsertByCodePairs(IEnumerable<(string OldCode, Model Item)> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodePairs(items, ct);
 
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task UpsertByCodes(IEnumerable<Model> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodes(items, ct);
     }
 }

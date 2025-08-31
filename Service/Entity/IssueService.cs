@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.Entity
 {
-    public class IssueService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService itemService, 
+    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService itemService, 
         IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueService> _logger = logger.CreateLogger<IssueService>();
@@ -53,9 +53,9 @@ namespace CRMService.Service.Entity
                     AuthorId = issue.Field<int?>("author_id"),
                     CompanyId = issue.Field<int?>("companyid"),
                     ServiceObjectId = issue.Field<int?>("maintenanceEntityId"),
-                    Status = new() { Code = issue.Field<string>("statusCode") },
-                    Type = new() { Code = issue.Field<string>("typeCode") },
-                    Priority = new() { Code = issue.Field<string>("priorityCode") },
+                    Status = new() { Code = issue.Field<string>("statusCode") ?? "" },
+                    Type = new() { Code = issue.Field<string>("typeCode") ?? "" },
+                    Priority = new() { Code = issue.Field<string>("priorityCode") ?? "" },
                     CreatedAt = issue.Field<DateTime?>("created_at")?.ToLocalTime(),
                     CompletedAt = issue.Field<DateTime?>("completed_at")?.ToLocalTime(),
                     DeadlineAt = issue.Field<DateTime?>("deadline_at")?.ToLocalTime(),
@@ -66,28 +66,28 @@ namespace CRMService.Service.Entity
                 }).ToList();
         }
 
-        public async Task CheckAttributes(Issue issue)
+        public async Task CheckAttributes(Issue issue, CancellationToken ct)
         {
             // Проверка всех внешних ключей (элементов) что они есть в локальной БД
             if (issue.Company != null)
-                issue.CompanyId = (await unitOfWork.Company.GetItem(issue.Company, false))?.Id;
+                issue.CompanyId = (await unitOfWork.Company.GetItemById(issue.Company.Id, true, ct))?.Id;
             else if (issue.CompanyId != null)
-                issue.CompanyId = (await unitOfWork.Company.GetCompanyById((int)issue.CompanyId, false))?.Id;
+                issue.CompanyId = (await unitOfWork.Company.GetItemById((int)issue.CompanyId, true, ct))?.Id;
 
             if (issue.ServiceObject != null)
-                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItem(issue.ServiceObject, false))?.Id;
+                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItemById(issue.ServiceObject.Id, true, ct))?.Id;
             else if (issue.ServiceObjectId != null)
-                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetMaintenanceEntityById((int)issue.ServiceObjectId, false))?.Id;
+                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItemById((int)issue.ServiceObjectId, true, ct))?.Id;
 
             if (issue.Status != null)
-                issue.StatusId = (await unitOfWork.IssueStatus.GetItem(issue.Status, false))?.Id;
+                issue.StatusId = (await unitOfWork.IssueStatus.GetItemById(issue.Status.Id, true, ct))?.Id;
             if (issue.Priority != null)
-                issue.PriorityId = (await unitOfWork.IssuePriority.GetItem(issue.Priority, false))?.Id;
+                issue.PriorityId = (await unitOfWork.IssuePriority.GetItemById(issue.Priority.Id, true, ct))?.Id;
             if (issue.Type != null)
-                issue.TypeId = (await unitOfWork.IssueType.GetItem(issue.Type, false))?.Id;
+                issue.TypeId = (await unitOfWork.IssueType.GetItemById(issue.Type.Id, true, ct))?.Id;
 
             if (issue.AssigneeId != null && issue.AssigneeId != 0)
-                issue.AssigneeId = (await unitOfWork.Employee.GetItem(new ((int)issue.AssigneeId), false))?.Id;
+                issue.AssigneeId = (await unitOfWork.Employee.GetItemById((int)issue.AssigneeId, true, ct))?.Id;
 
             // Если не зануллить то будет выдавать ошибку EF (id уже использовался)
             issue.Company = null;
@@ -98,11 +98,11 @@ namespace CRMService.Service.Entity
             issue.Assignee = null;
         }
 
-        public async Task UpdateIssuesFromCloudApi(DateTime dateFrom, DateTime dateTo, long startIndex, long limit, [CallerMemberName] string caller = "" )
+        public async Task UpdateIssuesFromCloudApi(DateTime dateFrom, DateTime dateTo, long startIndex = 0, long limit = 0, [CallerMemberName] string caller = "", CancellationToken ct = default)
         {
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudApi), caller);
 
-            IEnumerable<Employee>? employees = await unitOfWork.Employee.GetItems(startIndex: 0, await unitOfWork.Employee.GetCountOfItems());
+            IEnumerable<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(predicate: e => e.Id >= startIndex, asNoTracking: true, ct: ct);
 
             if (employees == null || !employees.Any())
                 return;
@@ -119,12 +119,11 @@ namespace CRMService.Service.Entity
                     foreach (Issue issue in issues)
                     {
                         issue.AssigneeId = employee.Id;
-                        await CheckAttributes(issue);
+                        await CheckAttributes(issue, ct);
                         issue.TimeEntries = new List<TimeEntry>();
 
-
-                        await unitOfWork.Issue.CreateOrUpdate(issue);
-                        await unitOfWork.SaveAsync();
+                        await unitOfWork.Issue.Upsert(issue, ct);
+                        await unitOfWork.SaveAsync(ct);
                     }
                 }
             }
@@ -132,7 +131,7 @@ namespace CRMService.Service.Entity
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
         }
 
-        public async Task UpdateIssuesFromCloudDb(DateTime dateFrom, DateTime dateTo, int startIndex, int limit, [CallerMemberName] string caller = "")
+        public async Task UpdateIssuesFromCloudDb(DateTime dateFrom, DateTime dateTo, int startIndex, int limit, [CallerMemberName] string caller = "", CancellationToken ct = default)
         {
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudDb), caller);
 
@@ -145,10 +144,10 @@ namespace CRMService.Service.Entity
 
                 foreach (Issue issue in issues)
                 {
-                    await CheckAttributes(issue);
+                    await CheckAttributes(issue, ct);
 
-                    await unitOfWork.Issue.CreateOrUpdate(issue);
-                    await unitOfWork.SaveAsync();
+                    await unitOfWork.Issue.Upsert(issue, ct);
+                    await unitOfWork.SaveAsync(ct);
                 }
 
                 startIndex = issues.Last().Id;

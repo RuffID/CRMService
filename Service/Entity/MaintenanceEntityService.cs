@@ -8,8 +8,8 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class MaintenanceEntityService(IOptions<ApiEndpoint> endpoint, IOptions<DatabaseSettings> dbSettings, 
-        IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint, 
+        IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<MaintenanceEntityService> _logger = logger.CreateLogger<MaintenanceEntityService>();
 
@@ -27,7 +27,7 @@ namespace CRMService.Service.Entity
                 yield return me;
         }
 
-        private async Task<List<MaintenanceEntity>?> GetMaintenanceEntitiesFromCloudDb(int startIndex, int limit)
+        private async Task<List<MaintenanceEntity>?> GetMaintenanceEntitiesFromCloudDb(long startIndex, long limit)
         {
             string sqlCommand = string.Format(
                 "SELECT company_maintenance_entities.sequential_id, company_maintenance_entities.name, companies.sequential_id AS companyId, company_maintenance_entities.active " +
@@ -50,23 +50,19 @@ namespace CRMService.Service.Entity
                 }).ToList();
         }
 
-        public async Task UpdateMaintenanceEntityFromCloudApi(int maintenanceEntityId)
+        public async Task UpdateMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
             MaintenanceEntity? newMaintenanceEntity = await GetMaintenanceEntityFromCloudApi(maintenanceEntityId);
 
             if (newMaintenanceEntity == null)
                 return;
 
-            MaintenanceEntity? existing = await unitOfWork.MaintenanceEntity.GetItem(newMaintenanceEntity, false);
-            if (existing == null)
-                unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-            else
-                unitOfWork.MaintenanceEntity.Update(existing, newMaintenanceEntity);
+            await unitOfWork.MaintenanceEntity.Upsert(newMaintenanceEntity, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateMaintenanceEntitiesFromCloudApi(long startIndex, long limit)
+        public async Task UpdateMaintenanceEntitiesFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
 
@@ -75,51 +71,33 @@ namespace CRMService.Service.Entity
                 if (me == null || me.Count == 0)
                     return;
 
-                await unitOfWork.MaintenanceEntity.CreateOrUpdate(me);
+                await unitOfWork.MaintenanceEntity.Upsert(me, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
         }
 
-        public async Task UpdateMaintenanceEntitiesFromCloudDb()
+        public async Task UpdateMaintenanceEntitiesFromCloudDb(long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
 
-            int indexOfME = 0;
-
             while (true)
             {
-                List<MaintenanceEntity>? me = await GetMaintenanceEntitiesFromCloudDb(indexOfME, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+                List<MaintenanceEntity>? me = await GetMaintenanceEntitiesFromCloudDb(startIndex, limit);
 
                 if (me == null || me.Count == 0)
                     break;
 
-                indexOfME = me.Last().Id;
+                startIndex = me.Last().Id;
 
-                foreach (MaintenanceEntity entity in me)
-                    await CheckAttributes(entity);
+                await unitOfWork.MaintenanceEntity.Upsert(me, ct);
 
-                await unitOfWork.MaintenanceEntity.CreateOrUpdate(me);
-
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
-        }
-
-        private async Task CheckAttributes(MaintenanceEntity maintenanceEntity)
-        {
-            // Проверка всех внешних ключей (элементов) что они есть в локальной БД
-            if (maintenanceEntity.CompanyId == null || maintenanceEntity.CompanyId == 0)
-                return;
-
-            if (await unitOfWork.Company.GetCompanyById((int)maintenanceEntity.CompanyId, false) == null)
-            {
-                _logger.LogWarning("[Method:{MethodName}] When updating maintenance entity, the specified company could not be found by ID - {companyId}.", nameof(CheckAttributes), maintenanceEntity.CompanyId);
-                maintenanceEntity.CompanyId = null;
-            }
         }
     }
 }

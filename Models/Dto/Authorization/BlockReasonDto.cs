@@ -1,8 +1,8 @@
-﻿using CRMService.Interfaces.Authorization;
+﻿using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.Dto.Authorization
 {
-    public partial class BlockReasonDto : IEntity
+    public partial class BlockReasonDto : IEntity<Guid>
     {
         public Guid Id { get; set; }
 

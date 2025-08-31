@@ -2,11 +2,11 @@
 
 namespace CRMService.Models.Entity
 {
-    public class IssueStatus : IEntity
+    public class IssueStatus : IEntity<int>, IHasCode, ICopyable<IssueStatus>
     {
         public int Id { get; set; }
 
-        public string? Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         public string? Name { get; set; }
 

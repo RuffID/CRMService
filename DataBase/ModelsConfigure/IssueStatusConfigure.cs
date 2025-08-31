@@ -14,13 +14,16 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.Property(e => e.Id)
                 .HasColumnName("id")
-                .ValueGeneratedOnAdd();
+                .ValueGeneratedNever();
+
             builder.Property(e => e.Code)
                 .HasMaxLength(45)
                 .HasColumnName("code");
+
             builder.Property(e => e.Color)
                 .HasMaxLength(45)
                 .HasColumnName("color");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(45)
                 .HasColumnName("name");

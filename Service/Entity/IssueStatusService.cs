@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class IssueStatusService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueStatusService> _logger = logger.CreateLogger<IssueStatusService>();
 
@@ -31,24 +31,24 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(status => new IssueStatus
                 {
-                    Code = status.Field<string>("code"),
+                    Code = status.Field<string>("code") ?? "",
                     Name = status.Field<string>("name")
                 }).ToList();
         }
 
-        public async Task UpdateIssueStatusesFromCloudApi()
+        public async Task UpdateIssueStatusesFromCloudApi(CancellationToken ct)
         {
             List<IssueStatus>? statuses = await GetIssueStatusesFromCloudApi();
 
             if (statuses == null || statuses.Count == 0)
                 return;
 
-            await unitOfWork.IssueStatus.CreateOrUpdate(statuses);
+            await unitOfWork.IssueStatus.UpsertByCodes(statuses, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateIssueStatusesFromCloudDb()
+        public async Task UpdateIssueStatusesFromCloudDb(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating issue statuses.", nameof(UpdateIssueStatusesFromCloudDb));
 
@@ -57,9 +57,9 @@ namespace CRMService.Service.Entity
             if (statuses == null || statuses.Count == 0)
                 return;
 
-            await unitOfWork.IssueStatus.CreateOrUpdate(statuses);
+            await unitOfWork.IssueStatus.UpsertByCodes(statuses, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Issue statuses update completed.", nameof(UpdateIssueStatusesFromCloudDb));
         }

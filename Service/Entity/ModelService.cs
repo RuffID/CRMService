@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class ModelService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<ModelService> _logger = logger.CreateLogger<ModelService>();
 
@@ -37,14 +37,14 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(model => new Model
                 {                    
-                    Code = model.Field<string>("code"),
+                    Code = model.Field<string>("code") ?? "",
                     Name = model.Field<string>("name"),
-                    Kind = new() { Code = model.Field<string>("kindCode") },
-                    Manufacturer = new() { Code = model.Field<string>("manufacturerCode") }
+                    Kind = new() { Code = model.Field<string>("kindCode") ?? "" },
+                    Manufacturer = new() { Code = model.Field<string>("manufacturerCode") ?? "" }
                 }).ToList();
         }
 
-        public async Task UpdateModelsFromCloudApi(long startIndex, long limit)
+        public async Task UpdateModelsFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating models.", nameof(UpdateModelsFromCloudApi));
 
@@ -53,17 +53,17 @@ namespace CRMService.Service.Entity
                 if (models == null || models.Count == 0) return;
 
                 foreach (Model model in models)
-                    await CheckModel(model);
+                    await CheckModel(model, ct);
 
-                await unitOfWork.Model.CreateOrUpdate(models);
+                await unitOfWork.Model.UpsertByCodes(models, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Models update completed.", nameof(UpdateModelsFromCloudApi));
         }
 
-        public async Task UpdateModelsFromCloudDb()
+        public async Task UpdateModelsFromCloudDb(CancellationToken ct)
         {
             List<Model>? models = await GetModelsFromCloudDb();
 
@@ -71,19 +71,19 @@ namespace CRMService.Service.Entity
                 return;
 
             foreach (Model model in models)
-                await CheckModel(model);
+                await CheckModel(model, ct);
 
-            await unitOfWork.Model.CreateOrUpdate(models);
+            await unitOfWork.Model.UpsertByCodes(models, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        private async Task CheckModel(Model model)
+        private async Task CheckModel(Model model, CancellationToken ct)
         {
             if (model.Manufacturer != null)
-                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItem(model.Manufacturer))?.Id;
+                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByCode(model.Manufacturer.Code, asNoTracking: true, ct))?.Id;
             if (model.Kind != null)
-                model.KindId = (await unitOfWork.Kind.GetItem(model.Kind))?.Id;
+                model.KindId = (await unitOfWork.Kind.GetItemByCode(model.Kind.Code, asNoTracking: true, ct))?.Id;
 
             model.Manufacturer = null;
             model.Kind = null;

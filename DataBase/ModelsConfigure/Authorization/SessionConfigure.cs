@@ -8,23 +8,26 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<Session> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("session");
 
-            builder.HasIndex(e => e.Id, "session_id_UNIQUE").IsUnique();
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.HasIndex(e => e.UserId, "user_session_id_idx");
 
             builder.Property(e => e.Id)
                 .HasMaxLength(36)
-                .HasColumnName("id");
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("UUID()");
+
             builder.Property(e => e.ExpirationRefreshToken)
                 .HasColumnType("datetime")
                 .HasColumnName("expiration_refresh_token");
+
             builder.Property(e => e.RefreshToken)
                 .HasMaxLength(88)
                 .HasColumnName("refresh_token");
+
             builder.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("user_id");

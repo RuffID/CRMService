@@ -8,9 +8,9 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<TimeEntry> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("time_entry");
+
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.HasIndex(e => e.EmployeeId, "employeeId_idx");
 
@@ -18,25 +18,35 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.Property(e => e.Id)
                 .HasColumnName("id")
-                .ValueGeneratedOnAdd();
-            builder.Property(e => e.EmployeeId).HasColumnName("employeeId");
-            builder.Property(e => e.IssueId).HasColumnName("issueId");
+                .ValueGeneratedNever();
+
+            builder.Property(e => e.EmployeeId)
+                .HasColumnName("employeeId");
+
+            builder.Property(e => e.IssueId)
+                .HasColumnName("issueId");
+
             builder.Property(e => e.LoggedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("logged_at");
+
             builder.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
-            builder.Property(e => e.SpentTime).HasColumnName("spentTime");
 
-            builder.HasOne(d => d.Employee).WithMany(p => p.TimeEntries)
+            builder.Property(e => e.SpentTime)
+                .HasColumnName("spentTime");
+
+            builder.HasOne(d => d.Employee)
+                .WithMany(p => p.TimeEntries)
                 .HasForeignKey(d => d.EmployeeId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("employeeId");
 
-            builder.HasOne(d => d.Issue).WithMany(p => p.TimeEntries)
+            builder.HasOne(d => d.Issue)
+                .WithMany(p => p.TimeEntries)
                 .HasForeignKey(d => d.IssueId)
-                .OnDelete(DeleteBehavior.SetNull)                
+                .OnDelete(DeleteBehavior.Cascade)                
                 .HasConstraintName("issueId");
         }
     }

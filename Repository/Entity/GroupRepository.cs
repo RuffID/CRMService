@@ -1,64 +1,24 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class GroupRepository(ApplicationContext context, ILoggerFactory logger) : IGroupRepository
+    public class GroupRepository(IGetItemByIdRepository<Group, int> _get,
+        IUpsertItemByIdRepository<Group, int> _upsert,
+        ICreateItemRepository<Group> _create) : IGroupRepository
     {
-        private readonly ILogger<GroupRepository> _logger = logger.CreateLogger<GroupRepository>();
+        public Task<Group?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Group, object>>[] includes)
+            => _get.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<Group>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.Groups.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving group list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<Group>> GetItemsByPredicateAndSortById(Expression<Func<Group, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Group, object>>[] includes)
+            => _get.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<Group?> GetItem(Group item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Groups.FirstOrDefaultAsync(c => c.Id == item.Id);
+        public void Create(Group item) => _create.Create(item);
 
-                return await context.Groups.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving group.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task Upsert(Group item, CancellationToken ct = default) => _upsert.Upsert(item, ct);
 
-        public void Update(Group oldItem, Group newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(Group item)
-        {
-            context.Groups.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<Group> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task Upsert(IEnumerable<Group> items, CancellationToken ct = default) => _upsert.Upsert(items, ct);
     }
 }

@@ -1,11 +1,10 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.WebHook;
-using CRMService.Service.Entity;
 
 namespace CRMService.Service.Webhook
 {
-    public class EquipmentWebhookService(IUnitOfWork unitOfWork, EquipmentService equipmentService) : IWebhookHandler
+    public class EquipmentWebhookService(IUnitOfWork unitOfWork, CancellationToken ct) : IWebhookHandler
     {
         public async Task<bool> HandleWebhook(RootEvent @event)
         {
@@ -15,18 +14,16 @@ namespace CRMService.Service.Webhook
             switch (@event.Event!.Event_type)
             {
                 case "new_equipment":
-                    await equipmentService.CheckInformationOnEquipment(@event.Equipment);
-                    await unitOfWork.Equipment.CreateOrUpdate([@event.Equipment]);
+                    await unitOfWork.Equipment.Upsert(@event.Equipment, ct);
                     break;
                 case "change_equipment":
-                    await equipmentService.CheckInformationOnEquipment(@event.Equipment);
-                    await unitOfWork.Equipment.CreateOrUpdate([@event.Equipment]);
+                    await unitOfWork.Equipment.Upsert(@event.Equipment, ct);
                     break;
                 default:
                     return false;
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return true;
         }

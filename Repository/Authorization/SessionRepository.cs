@@ -1,95 +1,36 @@
-﻿using CRMService.DataBase;
-using CRMService.Interfaces.Repository.Authorization;
+﻿using CRMService.Interfaces.Repository.Authorization;
+using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Authorization;
-using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Authorization
 {
-    public class SessionRepository(CrmAuthorizationContext context, ILoggerFactory logger) : ISessionRepository
+    public class SessionRepository(IGetItemByIdRepository<Session, Guid> getItemById,
+        IGetItemByPredicateRepository<Session> getItemByPredicate,
+        ICreateItemRepository<Session> create,
+        IUpsertItemByIdRepository<Session, Guid> upsert,
+        IDeleteItemRepository<Session> delete) : ISessionRepository
     {
-        private readonly ILogger<SessionRepository> _logger = logger.CreateLogger<SessionRepository>();
+        public Task<Session?> GetItemById(Guid id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
+            => getItemById.GetItemById(id, asNoTracking, ct, includes);
+                
 
-        public async Task<IEnumerable<Session>?> GetItems(Range range)
-        {
-            try
-            {
-                return await context.Sessions.AsNoTracking().Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).OrderBy(s => s.ExpirationRefreshToken).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving session list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<Session>> GetItemsByPredicateAndSortById(Expression<Func<Session, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
+            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<Session?> GetItem(Session item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Sessions.FirstOrDefaultAsync(se => se.RefreshToken == item.RefreshToken);
+        public Task<Session?> GetItemByPredicate(Expression<Func<Session, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
+            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
 
-                return await context.Sessions.AsNoTracking().FirstOrDefaultAsync(se => se.RefreshToken == item.RefreshToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving session.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task<List<Session>> GetItemsByPredicate(Expression<Func<Session, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
+            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<int> GetCountOfItems()
-        {
-            try
-            {
-                return await context.Sessions.AsNoTracking().CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of sessions.", nameof(GetCountOfItems));
-                return 0;
-            }
-        }
+        public void Create(Session item) => create.Create(item);
 
-        public void Create(Session item)
-        {
-            context.Sessions.Add(item);
-        }
+        public Task Upsert(Session item, CancellationToken ct = default) => upsert.Upsert(item, ct);
 
-        public void Update(Session oldItem, Session newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
+        public Task Upsert(IEnumerable<Session> items, CancellationToken ct = default) => upsert.Upsert(items, ct);
 
-        public void Delete(Session item)
-        {
-            context.Sessions.Remove(item);
-        }
-
-        public async Task DeleteByUserId(Guid userId)
-        {
-            try
-            {
-                await context.Sessions.Where(s => s.UserId == userId).ExecuteDeleteAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error deleting sessions by user id.", nameof(DeleteByUserId));                
-            }
-        }
-
-        public async Task DeleteSessionsWithExpiredRefreshTokens()
-        {
-            try
-            {
-                DateTime date = DateTime.UtcNow;
-
-                await context.Sessions.Where(s => s.ExpirationRefreshToken < date).ExecuteDeleteAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error deleting expired refresh tokens.", nameof(DeleteSessionsWithExpiredRefreshTokens));
-            }
-        }
+        public void Delete(Session item) => delete.Delete(item);
     }
 }

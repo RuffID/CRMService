@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity
 {
-    public class Employee : IEntity
+    public class Employee : IEntity<int>, ICopyable<Employee>
     {
         public int Id { get; set; }
 
@@ -18,11 +18,11 @@ namespace CRMService.Models.Entity
 
         public string? Position { get; set; }
 
-        public bool? Active { get; set; }
+        public bool Active { get; set; }
 
         public string? Email { get; set; }
 
-        public string? Login { get; set; }
+        public string Login { get; set; } = string.Empty;
 
         public string? Phone { get; set; }
 
@@ -35,12 +35,7 @@ namespace CRMService.Models.Entity
 
         public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 
-        public Employee() { }
-
-        public Employee(int id)
-        {
-            Id = id;
-        }
+        public virtual ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
 
         public void CopyData(Employee newItem)
         {

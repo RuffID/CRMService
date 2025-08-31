@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class GroupService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<GroupService> _logger = logger.CreateLogger<GroupService>();
 
@@ -32,7 +32,7 @@ namespace CRMService.Service.Entity
                 Select(group => new Group
                 {
                     Id = group.Field<int>("sequential_id"),
-                    Name = group.Field<string>("name")
+                    Name = group.Field<string>("name") ?? ""
                 }).ToList();
         }
 
@@ -55,13 +55,12 @@ namespace CRMService.Service.Entity
             return groupTable.AsEnumerable().
                 Select(group => new EmployeeGroup
                 {
-                    Id = groupTable.Rows.IndexOf(group) + 1,
                     EmployeeId = group.Field<int>("userId"),
                     GroupId = group.Field<int>("groupId")
                 }).ToList();
         }
 
-        public async Task UpdateGroupsFromCloudApi()
+        public async Task UpdateGroupsFromCloudApi(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating groups.", nameof(UpdateGroupsFromCloudApi));
 
@@ -69,65 +68,68 @@ namespace CRMService.Service.Entity
 
             if (groups == null || groups.Count == 0) return;
 
-            await unitOfWork.Group.CreateOrUpdate(groups);
+            await unitOfWork.Group.Upsert(groups, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await UpdateConnectionsWithEmployeesAndGroupsFromCloudApi(groups);
+            await UpdateConnectionsWithEmployeesAndGroupsFromCloudApi(groups, ct);
 
             _logger.LogInformation("[Method:{MethodName}] Groups update completed.", nameof(UpdateGroupsFromCloudApi));
         }
 
-        public async Task UpdateGroupsFromCloudDb()
+        public async Task UpdateGroupsFromCloudDb(CancellationToken ct)
         {
             List<Group>? groups = await GetGroupsFromCloudDb();
 
             if (groups == null || groups.Count == 0)
                 return;
 
-            await unitOfWork.Group.CreateOrUpdate(groups);
+            await unitOfWork.Group.Upsert(groups, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await UpdateConnectionsWithEmployeesAndGroupsFromCloudDb();
+            await UpdateConnectionsWithEmployeesAndGroupsFromCloudDb(ct);
         }
 
-        private async Task UpdateConnectionsWithEmployeesAndGroupsFromCloudApi(List<Group> groups)
+        private async Task UpdateConnectionsWithEmployeesAndGroupsFromCloudApi(List<Group> groups, CancellationToken ct)
         {
             foreach (var group in groups)
             {
-                if (group.Employees == null || !group.Employees.Any()) continue;
+                if (group.Employees == null || !group.Employees.Any()) 
+                    continue;
 
                 foreach (var employee in group.Employees)
                 {
                     EmployeeGroup? connection = new() { EmployeeId = employee.Id, GroupId = group.Id };
-                    if (await unitOfWork.EmployeeGroup.GetConnectionByEmployeeAndGroup((int)connection.EmployeeId, (int)connection.GroupId) == null)
+                    if (await unitOfWork.EmployeeGroup.GetItem(connection.EmployeeId, connection.GroupId, true, ct) == null)
                         unitOfWork.EmployeeGroup.Create(connection);
                 }
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await DeleteIrrelevantConnectionsEmployeeGroupFromCloudApi(groups);
+            await DeleteIrrelevantConnectionsEmployeeGroupFromCloudApi(groups, ct);
         }
 
-        private async Task UpdateConnectionsWithEmployeesAndGroupsFromCloudDb()
+        private async Task UpdateConnectionsWithEmployeesAndGroupsFromCloudDb(CancellationToken ct)
         {
             List<EmployeeGroup>? connectionsFromCloudDb = await GetConnectionsFromCloudDb();
 
             if (connectionsFromCloudDb == null || connectionsFromCloudDb.Count == 0)
                 return;
 
-            await unitOfWork.EmployeeGroup.CreateOrUpdate(connectionsFromCloudDb);
+            await unitOfWork.EmployeeGroup.Upsert(connectionsFromCloudDb,
+                eg => (EmployeeGroup c) => c.EmployeeId == eg.EmployeeId && c.GroupId == eg.GroupId,
+                ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await DeleteIrrelevantConnectionsEmployeeGroupFromCloudDb(connectionsFromCloudDb);
+            await DeleteIrrelevantConnectionsEmployeeGroupFromCloudDb(connectionsFromCloudDb, ct);
         }
 
-        private async Task DeleteIrrelevantConnectionsEmployeeGroupFromCloudDb(List<EmployeeGroup> connectionsFromCloudDb)
+        private async Task DeleteIrrelevantConnectionsEmployeeGroupFromCloudDb(List<EmployeeGroup> connectionsFromCloudDb, CancellationToken ct)
         {
-            IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetItems(startIndex: 0, await unitOfWork.EmployeeGroup.GetCountOfItems());
+            IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetItems(ct: ct);
 
             if (localConnections == null || !localConnections.Any())
                 return;
@@ -141,11 +143,11 @@ namespace CRMService.Service.Entity
             await unitOfWork.SaveAsync();
         }
 
-        private async Task DeleteIrrelevantConnectionsEmployeeGroupFromCloudApi(List<Group> groups)
+        private async Task DeleteIrrelevantConnectionsEmployeeGroupFromCloudApi(List<Group> groups, CancellationToken ct)
         {
             foreach (Group group in groups)
             {
-                IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetConnectionsByGroup(group.Id);
+                IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetConnectionsByGroup(group.Id, true, ct);
 
                 if (localConnections == null || !localConnections.Any())
                     continue;
@@ -159,7 +161,7 @@ namespace CRMService.Service.Entity
                 }
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

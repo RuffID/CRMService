@@ -1,107 +1,29 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Base;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueRepository(ApplicationContext context, ILoggerFactory logger) : IIssueRepository
+    public class IssueRepository(IGetItemByIdRepository<Issue, int> _getById,
+        ICreateItemRepository<Issue> _create,
+        IUpsertItemByIdRepository<Issue, int> _upsert) : IIssueRepository
     {
-        private readonly ILogger<IssueRepository> _logger = logger.CreateLogger<IssueRepository>();
+        public Task<List<Issue>> GetIssuesBetweenUpdateDates(DateTime dateFrom, DateTime dateTo, int startIndex, CancellationToken ct)
+            => _getById.GetItemsByPredicateAndSortById(predicate: i => i.Id >= startIndex && i.EmployeesUpdatedAt >= dateFrom && i.EmployeesUpdatedAt <= dateTo, asNoTracking: true, ct: ct);
 
-        public async Task<IEnumerable<Issue>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.Issues.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<Issue?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Issue, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<Issue>?> GetIssuesBetweenUpdateDates(DateTime dateFrom, DateTime dateTo, int startIndex)
-        {
-            try
-            {
-                return await context.Issues
-                    .AsNoTracking()
-                    .Where(c => c.Id >= startIndex && c.EmployeesUpdatedAt >= dateFrom && c.EmployeesUpdatedAt <= dateTo)
-                    .OrderBy(c => c.Id)
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue list between update dates.", nameof(GetIssuesBetweenUpdateDates));
-                return null;
-            }
-        }
+        public Task<List<Issue>> GetItemsByPredicateAndSortById(Expression<Func<Issue, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Issue, object>>[] includes)
+            => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<Issue?> GetItem(Issue item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Issues.FirstOrDefaultAsync(c => c.Id == item.Id);
+        public void Create(Issue item) => _create.Create(item);
 
-                return await context.Issues.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue: {IssueId}.", item.Id, nameof(GetItem));
-                return null;
-            }
-        }
+        public Task Upsert(Issue item, CancellationToken ct = default)
+            => _upsert.Upsert(item, ct);
 
-        public async Task<Issue?> GetIssueById(int id, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Issues.FirstOrDefaultAsync(c => c.Id == id);
-
-                return await context.Issues.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue by id: {IssueId}.", id, nameof(GetIssueById));
-                return null;
-            }
-        }
-
-        public void Update(Issue oldItem, Issue newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(Issue item)
-        {
-            context.Issues.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<Issue> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
-
-        public async Task CreateOrUpdate(Issue item)
-        {
-            var existingItem = await GetItem(item);
-
-            if (existingItem == null)            
-                Create(item);
-            else
-                Update(existingItem, item);                
-        }
+        public Task Upsert(IEnumerable<Issue> items, CancellationToken ct = default)
+            => _upsert.Upsert(items, ct);
     }
 }

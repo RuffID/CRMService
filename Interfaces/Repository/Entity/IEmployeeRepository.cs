@@ -1,13 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IEmployeeRepository : IGetRepository<Employee>, IUpdateRepository<Employee>, ICreateRepository<Employee>
+    public interface IEmployeeRepository : IGetItemByIdRepository<Employee, int>, IUpsertItemByIdRepository<Employee, int>, ICreateItemRepository<Employee>, ICountItemRepository<Employee>
     {
-        Task<ICollection<Employee>?> GetEmployeesByGroup(int groupId, int startIndex, int limit);
-        Task<Employee?> GetEmployeeById(int id, bool? trackable = null);
-        Task<int> GetCountOfItems();
-        Task CreateOrUpdate(IEnumerable<Employee> items);
     }
 }

@@ -1,10 +1,9 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IGroupRepository : IGetRepository<Group>, IUpdateRepository<Group>, ICreateRepository<Group>
+    public interface IGroupRepository : IGetItemByIdRepository<Group, int>, IUpsertItemByIdRepository<Group, int>, ICreateItemRepository<Group>
     {
-        public Task CreateOrUpdate(IEnumerable<Group> items);
     }
 }

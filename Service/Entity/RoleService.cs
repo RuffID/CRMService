@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Entity
 {
-    public class RoleService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, ILoggerFactory logger)
+    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, ILoggerFactory logger)
     {
         private readonly ILogger<RoleService> _logger = logger.CreateLogger<RoleService>();
 
@@ -17,7 +17,7 @@ namespace CRMService.Service.Entity
             return await request.GetRangeOfItems<OkdeskRole>(link);
         }
 
-        public async Task UpdateRolesFromCloudApi()
+        public async Task UpdateRolesFromCloudApi(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating employee roles.", nameof(UpdateRolesFromCloudApi));
 
@@ -26,9 +26,9 @@ namespace CRMService.Service.Entity
             if (roles == null || roles.Count == 0)
                 return;
 
-            await unitOfWork.Role.CreateOrUpdate(roles);
+            await unitOfWork.OkdeskRole.Upsert(roles, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Employee roles update completed.", nameof(UpdateRolesFromCloudApi));
         }

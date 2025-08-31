@@ -8,8 +8,9 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Equipment> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
             builder.ToTable("equipment");
+
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.HasIndex(e => e.CompanyId, "companyId_idx");
 
@@ -21,20 +22,21 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.HasIndex(e => e.ModelId, "modelEquipId_idx");
 
-            builder.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            builder.Property(e => e.Id).ValueGeneratedNever().HasColumnName("id");
+
             builder.Property(e => e.CompanyId).HasColumnName("companyId");
-            builder.Property(e => e.InventoryNumber)
-                .HasMaxLength(300)
-                .HasColumnName("inventory_number");
+
+            builder.Property(e => e.InventoryNumber).HasMaxLength(300).HasColumnName("inventory_number");
+
             builder.Property(e => e.KindId).HasColumnName("kindId");
+
             builder.Property(e => e.MaintenanceEntitiesId).HasColumnName("maintenanceEntitiesId");
+
             builder.Property(e => e.ManufacturerId).HasColumnName("manufacturerId");
+
             builder.Property(e => e.ModelId).HasColumnName("modelId");
-            builder.Property(e => e.SerialNumber)
-                .HasMaxLength(300)
-            .HasColumnName("serial_number");
+
+            builder.Property(e => e.SerialNumber).HasMaxLength(300).HasColumnName("serial_number");
 
             builder.HasOne(d => d.Company).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.CompanyId)
@@ -44,7 +46,7 @@ namespace CRMService.DataBase.ModelsConfigure
             builder.HasOne(d => d.Kind).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.KindId)
                 .OnDelete(DeleteBehavior.SetNull)
-            .HasConstraintName("kindEquipId");
+                .HasConstraintName("kindEquipId");
 
             builder.HasOne(d => d.MaintenanceEntities).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.MaintenanceEntitiesId)
@@ -58,8 +60,12 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.HasOne(d => d.Model).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.ModelId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("modelEquipId");
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasMany(e => e.Parameters)
+                .WithOne(p => p.Equipment)
+                .HasForeignKey(p => p.EquipmentId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

@@ -2,11 +2,11 @@
 
 namespace CRMService.Models.Entity;
 
-public class CompanyCategory : IEntity
+public class CompanyCategory : IEntity<int>, IHasCode, ICopyable<CompanyCategory>
 {
     public int Id { get; set; }
 
-    public string? Code { get; set; }
+    public string Code { get; set; } = string.Empty;
 
     public string? Name { get; set; }
 

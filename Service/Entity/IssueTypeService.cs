@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class IssueTypeService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueTypeService> _logger = logger.CreateLogger<IssueTypeService>();
 
@@ -58,25 +58,25 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(type => new IssueType
                 {
-                    Code = type.Field<string>("code"),
+                    Code = type.Field<string>("code") ?? "",
                     Name = type.Field<string>("name"),
                     Inner = type.Field<bool>("inner")
                 }).ToList();
         }
 
-        public async Task UpdateIssueTypesFromCloudApi()
+        public async Task UpdateIssueTypesFromCloudApi(CancellationToken ct)
         {
             List<IssueType>? types = await GetIssueTypesFromCloudApi();
 
             if (types == null || types.Count == 0)
                 return;
 
-            await unitOfWork.IssueType.CreateOrUpdate(types);
+            await unitOfWork.IssueType.UpsertByCodes(types, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateIssueTypesFromCloudDb()
+        public async Task UpdateIssueTypesFromCloudDb(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating issue types.", nameof(UpdateIssueTypesFromCloudDb));
 
@@ -85,9 +85,9 @@ namespace CRMService.Service.Entity
             if (types == null || types.Count == 0)
                 return;
 
-            await unitOfWork.IssueType.CreateOrUpdate(types);
+            await unitOfWork.IssueType.UpsertByCodes(types, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Issue types update completed.", nameof(UpdateIssueTypesFromCloudDb));
         }

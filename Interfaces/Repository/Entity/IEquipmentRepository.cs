@@ -1,14 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IEquipmentRepository : IGetRepository<Equipment>, IUpdateRepository<Equipment>, ICreateRepository<Equipment>
+    public interface IEquipmentRepository : IGetItemByIdRepository<Equipment, int>, IUpsertItemByIdRepository<Equipment, int>, ICreateItemRepository<Equipment>
     {
-        Task<IEnumerable<EquipmentDto>?> GetEquipmentsByMaintenanceEntity(int maintenanceId);
-        Task<IEnumerable<EquipmentDto>?> GetEquipmentsByCompany(int companyid);
-        Task<EquipmentDto?> GetEquipmentById(int equipmentId);
-        Task CreateOrUpdate(IEnumerable<Equipment> items);
     }
 }

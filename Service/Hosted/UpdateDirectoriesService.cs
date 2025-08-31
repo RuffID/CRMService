@@ -1,6 +1,5 @@
 ﻿using CRMService.Models.ConfigClass;
 using CRMService.Service.Entity;
-using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Hosted
 {
@@ -22,13 +21,11 @@ namespace CRMService.Service.Hosted
         IssueService issue,
         TimeEntryService time,
         EquipmentService equipment,
-        IOptions<OkdeskSettings> okdeskSettings,
-        IOptions<DatabaseSettings> dbSettings,
         ILoggerFactory logger)
     {
         private readonly ILogger<UpdateDirectoriesService> _logger = logger.CreateLogger<UpdateDirectoriesService>();
 
-        public async Task RunUpdateDirectories(DateTime? dateFrom = null, DateTime? dateTo = null)
+        public async Task RunUpdateDirectories(DateTime? dateFrom = null, DateTime? dateTo = null, CancellationToken ct = default)
         {
             DateTime now = DateTime.Now;
             if (!dateFrom.HasValue)
@@ -39,41 +36,42 @@ namespace CRMService.Service.Hosted
 
             _logger.LogInformation("[Method:{MethodName}] Starting updating directories. Date from: {DateFrom}, date to: {DateTo}", nameof(RunUpdateDirectories), dateFrom.ToString(), dateTo.ToString());
 
-            await kind.UpdateKindsFromCloudApi(startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await kind.UpdateKindsFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
-            await kindParameter.UpdateKindParametersFromCloudDb();
+            await kindParameter.UpdateKindParametersFromCloudDb(ct);
 
-            await kindParam.UpdateConnectionsFromCloudDb();
+            await kindParam.UpdateConnectionsFromCloudDb(ct);
 
-            await manufacturer.UpdateManufacturersFromCloudApi(startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await manufacturer.UpdateManufacturersFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
-            await model.UpdateModelsFromCloudApi(startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await model.UpdateModelsFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
-            await category.CheckAnonymousCategory();
+            await category.CheckAnonymousCategory(ct);
 
-            await category.UpdateCategoriesFromCloudDb();
+            await category.UpdateCategoriesFromCloudDb(ct);
 
-            await company.UpdateCompaniesFromCloudApi(startIndexCategory: 0, startIndexCompany: 0);
+            await company.UpdateCompaniesFromCloudApi(startIndexCategory: 0, startIndexCompany: 0, ct);
 
-            await maintenance.UpdateMaintenanceEntitiesFromCloudApi(startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await maintenance.UpdateMaintenanceEntitiesFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
-            await role.UpdateRolesFromCloudApi();
+            await role.UpdateRolesFromCloudApi(ct);
 
-            await employee.UpdateEmployeesFromCloudApi(startIndex: 0, limit: okdeskSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await employee.UpdateEmployeesFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
-            await group.UpdateGroupsFromCloudApi();
+            await group.UpdateGroupsFromCloudApi(ct);
 
-            await priority.UpdateIssuePrioritiesFromCloudDb();
+            await priority.UpdateIssuePrioritiesFromCloudDb(ct);
 
-            await type.UpdateIssueTypesFromCloudDb();
+            await type.UpdateIssueTypesFromCloudDb(ct);
 
-            await status.UpdateIssueStatusesFromCloudDb();
+            await status.UpdateIssueStatusesFromCloudDb(ct);
 
-            await issue.UpdateIssuesFromCloudApi(dateFrom.Value, dateTo.Value, startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await issue.UpdateIssuesFromCloudApi(dateFrom.Value, dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
 
-            await time.UpdateTimeEntriesFromCloudDb(dateFrom.Value, dateTo.Value);
+            await time.UpdateTimeEntriesFromCloudDb(dateFrom: dateFrom.Value, dateTo: dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
 
-            await equipment.UpdateEquipmentsFromCloudApi(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            // Пока нет нужны в оборудовании в БД
+            //await equipment.UpdateEquipmentsFromCloudApi(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
 
             _logger.LogInformation("[Method:{MethodName}] Directories update completed...", nameof(RunUpdateDirectories));
         }

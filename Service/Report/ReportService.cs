@@ -8,9 +8,9 @@ namespace CRMService.Service.Report
     {
         public async Task<List<ReportInfo>?> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, CancellationToken cancellation)
         {
-            IEnumerable<Employee>? employees = await unitOfWork.Employee.GetItems(startIndex: 0, limit: await unitOfWork.Employee.GetCountOfItems());
+            List<Employee>? employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(asNoTracking: true, ct: cancellation);
 
-            if (employees == null || !employees.Any())
+            if (employees == null || employees.Count == 0)
                 return null;
 
             List<ReportInfo> reportInfo = [];

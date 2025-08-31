@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CRMService.API
 {
-    public  class TelegramNotification(IRequestService request, ApiEndpoint endpoint, ILoggerFactory logger)
+    public  class TelegramNotification(IRequestService request, ApiEndpointOptions endpoint, ILoggerFactory logger)
     {
         private readonly ILogger<TelegramNotification> _logger = logger.CreateLogger<TelegramNotification>();
 

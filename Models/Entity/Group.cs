@@ -1,16 +1,15 @@
 ﻿using CRMService.Interfaces.Entity;
 using CRMService.Models.Dto.Entity;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity
 {
-    public class Group : IEntity
+    public class Group : IEntity<int>, ICopyable<Group>
     {
         public int Id { get; set; }
 
-        public string? Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public bool? Active { get; set; }
+        public bool Active { get; set; }
 
         public string? Description { get; set; }
 

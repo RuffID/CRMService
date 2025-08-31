@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
+using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,34 +14,32 @@ namespace CRMService.Controllers.Authorization
     public class RoleController(IMapper mapper, IUnitOfWorkAuthorization unitOfWork) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetRoles([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
+        public async Task<IActionResult> GetRoles([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
-            IEnumerable<RoleDto> roles = mapper.Map<IEnumerable<RoleDto>>(await unitOfWork.Role.GetItems(new Range(startIndex, endIndex)));
+            List<CrmRole> roles = await unitOfWork.Role.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
-            if (roles == null)
-                return NotFound("Roles not found.");
-
-            return Ok(roles);
+            return Ok(mapper.Map<IEnumerable<RoleDto>>(roles));
         }
 
         [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetRole([FromQuery] Guid id)
         {
-            RoleDto role = mapper.Map<RoleDto>(await unitOfWork.Role.GetItem(new() { Id = id }, false));
+            CrmRole? role = await unitOfWork.Role.GetItemById(id, asNoTracking: true);
 
             if (role == null)
                 return NotFound("Role not found.");
 
-            return Ok(role);
+            return Ok(mapper.Map<RoleDto>(role));
         }
 
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> CreateRole([FromBody] RoleDto role)
         {
-            if (await unitOfWork.Role.GetItem(mapper.Map<CrmRole>(role), false) != null)
-                return BadRequest($"Role {role.Name} is already exists.");
+            CrmRole? existRole = await unitOfWork.Role.GetItemById(role.Id, asNoTracking: true);
 
-            role.Id = Guid.NewGuid();
+            if (existRole != null)
+                return Conflict($"Role {role.Name} is already exists.");
+
             unitOfWork.Role.Create(mapper.Map<CrmRole>(role));
             await unitOfWork.SaveAsync();
 

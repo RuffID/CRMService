@@ -2,20 +2,26 @@
 using CRMService.Core.Filter;
 using CRMService.DataBase;
 using CRMService.DataBase.Postgresql;
-using CRMService.Service.HostedServices;
 using CRMService.Interfaces.Api;
+using CRMService.Interfaces.Database;
 using CRMService.Interfaces.Repository;
+using CRMService.Interfaces.Repository.Authorization;
 using CRMService.Interfaces.Service;
+using CRMService.Middleware;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Server;
 using CRMService.Repository;
+using CRMService.Repository.Authorization;
 using CRMService.Service.Authorization;
+using CRMService.Service.DataBase;
 using CRMService.Service.Entity;
 using CRMService.Service.Hosted;
+using CRMService.Service.HostedServices;
 using CRMService.Service.Report;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -28,18 +34,14 @@ namespace CRMService.Core
         public static IServiceCollection AddConfig(
              this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<ApiEndpoint>(
-                configuration.GetSection(ApiEndpoint.APIENDPOINTS));
-            services.Configure<OkdeskSettings>(
-                configuration.GetSection(OkdeskSettings.OKDESK));
-            services.Configure<DatabaseSettings>(
-                configuration.GetSection(DatabaseSettings.CONNECTION_STRINGS));
-            services.Configure<TelegramBotSettings>(
-                configuration.GetSection(TelegramBotSettings.TELEGRAM_BOT));
-            services.Configure<AuthOptions>(
-                configuration.GetSection(AuthOptions.AUTHORIZATION_OPTIONS));
-            services.Configure<HashSettings>(
-                configuration.GetSection(HashSettings.HASH_CONFIGURE));
+            services.Configure<ApiEndpointOptions>(
+                configuration.GetSection(ApiEndpointOptions.APIENDPOINTS));
+            services.Configure<OkdeskOptions>(
+                configuration.GetSection(OkdeskOptions.OKDESK));
+            services.Configure<TelegramBotOptions>(
+                configuration.GetSection(TelegramBotOptions.TELEGRAM_BOT));
+            services.Configure<AuthorizationOptions>(
+                configuration.GetSection(AuthorizationOptions.AUTHORIZATION_OPTIONS));
 
             return services;
         }
@@ -47,22 +49,27 @@ namespace CRMService.Core
         public static IServiceCollection ConfigureServices(
              this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddRazorPages(options =>
             {
                 // Делает все ссылки на страницы to lower case
                 options.Conventions.AddFolderRouteModelConvention("/", model =>
                 {
-                    foreach (var selector in model.Selectors)
+                    foreach (SelectorModel selector in model.Selectors)
                     {
-                        var attrRoute = selector.AttributeRouteModel;
+                        AttributeRouteModel? attrRoute = selector.AttributeRouteModel;
                         if (attrRoute?.Template != null)
-                        {
                             attrRoute.Template = attrRoute.Template.ToLowerInvariant();
-                        }
                     }
                 });
             });
-            services.AddDbContext<ApplicationContext>();
+
+            services.AddDbContext<ApplicationContext>(options =>
+            {
+                string? connectionString = configuration.GetConnectionString("MySqlServer");
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            });
+
             services.AddControllers();
             services.AddLogging();
             services.AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies());
@@ -70,9 +77,9 @@ namespace CRMService.Core
             services.AddSignalR();
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
             services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-                .Configure<IOptions<BearerToken>>((options, bearerOpt) =>
+                .Configure<IOptions<BearerTokenOptions>>((options, bearerOpt) =>
                 {
-                    BearerToken settings = bearerOpt.Value;
+                    BearerTokenOptions settings = bearerOpt.Value;
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -88,30 +95,24 @@ namespace CRMService.Core
                     options.RequireHttpsMetadata = false;
                 });
 
-            services.AddDbContext<CRMEntitiesContext>(options =>
-            {
-                string connectionSting = configuration["DatabaseSettings:MySqlMainCRM"] ?? "";
-                options.UseMySql(connectionSting, ServerVersion.AutoDetect(connectionSting));
-            });
+            services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
 
-            services.AddScoped<BackupService<CRMEntitiesContext>>(sp =>
+            services.AddScoped<BackupService<ApplicationContext>>(sp =>
             {
-                CRMEntitiesContext db = sp.GetRequiredService<CRMEntitiesContext>();
+                ApplicationContext db = sp.GetRequiredService<ApplicationContext>();
                 string backupDirectory = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
                 ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                return new BackupService<CRMEntitiesContext>(db, backupDirectory, loggerFactory);
+                return new BackupService<ApplicationContext>(db, backupDirectory, loggerFactory);
             });
 
             services.AddSingleton<EntitySyncService>();
-            services.AddScoped<MigrationService<CRMEntitiesContext>>();
+            services.AddScoped<MigrationService<ApplicationContext>>();
             services.AddSingleton<ServerData>();
             services.AddScoped<PGSelect>();
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
 
             services.AddScoped<IManageImage, ManageImage>();
-            services.AddScoped<IUnitOfWork, UnitOfWorkEntities>();
-            services.AddScoped<IUnitOfWorkAuthorization, UnitOfWorkAuthorization>();
-
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             services.AddScoped<GetItemService>();
 
@@ -137,9 +138,8 @@ namespace CRMService.Core
             services.AddScoped<UpdateDirectoriesService>();
 
             services.AddScoped<UserLoginService>();
-            services.AddScoped<RegistrationService>();
-            services.AddScoped<DataBaseHandler>();
-            services.AddScoped<BackupService>();
+            services.AddScoped<DataBaseHandler<ApplicationContext>>();
+            services.AddScoped<BackupService<ApplicationContext>>();
             services.AddScoped<GenerateRandomString>();
             services.AddScoped<GenerateRefreshToken>();
 
@@ -153,6 +153,15 @@ namespace CRMService.Core
             services.AddHostedService<UpdateDirectoriesHostedService>();
             services.AddHostedService<WeekReportHostedService>();
 #endif
+
+            return services;
+        }
+
+        public static IServiceCollection AddRepositories(
+             this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();
+            services.AddScoped<ICrmRoleRepository, CrmRoleRepository>();
 
             return services;
         }

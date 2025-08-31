@@ -1,74 +1,72 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
-using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Service.Sync;
-using CRMService.Models.Enum;
+using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Entity;
+using CRMService.Models.Entity;
+using CRMService.Models.Enum;
+using CRMService.Service.Entity;
+using CRMService.Service.Sync;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class MaintenanceEntityController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWork unitOfWork, 
-        EntitySyncService sync, MaintenanceEntityService service) : Controller
+    public class MaintenanceEntityController(IMapper mapper, IUnitOfWork unitOfWork, EntitySyncService sync, MaintenanceEntityService service) : Controller
     {
-
         [HttpGet]
-        public async Task<IActionResult> GetMaintenanceEntity([FromQuery] int id)
+        public async Task<IActionResult> GetMaintenanceEntity([FromQuery] int id, CancellationToken ct)
         {
-            var maintenanceEntityFromDB = mapper.Map<MaintenanceEntityDto>(await unitOfWork.MaintenanceEntity.GetMaintenanceEntityById(id));
+            MaintenanceEntity? maintenanceEntityFromDB = await unitOfWork.MaintenanceEntity.GetItemById(id, true, ct);
 
             if (maintenanceEntityFromDB == null)
-                return NotFound("Maintenance entity not found.");
+                return NotFound();
 
-            return Ok(maintenanceEntityFromDB);
+            return Ok(mapper.Map<MaintenanceEntityDto>(maintenanceEntityFromDB));
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetMaintenanceEntities([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetMaintenanceEntities([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            IEnumerable<MaintenanceEntityDto>? maintenanceEntities = mapper.Map<IEnumerable<MaintenanceEntityDto>>(await unitOfWork.MaintenanceEntity.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAndSortById(predicate: me => me.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (maintenanceEntities == null || !maintenanceEntities.Any())
-                return NotFound("Maintenance entities not found.");
-
-            return Ok(maintenanceEntities);
+            return Ok(mapper.Map<List<MaintenanceEntityDto>>(maintenanceEntities));
         }
 
         [HttpPut("update_maintenance_entity_from_cloud_api")]
-        public async Task<IActionResult> UpdateMaintenanceEntityFromCloudApi([FromQuery] int maintenanceEntityId)
+        public async Task<IActionResult> UpdateMaintenanceEntityFromCloudApi([FromQuery] int maintenanceEntityId, CancellationToken ct)
         {
             if (maintenanceEntityId == 0)
-                BadRequest("Maintenance entity id not set.");
+                return BadRequest("Wrong id.");
 
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateMaintenanceEntityFromCloudApi(maintenanceEntityId);
+                await service.UpdateMaintenanceEntityFromCloudApi(maintenanceEntityId, ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi([FromQuery] long startIndex = 0)
+        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateMaintenanceEntitiesFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+                await service.UpdateMaintenanceEntitiesFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb()
+        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
-            await sync.RunExclusive(service.UpdateMaintenanceEntitiesFromCloudDb);
+            await sync.RunExclusive(async () =>
+            {
+               await service.UpdateMaintenanceEntitiesFromCloudDb(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
+            });
 
             return NoContent();
         }

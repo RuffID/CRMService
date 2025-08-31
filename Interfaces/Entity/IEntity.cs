@@ -1,7 +1,7 @@
 ﻿namespace CRMService.Interfaces.Entity
 {
-    public interface IEntity
+    public interface IEntity<TId> where TId : notnull, IEquatable<TId>
     {
-        public int Id { get; set; }
+        TId Id { get; set; }
     }
 }

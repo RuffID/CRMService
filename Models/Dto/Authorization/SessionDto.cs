@@ -1,8 +1,8 @@
-﻿using CRMService.Interfaces.Authorization;
+﻿using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.Dto.Authorization
 {
-    public class SessionDto : IEntity
+    public class SessionDto : IEntity<Guid>
     {
         public Guid Id { get; set; }
 

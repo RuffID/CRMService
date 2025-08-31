@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class IssuePriorityService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssuePriorityService> _logger = logger.CreateLogger<IssuePriorityService>();
 
@@ -31,24 +31,24 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(priority => new IssuePriority
                 {
-                    Code = priority.Field<string>("code"),
+                    Code = priority.Field<string>("code") ?? "",
                     Name = priority.Field<string>("name")
                 }).ToList();
         }
 
-        public async Task UpdateIssuePrioritiesFromCloudApi()
+        public async Task UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
         {
             List<IssuePriority>? priorities = await GetIssuePrioritiesFromCloudApi();
 
             if (priorities == null || priorities.Count == 0)
                 return;
 
-            await unitOfWork.IssuePriority.CreateOrUpdate(priorities);
+            await unitOfWork.IssuePriority.UpsertByCodes(priorities, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateIssuePrioritiesFromCloudDb()
+        public async Task UpdateIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating issue priorities.", nameof(UpdateIssuePrioritiesFromCloudDb));
 
@@ -57,9 +57,9 @@ namespace CRMService.Service.Entity
             if (priorities == null || priorities.Count == 0)
                 return;
 
-            await unitOfWork.IssuePriority.CreateOrUpdate(priorities);
+            await unitOfWork.IssuePriority.UpsertByCodes(priorities, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudDb));
         }

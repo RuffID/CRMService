@@ -1,12 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IKindParameterRepository : IGetRepository<KindsParameter>, IUpdateRepository<KindsParameter>, ICreateRepository<KindsParameter>
+    public interface IKindParameterRepository : IGetItemByIdRepository<KindsParameter, int>, IGetItemByCodeRepository<KindsParameter>, IUpsertItemByCodeRepository<KindsParameter>, ICreateItemRepository<KindsParameter>
     {
-        Task<KindsParameter?> GetKindParameterByCode(string code, bool? trackable = null);
-        Task<int> GetCountOfItems();
-        Task CreateOrUpdate(IEnumerable<KindsParameter> items);
     }
 }

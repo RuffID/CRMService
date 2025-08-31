@@ -4,13 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity
 {
-    public class IssueType : IEntity
+    public class IssueType : IEntity<int>, IHasCode, ICopyable<IssueType>
     {
         public int Id { get; set; }
 
         public string? Name { get; set; }
 
-        public string? Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         public bool? Default { get; set; }
 

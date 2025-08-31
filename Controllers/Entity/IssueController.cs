@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
-using AutoMapper;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
@@ -15,33 +14,30 @@ namespace CRMService.Controllers.Entity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, EntitySyncService sync, 
+    public class IssueController(IMapper mapper, EntitySyncService sync, 
         IUnitOfWork unitOfWork, IssueService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            var issues = mapper.Map<IEnumerable<IssueDto>>(await unitOfWork.Issue.GetItems(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi));
+            List<Issue> issues = await unitOfWork.Issue.GetItemsByPredicateAndSortById(predicate: i => i.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (issues == null || !issues.Any())
-                return NotFound();
-
-            return Ok(issues);
+            return Ok(mapper.Map<List<IssueDto>>(issues));
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetIssue([FromQuery] int id)
+        public async Task<IActionResult> GetIssue([FromQuery] int id, CancellationToken ct)
         {
-            var issueFromDB = mapper.Map<IssueDto>(await unitOfWork.Issue.GetItem(new Issue() { Id = id}, false));
+            Issue? issue = await unitOfWork.Issue.GetItemById(id, false, ct);
 
-            if (issueFromDB == null)
-                return NotFound("Issue not found.");
+            if (issue == null)
+                return NotFound();
 
-            return Ok(issueFromDB);
+            return Ok(mapper.Map<IssueDto>(issue));
         }        
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateIssuesFromCloudAPI([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long startIndex = 0)
+        public async Task<IActionResult> UpdateIssuesFromCloudAPI([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             if(dateFrom > dateTo)
                 return BadRequest("Start date is later than end date.");
@@ -51,14 +47,14 @@ namespace CRMService.Controllers.Entity
 
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex, limit: 50, nameof(IssueController));
+                await service.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(IssueController), ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateIssuesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] int startIndex = 0)
+        public async Task<IActionResult> UpdateIssuesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
             if (dateFrom > dateTo)
                 return BadRequest("Start date is later than end date.");
@@ -68,7 +64,7 @@ namespace CRMService.Controllers.Entity
 
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateIssuesFromCloudDb(dateFrom, dateTo, startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+                await service.UpdateIssuesFromCloudDb(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, nameof(IssueController), ct);
             });
 
             return NoContent();

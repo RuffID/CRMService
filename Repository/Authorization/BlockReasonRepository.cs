@@ -1,87 +1,34 @@
-﻿using CRMService.DataBase;
-using CRMService.Interfaces.Repository.Authorization;
+﻿using CRMService.Interfaces.Repository.Authorization;
+using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Authorization;
-using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Authorization
 {
-    public class BlockReasonRepository(CrmAuthorizationContext context, ILoggerFactory logger) : IBlockReasonRepository
+    public class BlockReasonRepository(IGetItemByIdRepository<BlockReason, Guid> getItemById,
+        IGetItemByPredicateRepository<BlockReason> getItemByPredicate,
+        ICreateItemRepository<BlockReason> create,
+        IUpsertItemByIdRepository<BlockReason, Guid> upsert) : IBlockReasonRepository
     {
-        private readonly CrmAuthorizationContext _context = context;
-        private readonly ILogger<BlockReasonRepository> _logger = logger.CreateLogger<BlockReasonRepository>();
+        public Task<BlockReason?> GetItemById(Guid id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
+            => getItemById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<BlockReason>?> GetAllItem(Range range)
-        {
-            try
-            {
-                return await _context.BlockReasons.AsNoTracking().Skip(range.Start.Value).Take(range.End.Value - range.Start.Value).OrderBy(u => u.BlockingDate).ToListAsync();
+        public Task<List<BlockReason>> GetItemsByPredicateAndSortById(Expression<Func<BlockReason, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
+            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving block reason list.", nameof(GetAllItem));
-                return null;
-            }
-        }
+        public Task<BlockReason?> GetItemByPredicate(Expression<Func<BlockReason, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
+            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
 
-        public async Task<BlockReason?> GetItem(BlockReason item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await _context.BlockReasons.FirstOrDefaultAsync(b => b.Id == item.Id);
+        public Task<List<BlockReason>> GetItemsByPredicate(Expression<Func<BlockReason, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
+            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
 
-                return await _context.BlockReasons.AsNoTracking().FirstOrDefaultAsync(b => b.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving block reason.", nameof(GetAllItem));
-                return null;
-            }
-        }
+        public void Create(BlockReason item) => create.Create(item);
 
-        public async Task<BlockReason?> GetBlockByUserAndDate(BlockReason block)
-        {
-            try
-            {
-                return await _context.BlockReasons.AsNoTracking().FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate == block.BlockingDate);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving block reason by user id and date.", nameof(GetBlockByUserAndDate));
-                return null;
-            }
-        }
+        public Task Upsert(BlockReason item, CancellationToken ct = default)
+            => upsert.Upsert(item, ct);
 
-        public async Task<BlockReason?> GetLastBlockOfUser(BlockReason block, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await _context.BlockReasons.FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate != null && b.UnblockingDate == null);
-
-                return await _context.BlockReasons.AsNoTracking().FirstOrDefaultAsync(b => b.UserId == block.UserId && b.BlockingDate != null && b.UnblockingDate == null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving last block reason.", nameof(GetLastBlockOfUser));
-                return null;
-            }
-        }
-
-        public void Update(BlockReason oldItem, BlockReason newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(BlockReason item)
-        {
-            _context.BlockReasons.Add(item);
-        }
-
-        public void Delete(BlockReason item)
-        {
-            _context.BlockReasons.Remove(item);
-        }
+        public Task Upsert(IEnumerable<BlockReason> items, CancellationToken ct = default)
+            => upsert.Upsert(items, ct);
     }
 }

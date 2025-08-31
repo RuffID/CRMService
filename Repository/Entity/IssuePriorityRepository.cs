@@ -1,77 +1,38 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssuePriorityRepository(ApplicationContext context, ILoggerFactory logger) : IIssuePriorityRepository
+    public class IssuePriorityRepository(IGetItemByIdRepository<IssuePriority, int> _getById,
+        IGetItemByCodeRepository<IssuePriority> _getByCode,
+        ICreateItemRepository<IssuePriority> _create,
+        IUpsertItemByCodeRepository<IssuePriority> _upsert) : IIssuePriorityRepository
     {
-        private readonly ILogger<IssuePriorityRepository> _logger = logger.CreateLogger<IssuePriorityRepository>();
+        public Task<IssuePriority?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<IssuePriority>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.IssuePriorities.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(p => p.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue priority list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<IssuePriority>> GetItemsByPredicateAndSortById(Expression<Func<IssuePriority, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
 
-        public async Task<IssuePriority?> GetItem(IssuePriority item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.IssuePriorities.FirstOrDefaultAsync(p => p.Code == item.Code);
+        => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-                return await context.IssuePriorities.AsNoTracking().FirstOrDefaultAsync(p => p.Code == item.Code);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue priority.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task<IssuePriority?> GetItemByCode(string code, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
+            => _getByCode.GetItemByCode(code, asNoTracking, ct, includes);
 
-        public async Task<int> GetCountOfItems()
-        {
-            try
-            {
-                return await context.IssuePriorities.AsNoTracking().CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of issue priorities.", nameof(GetCountOfItems));
-                return 0;
-            }
-        }
+        public void Create(IssuePriority item) => _create.Create(item);
 
-        public void Update(IssuePriority oldItem, IssuePriority newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
+        public Task UpsertByCode(IssuePriority item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(item, ct);
 
-        public void Create(IssuePriority item)
-        {
-            context.IssuePriorities.Add(item);
-        }
+        public Task UpsertByCode(string oldCode, IssuePriority item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(oldCode, item, ct);
 
-        public async Task CreateOrUpdate(IEnumerable<IssuePriority> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
+        public Task UpsertByCodePairs(IEnumerable<(string OldCode, IssuePriority Item)> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodePairs(items, ct);
 
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task UpsertByCodes(IEnumerable<IssuePriority> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodes(items, ct);
     }
 }

@@ -8,32 +8,40 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Employee> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("employee");
+
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
+
             builder.Property(e => e.Active).HasColumnName("active");
+
             builder.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
+
             builder.Property(e => e.FirstName)
                 .HasMaxLength(70)
                 .HasColumnName("first_name");
+
             builder.Property(e => e.LastName)
                 .HasMaxLength(70)
                 .HasColumnName("last_name");
+
             builder.Property(e => e.Login)
                 .HasMaxLength(45)
                 .HasColumnName("login");
+
             builder.Property(e => e.Patronymic)
                 .HasMaxLength(70)
                 .HasColumnName("patronymic");
+
             builder.Property(e => e.Phone)
                 .HasMaxLength(35)
                 .HasColumnName("phone");
+
             builder.Property(e => e.Position)
                 .HasMaxLength(70)
                 .HasColumnName("position");

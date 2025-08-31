@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
+using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,40 +14,37 @@ namespace CRMService.Controllers.Authorization
     public class BlockingController(IMapper mapper, IUnitOfWorkAuthorization unitOfWork) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetBlocks([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
+        public async Task<IActionResult> GetBlocks([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
-            IEnumerable<BlockReasonDto>? blocks = mapper.Map<IEnumerable<BlockReasonDto>>(await unitOfWork.BlockReason.GetAllItem(new Range(startIndex, endIndex)));
+            List<BlockReason> blocks = await unitOfWork.BlockReason.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
-            if (blocks == null || !blocks.Any())
-                return NotFound();
-
-            return Ok(blocks);
+            return Ok(mapper.Map<IEnumerable<BlockReasonDto>>(blocks));
         }
 
         [HttpPut("block"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> BlockUser([FromQuery] Guid userId, string reason_for_blocking)
+        public async Task<IActionResult> BlockUser([FromQuery] Guid userId, string reasonForBlocking, CancellationToken ct)
         {
             BlockReason block = new()
             {
                 UserId = userId,
                 BlockingDate = DateTime.Now,
-                ReasonBlock = reason_for_blocking
-            };
+                ReasonBlock = reasonForBlocking
+            }; 
 
-            if (await unitOfWork.BlockReason.GetBlockByUserAndDate(block) != null)
-                return BadRequest($"The user has already been blocked.");
+            BlockReason? existBlock = await unitOfWork.BlockReason.GetItemByPredicate(b => b.UserId == userId && !b.UnblockingDate.HasValue, asNoTracking: true, ct: ct);
 
-            User? user = await unitOfWork.User.GetItem(new User() { Id = userId });
+            if (existBlock != null)
+                return Conflict($"User has already been blocked.");
+
+            User? user = await unitOfWork.User.GetItemById(userId, true);
             if (user == null)
-                return BadRequest("The user with the specified ID was not found.");
+                return NotFound($"User {userId} not found.");
 
-            if (user.Active == false)
-                return BadRequest("User already is deactivated.");
+            if (!user.Active)
+                return BadRequest("The user is already blocked.");
 
             user.Active = false;
-            await unitOfWork.SaveAsync();
 
-            block.Id = Guid.NewGuid();
             unitOfWork.BlockReason.Create(block);
             await unitOfWork.SaveAsync();
 
@@ -54,23 +52,22 @@ namespace CRMService.Controllers.Authorization
         }
 
         [HttpPut("unblock"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> UnblockUser([FromQuery] Guid userId, string reason_for_unblocking)
+        public async Task<IActionResult> UnblockUser([FromQuery] Guid userId, string reason_for_unblocking, CancellationToken ct)
         {
-            BlockReason? block = await unitOfWork.BlockReason.GetLastBlockOfUser(new BlockReason() { UserId = userId });
+            BlockReason? block = await unitOfWork.BlockReason.GetItemByPredicate(predicate: b => b.UserId == userId && b.UnblockingDate == null, asNoTracking: false, ct);
 
             if (block == null)
-                return BadRequest($"No user block found.");
+                return NotFound($"No blocks found for user {userId}.");
 
-            User? user = await unitOfWork.User.GetItem(new User() { Id = userId });
+            User? user = await unitOfWork.User.GetItemById(userId, asNoTracking: false, ct);
+
             if (user == null)
-                return BadRequest("The user with the specified ID was not found.");
+                return NotFound("The user with the specified ID was not found.");
 
             if (user.Active == true)
                 return BadRequest("The user is not blocked.");
 
             user.Active = true;
-            await unitOfWork.SaveAsync();
-
             block.UnblockingDate = DateTime.Now;
             block.UnblockingReason = reason_for_unblocking;
             await unitOfWork.SaveAsync();

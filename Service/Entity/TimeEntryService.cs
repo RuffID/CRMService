@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class TimeEntryService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdesk, IOptions<DatabaseSettings> dbSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<TimeEntryService> _logger = logger.CreateLogger<TimeEntryService>();
 
@@ -19,7 +19,7 @@ namespace CRMService.Service.Entity
             return await request.GetItem<TimeEntries>(link);
         }
 
-        public async Task UpdateTimeEntriesFromCloudApi(int issueId)
+        public async Task UpdateTimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
             TimeEntries? timeEntry = await GetimeEntriesFromCloudApi(issueId);
 
@@ -29,16 +29,14 @@ namespace CRMService.Service.Entity
             foreach (TimeEntry entry in timeEntry.Time_Entries)
             {
                 entry.IssueId = issueId;
-                entry.EmployeeId = entry.Employee?.Id;
-                entry.Employee = null;
-                await CheckEmployeeAndIssue(entry);
+                entry.EmployeeId = entry.Employee.Id;
             }
 
-            await unitOfWork.TimeEntry.CreateOrUpdate(timeEntry.Time_Entries);
+            await unitOfWork.TimeEntry.Upsert(timeEntry.Time_Entries, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await DeleteMarkedAsDeketedTimeEntries(timeEntry.Time_Entries);
+            await DeleteMarkedAsDeketedTimeEntries(timeEntry.Time_Entries, ct);
         }
 
         private async Task<List<TimeEntry>?> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long timeEntryId, long limit)
@@ -61,49 +59,45 @@ namespace CRMService.Service.Entity
                 Select(entry => new TimeEntry
                 {
                     Id = entry.Field<int>("id"),
-                    EmployeeId = entry.Field<int?>("employee_id"),
-                    SpentTime = entry.Field<double?>("spent_time"),
-                    IssueId = entry.Field<int?>("issue_id"),
-                    LoggedAt = entry.Field<DateTime?>("logged_at")?.ToLocalTime(),
-                    CreatedAt = entry.Field<DateTime?>("created_at")?.ToLocalTime()
+                    EmployeeId = entry.Field<int>("employee_id"),
+                    SpentTime = entry.Field<double>("spent_time"),
+                    IssueId = entry.Field<int>("issue_id"),
+                    LoggedAt = entry.Field<DateTime>("logged_at").ToLocalTime(),
+                    CreatedAt = entry.Field<DateTime>("created_at").ToLocalTime()
                 }).ToList();
         }
 
-        public async Task UpdateTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long indexOfEntries = 0)
+        public async Task UpdateTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating time entries.", nameof(UpdateTimeEntriesFromCloudDb));
 
             while (true)
             {
-                List<TimeEntry>? entries = await GetTimeEntriesFromCloudDb(dateFrom, dateTo, indexOfEntries, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+                List<TimeEntry>? entries = await GetTimeEntriesFromCloudDb(dateFrom, dateTo, startIndex, limit);
 
                 if (entries == null || entries.Count == 0)
                     return;
 
-                foreach (TimeEntry entry in entries)
-                    await CheckEmployeeAndIssue(entry);
+                startIndex = entries.Last().Id;
 
-                indexOfEntries = entries.Last().Id;
+                await unitOfWork.TimeEntry.Upsert(entries, ct);
+                await unitOfWork.SaveAsync(ct);
 
-                await unitOfWork.TimeEntry.CreateOrUpdate(entries);
-                await unitOfWork.SaveAsync();
-
-                if (entries.Count < dbSettings.Value.LimitForRetrievingEntitiesFromDb)
+                if (entries.Count < limit)
                     break;
             }
 
             _logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
         }
 
-        private async Task DeleteMarkedAsDeketedTimeEntries(TimeEntry[] entriesFromCloudApi)
+        private async Task DeleteMarkedAsDeketedTimeEntries(TimeEntry[] entriesFromCloudApi, CancellationToken ct)
         {
             foreach (TimeEntry entry in entriesFromCloudApi)
             {
-                if (entry.IssueId == null) continue;
                 // Получение всех записей сохранённых в локальной БД сервера
-                List<TimeEntry>? timeEntriesFromLocalDB = (await unitOfWork.TimeEntry.GetEntriesByIssue((int)entry.IssueId))?.ToList();
+                List<TimeEntry>? timeEntriesFromLocalDB = await unitOfWork.TimeEntry.GetEntriesByIssue(entry.IssueId, true, ct);
 
-                if (timeEntriesFromLocalDB == null || !timeEntriesFromLocalDB.Any()) continue;
+                if (timeEntriesFromLocalDB == null || timeEntriesFromLocalDB.Count == 0) continue;
 
                 // Проходит циклом по каждой записи из БД сервера для поиска удалённых 
                 foreach (TimeEntry entryFromLocalDB in timeEntriesFromLocalDB)
@@ -116,24 +110,7 @@ namespace CRMService.Service.Entity
                 }
             }
 
-            await unitOfWork.SaveAsync();
-        }
-
-        public async Task CheckEmployeeAndIssue(TimeEntry entry)
-        {
-            // Проверяет наличие сотрудника; при отсутствии зануляет
-            if (entry.EmployeeId != null)
-            {
-                if (await unitOfWork.Employee.GetEmployeeById((int)entry.EmployeeId, false) == null)
-                    entry.EmployeeId = null;
-            }
-
-            // Сохраняет IssueId, если это текущая задача в изменяемом графе
-            if (entry.IssueId != null)
-            {
-                if (await unitOfWork.Issue.GetIssueById((int)entry.IssueId, false) == null)
-                    entry.IssueId = null;
-            }
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

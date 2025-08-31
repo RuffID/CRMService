@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class KindParameterService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<KindParameterService> _logger = logger.CreateLogger<KindParameterService>();
 
@@ -31,25 +31,25 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(priority => new KindsParameter
                 {
-                    Code = priority.Field<string>("code"),
+                    Code = priority.Field<string>("code") ?? "",
                     Name = priority.Field<string>("name")
                 }).ToList();
         }
 
-        public async Task UpdateKindParametersFromCloudApi()
+        public async Task UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
             List<KindsParameter>? parameters = await GetKindParametersFromCloudApi();
 
             if (parameters == null || parameters.Count == 0) return;
 
-            await unitOfWork.KindParameter.CreateOrUpdate(parameters);
+            await unitOfWork.KindParameter.UpsertByCodes(parameters, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await UpdateConnectionsFromCloudApi(parameters);
+            await UpdateConnectionsFromCloudApi(parameters, ct);
         }
 
-        public async Task UpdateKindParametersFromCloudDb()
+        public async Task UpdateKindParametersFromCloudDb(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating kind parameters.", nameof(UpdateKindParametersFromCloudDb));
 
@@ -58,14 +58,14 @@ namespace CRMService.Service.Entity
             if (kinds == null || kinds.Count == 0)
                 return;
 
-            await unitOfWork.KindParameter.CreateOrUpdate(kinds);
+            await unitOfWork.KindParameter.UpsertByCodes(kinds, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Kind parameters update completed.", nameof(UpdateKindParametersFromCloudDb));
         }
 
-        public async Task UpdateConnectionsFromCloudApi(List<KindsParameter> parameters)
+        public async Task UpdateConnectionsFromCloudApi(List<KindsParameter> parameters, CancellationToken ct)
         {
             foreach (KindsParameter parameter in parameters)
             {
@@ -74,18 +74,23 @@ namespace CRMService.Service.Entity
 
                 foreach (string code in parameter.Equipment_kind_codes)
                 {
-                    KindsParameter? paramFromLocalDb = await unitOfWork.KindParameter.GetItem(parameter, false);
-                    Kind? kindFromLocalDb = await unitOfWork.Kind.GetKindByCode(code, false);
+                    KindsParameter? paramFromLocalDb = await unitOfWork.KindParameter.GetItemByCode(parameter.Code, true, ct);
+                    Kind? kindFromLocalDb = await unitOfWork.Kind.GetItemByCode(code, true, ct);
 
                     if (paramFromLocalDb == null || kindFromLocalDb == null)
                         continue;
 
-                    KindParam connection = new() { KindId = kindFromLocalDb.Id, KindParameterId = paramFromLocalDb.Id };
-                    if (await unitOfWork.KindParams.GetItem(connection, false) == null)
+                    KindParam? connection = await unitOfWork.KindParams.GetItemByPredicate(predicate: kp => kp.KindParameterId == parameter.Id && kp.KindId == kindFromLocalDb.Id, asNoTracking: true, ct: ct);
+
+                    if (connection == null)
+                    {
+                        connection = new() { KindId = kindFromLocalDb.Id, KindParameterId = paramFromLocalDb.Id };
                         unitOfWork.KindParams.Create(connection);
+                    }
                 }
             }
-            await unitOfWork.SaveAsync();
+
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

@@ -1,77 +1,39 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.DataBase;
+using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueStatusRepository(ApplicationContext context, ILoggerFactory logger) : IIssueStatusRepository
+    public class IssueStatusRepository(IGetItemByIdRepository<IssueStatus, int> _getById,
+        IGetItemByCodeRepository<IssueStatus> _getByCode,
+        ICreateItemRepository<IssueStatus> _create,
+        IUpsertItemByCodeRepository<IssueStatus> _upsert) : IIssueStatusRepository
     {
-        private readonly ILogger<IssueStatusRepository> _logger = logger.CreateLogger<IssueStatusRepository>();
+        public Task<IssueStatus?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssueStatus, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<IssueStatus>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.IssueStatuses.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue status list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<IssueStatus>> GetItemsByPredicateAndSortById(Expression<Func<IssueStatus, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssueStatus, object>>[] includes)
 
-        public async Task<IssueStatus?> GetItem(IssueStatus item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.IssueStatuses.FirstOrDefaultAsync(c => c.Code == item.Code);
+        => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-                return await context.IssueStatuses.AsNoTracking().FirstOrDefaultAsync(c => c.Code == item.Code);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue status.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task<IssueStatus?> GetItemByCode(string code, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssueStatus, object>>[] includes)
+            => _getByCode.GetItemByCode(code, asNoTracking, ct, includes);
 
-        public async Task<int> GetCountOfItems()
-        {
-            try
-            {
-                return await context.IssueStatuses.AsNoTracking().CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of issue statuses.", nameof(GetCountOfItems));
-                return 0;
-            }
-        }
+        public void Create(IssueStatus item) => _create.Create(item);
 
-        public void Update(IssueStatus oldItem, IssueStatus newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
+        public Task UpsertByCode(IssueStatus item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(item, ct);
 
-        public void Create(IssueStatus item)
-        {
-            context.IssueStatuses.Add(item);
-        }
+        public Task UpsertByCode(string oldCode, IssueStatus item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(oldCode, item, ct);
 
-        public async Task CreateOrUpdate(IEnumerable<IssueStatus> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
+        public Task UpsertByCodePairs(IEnumerable<(string OldCode, IssueStatus Item)> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodePairs(items, ct);
 
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task UpsertByCodes(IEnumerable<IssueStatus> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodes(items, ct);
     }
 }

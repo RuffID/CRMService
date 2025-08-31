@@ -1,20 +1,7 @@
-﻿using CRMService.Interfaces.Authorization;
-
-namespace CRMService.Models.Authorization
+﻿namespace CRMService.Models.Authorization
 {
-    public class UserRole : IEntity
+    public class UserRole
     {
-        public UserRole() { }
-
-        public UserRole(Guid id, Guid userId, Guid roleId) 
-        {
-            Id = id;
-            UserId = userId;
-            RoleId = roleId;
-        }
-
-        public Guid Id { get; set; }
-
         public Guid UserId { get; set; }
 
         public Guid RoleId { get; set; }

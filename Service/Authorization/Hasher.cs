@@ -1,40 +1,32 @@
 ﻿using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
 namespace CRMService.Service.Authorization
 {
     public class Hasher
     {
-        private readonly HashSettings _hashSettings;
-
-        public Hasher(IOptions<HashSettings> hashSettings)
-        {
-            _hashSettings = hashSettings.Value;
-        }
-
         public string Hash(string input)
         {
             byte[] salt = GenerateSalt();
             byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
                 input,
                 salt,
-                _hashSettings.Iterations,
+                HashSettingsConstants.ITERATIONS,
                 HashAlgorithmName,
-                _hashSettings.KeySize
+                HashSettingsConstants.KEY_SIZE
             );
 
             return string.Join(
-                _hashSettings.Separator,
+                HashSettingsConstants.SEPARATOR,
                 Convert.ToHexString(hash),
                 Convert.ToHexString(salt),
-                _hashSettings.Iterations,
+                HashSettingsConstants.ITERATIONS,
                 HashAlgorithmName
             );
         }        
 
-        private byte[] GenerateSalt() { return RandomNumberGenerator.GetBytes(_hashSettings.SaltSize); }
+        private byte[] GenerateSalt() { return RandomNumberGenerator.GetBytes(HashSettingsConstants.SALT_SIZE); }
 
-        private HashAlgorithmName HashAlgorithmName { get { return new HashAlgorithmName(_hashSettings.Algorithm); } }
+        private HashAlgorithmName HashAlgorithmName { get { return new HashAlgorithmName(HashSettingsConstants.ALHORITHM); } }
     }
 }

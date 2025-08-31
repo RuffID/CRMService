@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class CompanyService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdSettings, IOptions<DatabaseSettings> dbSettings, 
+    public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
         GetItemService _request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<CompanyService> _logger = logger.CreateLogger<CompanyService>();
@@ -38,7 +38,7 @@ namespace CRMService.Service.Entity
             }
         }
 
-        private async IAsyncEnumerable<List<Company>?> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, long startIndexCompany, int limit)
+        private async IAsyncEnumerable<List<Company>?> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, long startIndexCompany)
         {
             foreach (CompanyCategory category in categories)
             {
@@ -54,7 +54,7 @@ namespace CRMService.Service.Entity
                         sqlCommand += " AND company_categories.code IS NULL ";
                     else sqlCommand += $" AND company_categories.code = '{category.Code}' ";
 
-                    sqlCommand += $" ORDER BY companies.sequential_id LIMIT {limit};";
+                    sqlCommand += $" ORDER BY companies.sequential_id LIMIT {LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB};";
 
                     DataSet ds = await pGSelect.Select(sqlCommand);
                     DataTable? companyTable = ds.Tables["Table"];
@@ -84,66 +84,66 @@ namespace CRMService.Service.Entity
             }
         }
 
-        public async Task UpdateCompanyFromCloudApi(int companyId)
+        public async Task UpdateCompanyFromCloudApi(int companyId, CancellationToken ct)
         {
             Company? company = await GetCompanyFromCloudApi(companyId);
 
             if (company == null)
                 return;
 
-            if (!await CheckCompanyCategory(company))
+            if (!await CheckCompanyCategory(company, ct))
                 return;
 
-            await unitOfWork.Company.CreateOrUpdate([company]);
+            await unitOfWork.Company.Upsert(company, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany)
+        public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudApi));
 
-            IEnumerable<CompanyCategory>? categories = await unitOfWork.CompanyCategory.GetItems(startIndexCategory, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
 
             if (categories == null || !categories.Any())
                 return;
 
-            await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, okdSettings.Value.LimitForRetrievingEntitiesFromApi))
+            await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API))
             {
                 if (companies == null || companies.Count == 0)
                     continue;
 
-                await unitOfWork.Company.CreateOrUpdate(companies);
+                await unitOfWork.Company.Upsert(companies, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudApi));
         }
 
-        public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany)
+        public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudDb));
 
-            IEnumerable<CompanyCategory>? categories = await unitOfWork.CompanyCategory.GetItems(startIndexCategory, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
 
             if (categories == null || !categories.Any())
                 return;
 
-            await foreach (List<Company>? companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany, dbSettings.Value.LimitForRetrievingEntitiesFromDb))
+            await foreach (List<Company>? companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany))
             {
                 if (companies == null || companies.Count == 0)
                     continue;
 
-                await unitOfWork.Company.CreateOrUpdate(companies);
+                await unitOfWork.Company.Upsert(companies, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }
 
-        public async Task<bool> CheckCompanyCategory(Company company)
+        public async Task<bool> CheckCompanyCategory(Company company, CancellationToken ct)
         {
             if (company.Category == null)
             {
@@ -151,7 +151,7 @@ namespace CRMService.Service.Entity
                 return true;
             }
 
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItem(company.Category);
+            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemById(company.Category.Id, true, ct);
             if (category != null)
             {
                 company.CategoryId = category.Id;

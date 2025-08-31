@@ -16,10 +16,10 @@ namespace CRMService.Service.Webhook
             switch (@event.Event!.Event_type)
             {
                 case "new_service_aim":
-                    await unitOfWork.MaintenanceEntity.CreateOrUpdate([mapper.Map<MaintenanceEntity>(@event.Service_aim)]);
+                    await unitOfWork.MaintenanceEntity.Upsert(mapper.Map<MaintenanceEntity>(@event.Service_aim));
                     break;
                 case "change_service_aim":
-                    await unitOfWork.MaintenanceEntity.CreateOrUpdate([mapper.Map<MaintenanceEntity>(@event.Service_aim)]);
+                    await unitOfWork.MaintenanceEntity.Upsert(mapper.Map<MaintenanceEntity>(@event.Service_aim));
                     break;
                 default:
                     return false;

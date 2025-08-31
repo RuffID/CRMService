@@ -1,10 +1,8 @@
-﻿using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
-using Npgsql;
+﻿using Npgsql;
 
 namespace CRMService.DataBase.Postgresql
 {
-    public class PGConfig(IOptions<DatabaseSettings> db)
+    public class PGConfig(string connectionString)
     {
         private readonly string host = "localhost";
         private readonly int port = 5432;
@@ -20,12 +18,12 @@ namespace CRMService.DataBase.Postgresql
         private NpgsqlConnection GetPsqlConnection(string host, int port, string database, string username, string password)
         {
             // Connection String.
-            if (string.IsNullOrEmpty(db.Value.Postgres))
+            if (string.IsNullOrEmpty(connectionString))
             {
                 return new NpgsqlConnection
                     ("host=" + host + ";database=" + database + ";port=" + port + ";username=" + username + ";password=" + password);
             }
-            else return new NpgsqlConnection(db.Value.Postgres);
+            else return new NpgsqlConnection(connectionString);
         }
     }
 }

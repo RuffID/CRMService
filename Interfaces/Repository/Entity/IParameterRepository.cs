@@ -1,13 +1,13 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IParameterRepository : IGetRepository<Parameter>, IUpdateRepository<Parameter>, ICreateRepository<Parameter>
+    public interface IParameterRepository : IGetItemByPredicateRepository<EquipmentParameter>, IUpsertByPredicateRepository<EquipmentParameter>, ICreateItemRepository<EquipmentParameter>
     {
-        Task<IEnumerable<EquipmentParameterDto>?> GetParameterByEquipmentId(int equipmentId);
-        Task<Parameter?> GetParameterByEquipmentAndKindParameterId(Parameter parameter, bool? trackable = null);
-        Task CreateOrUpdate(IEnumerable<Parameter> items);
+        Task<List<EquipmentParameter>> GetParameterByEquipmentId(int equipmentId, CancellationToken ct);
+        Task<EquipmentParameter?> GetParameterByEquipmentAndKindParameterId(int equipmentId, int kindParameterId, CancellationToken ct);
     }
 }

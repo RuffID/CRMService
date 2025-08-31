@@ -1,55 +1,51 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
+using CRMService.Models.ConfigClass;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssuePriorityController(IMapper _mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, IssuePriorityService service) : Controller
+    public class IssuePriorityController(IMapper _mapper, IUnitOfWork unitOfWork, IssuePriorityService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetIssuePriorities([FromQuery] int startIndex)
+        public async Task<IActionResult> GetIssuePriorities([FromQuery] int startIndex, CancellationToken ct)
         {
-            var priorities = _mapper.Map<IEnumerable<PriorityDto>>(await unitOfWork.IssuePriority.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAndSortById(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (priorities == null || !priorities.Any())
-                return NotFound();
-
-            return Ok(priorities);
+            return Ok(_mapper.Map<List<PriorityDto>>(priorities));
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetIssuePriority([FromQuery] string code)
+        public async Task<IActionResult> GetIssuePriority([FromQuery] string code, CancellationToken ct)
         {
-            var prioriy = _mapper.Map<PriorityDto>(await unitOfWork.IssuePriority.GetItem( new IssuePriority() { Code = code }, false));
+            IssuePriority? prioriy = await unitOfWork.IssuePriority.GetItemByCode(code, false, ct);
 
             if (prioriy == null)
                 return NotFound();
 
-            return Ok(prioriy);
+            return Ok(_mapper.Map<PriorityDto>(prioriy));
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateIssuePrioritiesFromCloudApi()
+        public async Task<IActionResult> UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateIssuePrioritiesFromCloudApi();
+            await service.UpdateIssuePrioritiesFromCloudApi(ct);
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateIssuePrioritiesFromCloudDb()
+        public async Task<IActionResult> UpdateIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateIssuePrioritiesFromCloudDb();
+            await service.UpdateIssuePrioritiesFromCloudDb(ct);
 
             return NoContent();
         }

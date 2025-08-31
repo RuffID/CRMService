@@ -1,26 +1,38 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using CRMService.Dto.Authorization;
-using CRMService.Service.Authorization;
+﻿using AutoMapper;
+using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.Request;
+using CRMService.Service.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class RegistrationController(RegistrationService _userRegistrationService) : Controller
+    public class RegistrationController(IMapper mapper, IUnitOfWork unitOfWork, Hasher hash) : Controller
     {
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> Registration([FromBody] UserRequestDto user)
+        public async Task<IActionResult> Registration([FromBody] UserRequest userCreate, CancellationToken ct)
         {
-            // Если не все поля для создания заполнены, то выдаёт ошибку
-            if (string.IsNullOrEmpty(user.Login) || string.IsNullOrEmpty(user.Password) || user.Roles == null || user.Roles.Count == 0)
-                return BadRequest("The body with the user was not transferred or not all required fields were filled in.");
+            User? existingUser = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == userCreate.Login, asNoTracking: false, ct);
 
-            if (!await _userRegistrationService.RegistrationUser(user))
-                return StatusCode(500, "Error error while creating user.");            
+            if (existingUser != null)            
+                return Conflict($"[Method:{nameof(Registration)}] User with login {userCreate.Login} already exists.");
+
+            List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsByCollection(mapper.Map<User>(userCreate).Roles, false, ct);
+
+            User user = new()
+            {
+                Login = userCreate.Login,
+                Roles = roles,
+                Password = hash.Hash(userCreate.Password!),
+                Active = true
+            };
+
+            unitOfWork.User.Create(user);
+            await unitOfWork.SaveAsync(ct);
 
             return NoContent();
         }

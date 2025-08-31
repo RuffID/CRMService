@@ -5,84 +5,54 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Authorization
 {
-    public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthOptions> authOptions, GenerateRefreshToken generateRefresh)
+    public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthorizationOptions> authOptions, GenerateRefreshToken generateRefresh)
     {
         private readonly JwtTokenService _accessToken = new(authOptions);        
         private readonly ILogger<UserLoginService> _logger = logger.CreateLogger<UserLoginService>();
 
-        public async Task<Token?> LoginInService(User user)
+        public async Task<Token> LoginInService(User user, CancellationToken ct)
         {
-            // Генерация токена
-            Token? token = GetToken(user);
-            if (token == null)
+            Token token = new()
             {
-                _logger.LogError("[Method:{MethodName}] Internal server error while generating token.", nameof(LoginInService));
-                return null;
-            }
+                AccessToken = _accessToken.Create(user),
+                RefreshToken = generateRefresh.Generate()
+            };
 
-            // Создание сессии
-            Session session = new();
-            SetSession(session, token, user);
+            Session session = new()
+            {
+                UserId = user.Id,
+                RefreshToken = token.RefreshToken,
+                ExpirationRefreshToken = DateTime.UtcNow.AddDays(authOptions.Value.RefreshTokenLifeTimeFromDays)
+            };
 
-            // Сохранение сессии
-            session.Id = Guid.NewGuid();
             unitOfWork.Session.Create(session);
             await unitOfWork.SaveAsync();
 
             return token;
         }
 
-        public async Task<Token?> UpdateTokens(Session session)
+        public async Task<Token> UpdateTokens(Session session, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetUserWithRoles(new User() { Id = session.UserId }, false);
+            User? user = await unitOfWork.User.GetItemById(session.UserId, asNoTracking: true, ct);
 
             if (user == null)
             {
-                _logger.LogError("[Method:{MethodName}] Internal server error, user not found.", nameof(UpdateTokens));
-                return null;
+                _logger.LogError("[Method:{MethodName}] Internal server error, user {userId} not found.", nameof(UpdateTokens), session.UserId);
+                throw new KeyNotFoundException($"User {session.UserId} not found.");
             }
 
-            Token? token = GetToken(user);
-            if (token == null)
-            {
-                _logger.LogError("[Method:{MethodName}] Internal server error while generating token.", nameof(UpdateTokens));
-                return null;
-            }
-
-            Session? oldSession = await unitOfWork.Session.GetItem(session);
-            if (oldSession != null)
-                SetSession(session, token, user);            
-            else            
-                unitOfWork.Session.Create(session);
-
-            await unitOfWork.SaveAsync();
-
-            return token;
-        }
-
-        private Token? GetToken(User user)
-        {
-            // Генерация токена
             Token token = new()
             {
-                // Срок действия access token указывается в конфиге
                 AccessToken = _accessToken.Create(user),
                 RefreshToken = generateRefresh.Generate()
             };
 
-            if (!string.IsNullOrEmpty(token.AccessToken) && !string.IsNullOrEmpty(token.RefreshToken))
-                return token;
-
-            return null;
-        }
-
-        private void SetSession(Session session, Token token, User user)
-        {
-            // Создание сессии
-            session.UserId = user.Id;
             session.RefreshToken = token.RefreshToken;
-            // Срок действия refresh token указывается в конфиге
             session.ExpirationRefreshToken = DateTime.UtcNow.AddDays(authOptions.Value.RefreshTokenLifeTimeFromDays);
+
+            await unitOfWork.SaveAsync();
+
+            return token;
         }
     }
 }

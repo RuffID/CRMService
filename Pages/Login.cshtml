@@ -1,8 +1,8 @@
 ﻿@page
+@using CRMService.Pages
 @model LoginModel
 @{
     ViewData["Title"] = "Вход в систему";
-
 }
 
 <div>
@@ -17,13 +17,13 @@
         <form method="post" class="w-100" style="max-width: 400px;">
             <div class="mb-3">
                 <label for="Login" class="form-label">Логин</label>
-                <input asp-for="UserTab.Login" name="login" id="Login" class="form-control" required />
-                <span asp-validation-for="UserTab.Login" class="text-danger small"></span>
+                <input asp-for="UserPage.Login" name="login" id="Login" class="form-control" required />
+                <span asp-validation-for="UserPage.Login" class="text-danger small"></span>
             </div>
 
             <div class="mb-3">
                 <label for="Password" class="form-label">Пароль</label>
-                <input asp-for="UserTab.Password" type="password" name="password" id="Password" class="form-control" required />
+                <input asp-for="UserPage.Password" type="password" name="password" id="Password" class="form-control" required />
             </div>
 
             <div class="d-grid">

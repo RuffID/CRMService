@@ -1,187 +1,26 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
+﻿using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Entity;
-using CRMService.Interfaces.Repository.Entity;
-using CRMService.Dto.Entity;
-using CRMService.Models.Dto.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class EquipmentRepository(ApplicationContext context, ILoggerFactory logger) : IEquipmentRepository
+    public class EquipmentRepository(IGetItemByIdRepository<Equipment, int> getItemById,
+        ICreateItemRepository<Equipment> create,
+        IUpsertItemByIdRepository<Equipment, int> upsert) : IEquipmentRepository
     {
-        private readonly ILogger<EquipmentRepository> _logger = logger.CreateLogger<EquipmentRepository>();
+        public Task<Equipment?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Equipment, object>>[] includes)
+            => getItemById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<Equipment>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.Equipment.AsNoTracking().Where(e => e.Id >= startIndex).OrderBy(e => e.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<Equipment>> GetItemsByPredicateAndSortById(Expression<Func<Equipment, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Equipment, object>>[] includes)
+            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<EquipmentDto>?> GetEquipmentsByMaintenanceEntity(int maintenanceId)
-        {
-            try
-            {
-                return await context.Equipment
-                    .AsNoTracking()
-                    .Where(e => e.MaintenanceEntitiesId == maintenanceId)
-                    .Select(e => new EquipmentDto
-                    {
-                        Id = e.Id,
-                        Serial_number = e.SerialNumber,
-                        Inventory_number = e.InventoryNumber,
-                        Kind = e.Kind != null ? new KindDto
-                        {
-                            Id = e.Kind.Id,
-                            Name = e.Kind.Name,
-                            Code = e.Kind.Code
-                        } : null,
-                        Manufacturer = e.Manufacturer != null ? new ManufacturerDto
-                        {
-                            Id = e.Manufacturer.Id,
-                            Name = e.Manufacturer.Name,
-                            Code = e.Manufacturer.Code
-                        } : null,
-                        Model = e.Model != null ? new ModelDto
-                        {
-                            Id = e.Model.Id,
-                            Name = e.Model.Name,
-                            Code = e.Model.Code
-                        } : null
-                    })
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment list by maintenance entity.", nameof(GetEquipmentsByMaintenanceEntity));
-                return null;
-            }
-        }
+        public void Create(Equipment item) => create.Create(item);
 
-        public async Task<IEnumerable<EquipmentDto>?> GetEquipmentsByCompany(int companyId)
-        {
-            try
-            {
-                return await context.Equipment
-                    .AsNoTracking()
-                    .Where(e => e.CompanyId == companyId)
-                    .Select(e => new EquipmentDto
-                    {
-                        Id = e.Id,
-                        Serial_number = e.SerialNumber,
-                        Inventory_number = e.InventoryNumber,
-                        Kind = e.Kind != null ? new KindDto
-                        {
-                            Id = e.Kind.Id,
-                            Name = e.Kind.Name,
-                            Code = e.Kind.Code
-                        } : null,
-                        Manufacturer = e.Manufacturer != null ? new ManufacturerDto
-                        {
-                            Id = e.Manufacturer.Id,
-                            Name = e.Manufacturer.Name,
-                            Code = e.Manufacturer.Code
-                        } : null,
-                        Model = e.Model != null ? new ModelDto
-                        {
-                            Id = e.Model.Id,
-                            Name = e.Model.Name,
-                            Code = e.Model.Code
-                        } : null
-                    })
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment list by company.", nameof(GetEquipmentsByCompany));
-                return null;
-            }
-        }
+        public Task Upsert(Equipment item, CancellationToken ct = default)
+            => upsert.Upsert(item, ct);
 
-        public async Task<EquipmentDto?> GetEquipmentById(int equipmentId)
-        {
-            try
-            {
-                return await context.Equipment
-                    .AsNoTracking()
-                    .Where(e => e.Id == equipmentId)
-                    .Select(e => new EquipmentDto
-                    {
-                        Id = e.Id,
-                        Serial_number = e.SerialNumber,
-                        Inventory_number = e.InventoryNumber,
-                        Kind = e.Kind != null ? new KindDto
-                        {
-                            Id = e.Kind.Id,
-                            Name = e.Kind.Name,
-                            Code = e.Kind.Code
-                        } : null,
-                        Manufacturer = e.Manufacturer != null ? new ManufacturerDto
-                        {
-                            Id = e.Manufacturer.Id,
-                            Name = e.Manufacturer.Name,
-                            Code = e.Manufacturer.Code
-                        } : null,
-                        Model = e.Model != null ? new ModelDto
-                        {
-                            Id = e.Model.Id,
-                            Name = e.Model.Name,
-                            Code = e.Model.Code
-                        } : null
-                    })
-                    .FirstOrDefaultAsync();
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment by id.", nameof(GetEquipmentById));
-                return null;
-            }
-        }
-
-        public async Task<Equipment?> GetItem(Equipment item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.Equipment.FirstOrDefaultAsync(e => e.Id == item.Id);
-
-                return await context.Equipment.AsNoTracking().FirstOrDefaultAsync(e => e.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving equipment.", nameof(GetItem));
-                return null;
-            }
-        }
-
-        public void Update(Equipment oldItem, Equipment newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(Equipment item)
-        {
-            context.Equipment.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<Equipment> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task Upsert(IEnumerable<Equipment> items, CancellationToken ct = default)
+            => upsert.Upsert(items, ct);
     }
 }

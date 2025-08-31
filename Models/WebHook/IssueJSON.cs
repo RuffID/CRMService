@@ -3,7 +3,7 @@ using CRMService.Models.Entity;
 
 namespace CRMService.Models.WebHook
 {
-    public class IssueJSON : IEntity
+    public class IssueJSON : IEntity<int>
     {
         public int Id { get; set; }
         public string? Title { get; set; }

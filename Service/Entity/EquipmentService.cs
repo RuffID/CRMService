@@ -9,7 +9,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class EquipmentService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, 
+    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, 
         IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<EquipmentService> _logger = logger.CreateLogger<EquipmentService>();
@@ -32,8 +32,8 @@ namespace CRMService.Service.Entity
             string sqlCommand = string.Format(
                     "SELECT equipments.sequential_id, equipments.inventory_number, equipments.serial_number, " +
                     "equipments.parameters, company_maintenance_entities.sequential_id AS maintenanceEntitiesId, " +
-                    "companies.sequential_id AS companyId, equipment_kinds.code AS kindCode, " +
-                    "equipment_manufacturers.code AS manufacturerCode, equipment_models.code AS modelCode " +
+                    "companies.sequential_id AS companyId, equipment_kinds.id AS kindId, " +
+                    "equipment_manufacturers.id AS manufacturerId, equipment_models.id AS modelId " +
                     "FROM equipments " +
                     "LEFT OUTER JOIN companies ON equipments.company_id = companies.id " +
                     "LEFT OUTER JOIN company_maintenance_entities ON equipments.maintenance_entity_id = company_maintenance_entities.id " +
@@ -55,14 +55,14 @@ namespace CRMService.Service.Entity
                     InventoryNumber = equipment.Field<string?>("inventory_number"),
                     CompanyId = equipment.Field<int?>("companyId"),
                     MaintenanceEntitiesId = equipment.Field<int?>("maintenanceEntitiesId"),
-                    Kind = new() { Code = equipment.Field<string?>("kindCode") },
-                    Manufacturer = new() { Code = equipment.Field<string?>("manufacturerCode") },
-                    Model = new() { Code = equipment.Field<string?>("modelCode") },
-                    Parameters = HandleParameters(equipment.Field<string?>("parameters"))
+                    KindId = equipment.Field<int?>("kindId"),
+                    ManufacturerId = equipment.Field<int?>("manufacturerId"),
+                    ModelId = equipment.Field<int?>("modelId"),
+                    Parameters = HandleParameters(equipment.Field<string>("parameters"))
                 }).ToList();
         }
 
-        public async Task UpdateEquipmentFromCloudApi(long id)
+        public async Task UpdateEquipmentFromCloudApi(long id, CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.ApiToken}&page[from_id]={id}&page[direction]=forward&page[size]=1";
 
@@ -73,17 +73,15 @@ namespace CRMService.Service.Entity
 
             Equipment? equipment = equipments.First();
 
-            await CheckInformationOnEquipment(equipment);
-
-            await unitOfWork.Equipment.CreateOrUpdate([equipment]);
+            await unitOfWork.Equipment.Upsert(equipment, ct);
 
             if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
+                await unitOfWork.Parameter.Upsert(equipment.Parameters, p => (EquipmentParameter i) => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0)
+        public async Task UpdateEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, CancellationToken ct = default)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudApi));
 
@@ -92,24 +90,21 @@ namespace CRMService.Service.Entity
                 if (equipments == null || equipments.Count == 0)
                     return;
 
-                foreach (var equipment in equipments)
-                    await CheckInformationOnEquipment(equipment);
-
-                await unitOfWork.Equipment.CreateOrUpdate(equipments);
+                await unitOfWork.Equipment.Upsert(equipments, ct);
 
                 foreach (var equipment in equipments)
                 {
                     if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                        await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
+                        await unitOfWork.Parameter.Upsert(equipment.Parameters, p => (EquipmentParameter i) => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
                 }
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudApi));
         }
 
-        public async Task UpdateEquipmentsFromCloudDb(int startIndex, int limit)
+        public async Task UpdateEquipmentsFromCloudDb(int startIndex, int limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudDb));
 
@@ -122,75 +117,32 @@ namespace CRMService.Service.Entity
 
                 startIndex = equipments.Last().Id;
 
-                foreach (var equipment in equipments)
-                    await CheckInformationOnEquipment(equipment);
+                await unitOfWork.Equipment.Upsert(equipments, ct);
 
-                await unitOfWork.Equipment.CreateOrUpdate(equipments);
-
-                foreach (var equipment in equipments)
+                foreach (Equipment equipment in equipments)
                 {
                     if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                        await unitOfWork.Parameter.CreateOrUpdate(equipment.Parameters);
+                        await unitOfWork.Parameter.Upsert(equipment.Parameters, p => (EquipmentParameter i) => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
                 }
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
 
                 if (equipments.Count < limit)
                     break;
             }
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));
-        }
+        }        
 
-        public async Task CheckInformationOnEquipment(Equipment equipment)
+        private static List<EquipmentParameter> HandleParameters(string? parameters)
         {
-            if (equipment.Company != null)
-                equipment.CompanyId = (await unitOfWork.Company.GetItem(equipment.Company, false))?.Id;
-            else if (equipment.CompanyId != null)
-                equipment.CompanyId = (await unitOfWork.Company.GetCompanyById((int)equipment.CompanyId, false))?.Id;
-
-            if (equipment.MaintenanceEntities != null)
-                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItem(equipment.MaintenanceEntities, false))?.Id;
-            else if (equipment.MaintenanceEntitiesId != null)
-                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetMaintenanceEntityById((int)equipment.MaintenanceEntitiesId, false))?.Id;
-
-            if (equipment.Manufacturer != null)
-                equipment.ManufacturerId = (await unitOfWork.Manufacturer.GetItem(equipment.Manufacturer, false))?.Id;
-
-            if (equipment.Kind != null)
-                equipment.KindId = (await unitOfWork.Kind.GetItem(equipment.Kind, false))?.Id;
-
-            if (equipment.Model != null)
-                equipment.ModelId = (await unitOfWork.Model.GetItem(equipment.Model, false))?.Id;
-
-            if (equipment.Parameters != null && equipment.Parameters.Count != 0)
-            {
-                equipment.Parameters.RemoveAll(p => string.IsNullOrEmpty(Convert.ToString(p.Value)));
-
-                foreach (var parameter in equipment.Parameters)
-                {
-                    parameter.EquipmentId = equipment.Id;
-                    parameter.KindParameterId = (await unitOfWork.KindParameter.GetItem(new KindsParameter() { Code = parameter.Code }, false))?.Id;
-                }
-
-                equipment.Parameters.RemoveAll(p => p.KindParameterId == null);
-            }
-
-            equipment.Company = null;
-            equipment.MaintenanceEntities = null;
-            equipment.Manufacturer = null;
-            equipment.Kind = null;
-            equipment.Model = null;
-        }
-
-        private static List<Parameter>? HandleParameters(string? parameters)
-        {
-            if (string.IsNullOrEmpty(parameters)) return null;
+            List<EquipmentParameter> result = new List<EquipmentParameter>();
+            if (string.IsNullOrEmpty(parameters)) 
+                return result;
 
             JObject paramObject = JObject.Parse(parameters);
-            return paramObject.Properties().Select(parameter => new Parameter
+            return paramObject.Properties().Select(parameter => new EquipmentParameter
             {
-                Code = parameter.Name,
                 Value = parameter.Value.ToString()
             }).ToList();
         }

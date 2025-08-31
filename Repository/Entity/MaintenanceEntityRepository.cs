@@ -1,80 +1,26 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
+using System.Linq.Expressions;
+using CRMService.Interfaces.Repository.Base;
 
 namespace CRMService.Repository.Entity
 {
-    public class MaintenanceEntityRepository(ApplicationContext context, ILoggerFactory logger) : IMaintenanceEntityRepository
+    public class MaintenanceEntityRepository(IGetItemByIdRepository<MaintenanceEntity, int> _getById,
+        ICreateItemRepository<MaintenanceEntity> _create,
+        IUpsertItemByIdRepository<MaintenanceEntity, int> _upsert) : IMaintenanceEntityRepository
     {
-        private readonly ILogger<MaintenanceEntityRepository> _logger = logger.CreateLogger<MaintenanceEntityRepository>();
+        public Task<MaintenanceEntity?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<MaintenanceEntity, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<MaintenanceEntity>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.MaintenanceEntities.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving maintenance entity list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<MaintenanceEntity>> GetItemsByPredicateAndSortById(Expression<Func<MaintenanceEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<MaintenanceEntity, object>>[] includes)
+            => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<MaintenanceEntity?> GetItem(MaintenanceEntity item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.MaintenanceEntities.FirstOrDefaultAsync(c => c.Id == item.Id);
+        public void Create(MaintenanceEntity item) => _create.Create(item);
 
-                return await context.MaintenanceEntities.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving maintenance entity.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task Upsert(MaintenanceEntity item, CancellationToken ct = default)
+            => _upsert.Upsert(item, ct);
 
-        public async Task<MaintenanceEntity?> GetMaintenanceEntityById(int id, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.MaintenanceEntities.FirstOrDefaultAsync(c => c.Id == id);
-
-                return await context.MaintenanceEntities.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving maintenance entity by id.", nameof(GetMaintenanceEntityById));
-                return null;
-            }
-        }
-
-        public void Update(MaintenanceEntity oldItem, MaintenanceEntity newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
-
-        public void Create(MaintenanceEntity item)
-        {
-            context.MaintenanceEntities.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<MaintenanceEntity> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task Upsert(IEnumerable<MaintenanceEntity> items, CancellationToken ct = default)
+            => _upsert.Upsert(items, ct);
     }
 }

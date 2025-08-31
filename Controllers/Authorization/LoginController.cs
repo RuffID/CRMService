@@ -1,52 +1,43 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
+using CRMService.Models.Request;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace CRMService.Controllers.Authorization
 {
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class LoginController(UserLoginService userLoginService, IUnitOfWorkAuthorization unitOfWork, IOptions<HashSettings> hashSettings) : Controller
+    public class LoginController(UserLoginService userLoginService, HashVerify hashVerify, IUnitOfWorkAuthorization unitOfWork) : Controller
     {
-        private readonly HashVerify hashVerify = new (hashSettings);
-
         [HttpPost, AllowAnonymous]
-        public async Task<IActionResult> Login([FromQuery] string login, [FromQuery] string password)
+        public async Task<IActionResult> Login([FromQuery] string login, [FromQuery] string password, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetUserWithRoles(new User(login: login), false);
+            User? user = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == login, asNoTracking: true, ct: ct, includes: u => u.Roles);
 
             if (user == null)
                 return Unauthorized("Incorrect login or password.");
 
             // Хеширование пароля из запроса и сравнение с хешем из БД
-            if (user.Active == false || user.Active == null || string.IsNullOrEmpty(user.PasswordHash) || !hashVerify.Verify(password, user.PasswordHash))
+            if (user.Active == false || string.IsNullOrEmpty(user.Password) || !hashVerify.Verify(password, user.Password))
                 return Unauthorized("Incorrect login or password.");
 
-            Token? token = await userLoginService.LoginInService(user);
-
-            if (token == null)
-                return StatusCode(500, "Internal server error while logging into the service.");
+            Token token = await userLoginService.LoginInService(user, ct);
          
             return Ok(token);
         }
 
         [HttpPut("update_tokens"), AllowAnonymous]
-        public async Task<IActionResult> UpdateTokens([FromBody] RefreshModel refresh_token)
+        public async Task<IActionResult> UpdateTokens([FromBody] RefreshTokenRequest refresh_token, CancellationToken ct)
         {
-            Session? session = await unitOfWork.Session.GetItem(new() { RefreshToken = refresh_token.RefreshToken });
+            Session? session = await unitOfWork.Session.GetItemByPredicate(predicate: s => s.RefreshToken == refresh_token.RefreshToken, asNoTracking: false, ct: ct);
 
             if (session == null) 
-                return NotFound("Invalid refresh token. Session not found.");
+                return NotFound($"Unable to find session by refresh token - {refresh_token.RefreshToken}.");
 
-            Token? token = await userLoginService.UpdateTokens(session);
-
-            if (token == null)
-                return StatusCode(500, "Internal server error while updating tokens.");
+            Token token = await userLoginService.UpdateTokens(session, ct);
                         
             return Ok(token);
         }        

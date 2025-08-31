@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace CRMService.Models.Entity
 {
-    public class Equipment : IEntity
+    public class Equipment : IEntity<int>, ICopyable<Equipment>
     {
         public int Id { get; set; }
 
@@ -37,9 +37,9 @@ namespace CRMService.Models.Entity
         [JsonProperty("equipment_model")]
         public virtual Model? Model { get; set; }
 
-        public virtual List<Parameter>? Parameters { get; set; } = new List<Parameter>();
+        public virtual ICollection<EquipmentParameter> Parameters { get; set; } = new List<EquipmentParameter>();
 
-        internal void CopyData(Equipment newItem)
+        public void CopyData(Equipment newItem)
         {
             SerialNumber = newItem.SerialNumber;
             InventoryNumber = newItem.InventoryNumber;

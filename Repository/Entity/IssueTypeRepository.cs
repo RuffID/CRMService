@@ -1,77 +1,38 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class IssueTypeRepository(ApplicationContext context, ILoggerFactory logger) : IIssueTypeRepository
+    public class IssueTypeRepository(IGetItemByIdRepository<IssueType, int> _getById,
+        IGetItemByCodeRepository<IssueType> _getByCode,
+        ICreateItemRepository<IssueType> _create,
+        IUpsertItemByCodeRepository<IssueType> _upsert) : IIssueTypeRepository
     {
-        private readonly ILogger<IssueTypeRepository> _logger = logger.CreateLogger<IssueTypeRepository>();
+        public Task<IssueType?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssueType, object>>[] includes)
+            => _getById.GetItemById(id, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<IssueType>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.IssueTypes.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(t => t.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue type list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<IssueType>> GetItemsByPredicateAndSortById(Expression<Func<IssueType, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssueType, object>>[] includes)
 
-        public async Task<IssueType?> GetItem(IssueType item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.IssueTypes.FirstOrDefaultAsync(t => t.Code == item.Code);
+        => _getById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
 
-                return await context.IssueTypes.AsNoTracking().FirstOrDefaultAsync(t => t.Code == item.Code);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving issue type.", nameof(GetItem));
-                return null;
-            }
-        }
+        public Task<IssueType?> GetItemByCode(string code, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssueType, object>>[] includes)
+            => _getByCode.GetItemByCode(code, asNoTracking, ct, includes);
 
-        public async Task<int> GetCountOfItems()
-        {
-            try
-            {
-                return await context.IssueTypes.AsNoTracking().CountAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving count of issue types.", nameof(GetCountOfItems));
-                return 0;
-            }
-        }
+        public void Create(IssueType item) => _create.Create(item);
 
-        public void Update(IssueType oldItem, IssueType newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
+        public Task UpsertByCode(IssueType item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(item, ct);
 
-        public void Create(IssueType item)
-        {
-            context.IssueTypes.Add(item);
-        }
+        public Task UpsertByCode(string oldCode, IssueType item, CancellationToken ct = default)
+            => _upsert.UpsertByCode(oldCode, item, ct);
 
-        public async Task CreateOrUpdate(IEnumerable<IssueType> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
+        public Task UpsertByCodePairs(IEnumerable<(string OldCode, IssueType Item)> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodePairs(items, ct);
 
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
+        public Task UpsertByCodes(IEnumerable<IssueType> items, CancellationToken ct = default)
+            => _upsert.UpsertByCodes(items, ct);
     }
 }

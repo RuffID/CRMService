@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
+using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,31 +15,28 @@ namespace CRMService.Controllers.Authorization
     {
 
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetSessions([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
+        public async Task<IActionResult> GetSessions([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
-            IEnumerable<SessionDto>? sessions = mapper.Map<IEnumerable<SessionDto>>(await unitOfWork.Session.GetItems(new Range(startIndex, endIndex)));
+            List<Session> sessions = await unitOfWork.Session.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
-            if (sessions == null || !sessions.Any())
-                return NotFound("Sessions not found.");
-
-            return Ok(sessions);
+            return Ok(mapper.Map<IEnumerable<SessionDto>>(sessions));
         }
 
         [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetSession([FromQuery] Guid id)
+        public async Task<IActionResult> GetSession([FromQuery] Guid id, CancellationToken ct)
         {
-            SessionDto? session = mapper.Map<SessionDto>(await unitOfWork.Session.GetItem(new() { Id = id }, false));
+            Session? session = await unitOfWork.Session.GetItemById(id, asNoTracking: true, ct);
 
             if (session == null)
                 return NotFound($"Session {id} not found.");
 
-            return Ok(session);
+            return Ok(mapper.Map<SessionDto>(session));
         }
 
         [HttpDelete, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> DeleteSession([FromQuery] Guid id)
+        public async Task<IActionResult> DeleteSession([FromQuery] Guid id, CancellationToken ct)
         {
-            Session? session = await unitOfWork.Session.GetItem(new() { Id = id });
+            Session? session = await unitOfWork.Session.GetItemById(id, asNoTracking: true, ct);
 
             if (session == null)
                 return BadRequest($"Session {id} not found.");
@@ -46,29 +44,6 @@ namespace CRMService.Controllers.Authorization
             unitOfWork.Session.Delete(session);
             await unitOfWork.SaveAsync();
 
-            return NoContent();
-        }
-
-        [HttpDelete("all"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> DeleteSessions()
-        {
-            IEnumerable<Session>? sessions = await unitOfWork.Session.GetItems(new Range(0, await unitOfWork.Session.GetCountOfItems()));
-
-            if (sessions == null || !sessions.Any())
-                return BadRequest($"Sessions not found.");
-
-            foreach (Session session in sessions)
-                unitOfWork.Session.Delete(session);
-
-            await unitOfWork.SaveAsync();
-
-            return NoContent();
-        }
-
-        [HttpDelete("by-userid"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> DeleteSessionsByUserId([FromQuery] Guid id)
-        {
-            await unitOfWork.Session.DeleteByUserId(id);
             return NoContent();
         }
     }

@@ -4,11 +4,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity
 {
-    public class KindsParameter : IEntity
+    public class KindsParameter : IEntity<int>, IHasCode, ICopyable<KindsParameter>
     {
         public int Id { get; set; }
 
-        public string? Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         public string? Name { get; set; }
 
@@ -20,7 +20,7 @@ namespace CRMService.Models.Entity
 
         public virtual ICollection<KindParam> KindParams { get; set; } = new List<KindParam>();
 
-        public virtual ICollection<Parameter> Parameters { get; set; } = new List<Parameter>();
+        public virtual ICollection<EquipmentParameter> Parameters { get; set; } = new List<EquipmentParameter>();
 
         public void CopyData(KindsParameter parameter)
         {

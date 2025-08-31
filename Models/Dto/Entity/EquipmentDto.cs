@@ -8,12 +8,16 @@
 
         public string? Inventory_number { get; set; }
 
-        public IEnumerable<EquipmentParameterDto>? Parameters { get; set; } = [];
-
         public KindDto? Kind { get; set; }
 
         public ManufacturerDto? Manufacturer { get; set; }
 
         public ModelDto? Model { get; set; }
+
+        public MaintenanceEntityDto? MaintenanceEntity { get; set; }
+
+        public CompanyDto? Company { get; set; }
+
+        public ICollection<EquipmentParameterDto>? Parameters { get; set; } = new List<EquipmentParameterDto>();
     }
 }

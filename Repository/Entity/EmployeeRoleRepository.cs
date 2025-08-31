@@ -1,82 +1,35 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
 using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Interfaces.Repository.Base;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class EmployeeRoleRepository(ApplicationContext context, ILoggerFactory logger) : IEmployeeRoleRepository
+    public class EmployeeRoleRepository(IQueryRepository<EmployeeRole> _query,
+        ICreateItemRepository<EmployeeRole> _create,
+        IUpsertByPredicateRepository<EmployeeRole> _upsert,
+        IGetItemByPredicateRepository<EmployeeRole> _getByPredicate,
+        IDeleteItemRepository<EmployeeRole> _delete) : IEmployeeRoleRepository
     {
-        private readonly ILogger<EmployeeRoleRepository> _logger = logger.CreateLogger<EmployeeRoleRepository>();
+        public Task<List<EmployeeRole>> GetItems(int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default)
+            => _getByPredicate.GetItemsByPredicate(skip: skip, take: take, asNoTracking: asNoTracking, ct: ct);
 
-        public async Task<IEnumerable<EmployeeRole>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.EmployeeRoles.AsNoTracking().OrderBy(c => c.Id).Where(c => c.Id >= startIndex).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee role list.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<EmployeeRole?> GetItem(int employeeId, int roleId, bool asNoTracking = false, CancellationToken ct = default)
+            => _getByPredicate.GetItemByPredicate(c => c.EmployeeId == employeeId && c.RoleId == roleId, asNoTracking, ct);
 
-        public async Task<EmployeeRole?> GetItem(EmployeeRole item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.EmployeeRoles.AsNoTracking().FirstOrDefaultAsync(c => c.EmployeeId == item.EmployeeId && c.RoleId == item.RoleId);
+        public async Task<IEnumerable<EmployeeRole>?> GetConnectionsByEmployee(int employeeId, bool asNoTracking = false, CancellationToken ct = default)
+            => await _query.Query(asNoTracking).Where(c => c.EmployeeId == employeeId).ToListAsync(ct);
 
-                return await context.EmployeeRoles.FirstOrDefaultAsync(c => c.EmployeeId == item.EmployeeId && c.RoleId == item.RoleId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee role.", nameof(GetItem));
-                return null;
-            }
-        }
+        public void Create(EmployeeRole item) => _create.Create(item);
 
-        public async Task<IEnumerable<EmployeeRole>?> GetConnectionsByEmployee(int employeeId)
-        {
-            try
-            {
-                return await context.EmployeeRoles.AsNoTracking().OrderBy(c => c.Id).Where(c => c.EmployeeId == employeeId).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving employee role list by employee id.", nameof(GetConnectionsByEmployee));
-                return null;
-            }
-        }
+        public Task Upsert(EmployeeRole item, Expression<Func<EmployeeRole, bool>> predicate, CancellationToken ct = default)
+            => _upsert.Upsert(item, predicate, ct);
 
-        public void Update(EmployeeRole oldItem, EmployeeRole newItem)
-        {
-            oldItem.CopyData(newItem);
-        }
+        public Task Upsert(IEnumerable<EmployeeRole> items, Func<EmployeeRole, Expression<Func<EmployeeRole, bool>>> predicateFactory, CancellationToken ct = default)
+            => _upsert.Upsert(items, predicateFactory, ct);
 
-        public void Create(EmployeeRole item)
-        {
-            context.EmployeeRoles.Add(item);
-        }
-
-        public async Task CreateOrUpdate(IEnumerable<EmployeeRole> items)
-        {
-            foreach (var item in items)
-            {
-                var existingItem = await GetItem(item);
-
-                if (existingItem == null)
-                    Create(item);
-                else
-                    Update(existingItem, item);
-            }
-        }
-
-        public void Delete(EmployeeRole item)
-        {
-            context.EmployeeRoles.Remove(item);
-        }
+        public void Delete(EmployeeRole item) => _delete.Delete(item);
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Service.Entity;
 using CRMService.Models.Enum;
+using CRMService.Models.ConfigClass;
 
 namespace CRMService.Controllers.Entity
 {
@@ -11,7 +12,7 @@ namespace CRMService.Controllers.Entity
     public class TimeEntryController(TimeEntryService service) : Controller
     {
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateTimeEntriesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long timeEntryId = 0)
+        public async Task<IActionResult> UpdateTimeEntriesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             if (dateFrom > dateTo)
                 return BadRequest("Start date is later than end date.");
@@ -19,15 +20,15 @@ namespace CRMService.Controllers.Entity
             if (dateTo.Hour == 0 || dateTo.Minute == 0 || dateTo.Second == 0) 
                 dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
 
-            await service.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, timeEntryId);
+            await service.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateTimeEntriesFromCloudApi([FromQuery] int issueId)
+        public async Task<IActionResult> UpdateTimeEntriesFromCloudApi([FromQuery] int issueId, CancellationToken ct)
         {
-            await service.UpdateTimeEntriesFromCloudApi(issueId);
+            await service.UpdateTimeEntriesFromCloudApi(issueId, ct);
 
             return NoContent();
         }

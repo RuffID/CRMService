@@ -1,45 +1,41 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
+using CRMService.Models.ConfigClass;
+using CRMService.Models.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ModelController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWork unitOfWork, ModelService service) : Controller
+    public class ModelController(IMapper mapper, IUnitOfWork unitOfWork, ModelService service) : Controller
     {
-
         [HttpGet("list")]
-        public async Task<IActionResult> GetModels([FromQuery] int startIndex)
+        public async Task<IActionResult> GetModels([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            var models = mapper.Map<IEnumerable<ModelDto>>(await unitOfWork.Model.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<Model> models = await unitOfWork.Model.GetItemsByPredicateAndSortById(predicate: m => m.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (models == null || !models.Any())
-                return NotFound("Models not found.");
-
-            return Ok(models);
+            return Ok(mapper.Map<List<ModelDto>>(models));
         }
                 
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateModelsFromCloudApi([FromQuery] long startIndex = 0)
+        public async Task<IActionResult> UpdateModelsFromCloudApi([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
-            await service.UpdateModelsFromCloudApi(startIndex, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await service.UpdateModelsFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateModelsFromCloudDb()
+        public async Task<IActionResult> UpdateModelsFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateModelsFromCloudDb();
+            await service.UpdateModelsFromCloudDb(ct);
 
             return NoContent();
         }

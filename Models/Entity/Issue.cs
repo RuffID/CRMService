@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace CRMService.Models.Entity
 {
-    public class Issue : IEntity
+    public class Issue : IEntity<int>, ICopyable<Issue>
     {
         public int Id { get; set; }
 
@@ -58,25 +58,20 @@ namespace CRMService.Models.Entity
 
         public void CopyData(Issue item)
         {
-            if (item.AuthorId != null)
-                AuthorId = item.AuthorId;           
-            if (item.StatusId != null)
-                StatusId = item.StatusId;
-            if (item.PriorityId != null)
-                PriorityId = item.PriorityId;
-            if (item.TypeId != null)
-                TypeId = item.TypeId;
-
             AssigneeId = item.AssigneeId;
-            CompanyId = item.CompanyId;
-            ServiceObjectId = item.ServiceObjectId;
+            AuthorId = item.AuthorId;
             Title = item.Title;
             EmployeesUpdatedAt = item.EmployeesUpdatedAt;
             CreatedAt = item.CreatedAt;
+            CompletedAt = item.CompletedAt;
             DeadlineAt = item.DeadlineAt;
             DelayTo = item.DelayTo;
             DeletedAt = item.DeletedAt;
-            CompletedAt = item.CompletedAt;
+            StatusId = item.StatusId;
+            TypeId = item.TypeId;
+            PriorityId = item.PriorityId;
+            CompanyId = item.CompanyId;
+            ServiceObjectId = item.ServiceObjectId;
         }
     }
 }

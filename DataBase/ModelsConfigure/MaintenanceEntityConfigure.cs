@@ -17,18 +17,22 @@ namespace CRMService.DataBase.ModelsConfigure
             builder.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
+
             builder.Property(e => e.Active).HasColumnName("active");
+
             builder.Property(e => e.Address)
                 .HasMaxLength(300)
                 .HasColumnName("address");
+
             builder.Property(e => e.CompanyId).HasColumnName("companyId");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(200)
                 .HasColumnName("name");
 
             builder.HasOne(d => d.Company).WithMany(p => p.MaintenanceEntities)
                 .HasForeignKey(d => d.CompanyId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("companyId");
         }
     }

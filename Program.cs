@@ -1,5 +1,6 @@
 using CRMService.Core;
 using CRMService.DataBase;
+using CRMService.Middleware;
 using CRMService.Service.DataBase;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
@@ -35,8 +36,8 @@ try
 
         try
         {
-            CRMEntitiesContext db = scope.ServiceProvider.GetRequiredService<CRMEntitiesContext>();
-            MigrationService<CRMEntitiesContext> migrationService = scope.ServiceProvider.GetRequiredService<MigrationService<CRMEntitiesContext>>();
+            ApplicationContext db = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+            MigrationService<ApplicationContext> migrationService = scope.ServiceProvider.GetRequiredService<MigrationService<ApplicationContext>>();
             await migrationService.MigrateDatabaseWithBackup();
         }
         catch (Exception ex)
@@ -48,6 +49,7 @@ try
 
     }
 
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,

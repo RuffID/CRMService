@@ -1,83 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
-using CRMService.DataBase;
-using CRMService.Models.Entity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.Extended;
+using CRMService.Models.Entity;
+using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class KindParamsRepository(ApplicationContext context, ILoggerFactory logger) : IKindParamsRepository
-    {
-        private readonly ILogger<KindParamsRepository> _logger = logger.CreateLogger<KindParamsRepository>();
+    public class KindParamsRepository(IGetItemByPredicateRepository<KindParam> _getByPredicate,
+        ICreateItemRepository<KindParam> _create,
+        IDeleteItemRepository<KindParam> _delete) : IKindParamsRepository
+    {    
+        public Task<KindParam?> GetItemByPredicate(Expression<Func<KindParam, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<KindParam, object>>[] includes)
+            => _getByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<KindParam>?> GetItems(int startIndex, int limit)
-        {
-            try
-            {
-                return await context.KindParams.AsNoTracking().Where(c => c.Id >= startIndex).OrderBy(c => c.Id).Take(limit).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind params connections.", nameof(GetItems));
-                return null;
-            }
-        }
+        public Task<List<KindParam>> GetItemsByPredicate(Expression<Func<KindParam, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<KindParam, object>>[] includes)
+            => _getByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<KindParam>?> GetConnectionsByKind(int id, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.KindParams.Where(c => c.KindId == id).ToListAsync();
+        public void Create(KindParam item) => _create.Create(item);
 
-                return await context.KindParams.AsNoTracking().Where(c => c.KindId == id).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind params connections by kind id, id: {kindId}.", nameof(GetConnectionByKindId), id);
-                return null;
-            }
-        }
-
-        public async Task<KindParam?> GetItem(KindParam item, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.KindParams.FirstOrDefaultAsync(c => c.Id == item.Id);
-
-                return await context.KindParams.AsNoTracking().FirstOrDefaultAsync(c => c.Id == item.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind param connection.", nameof(GetItem));
-                return null;
-            }
-        }
-
-        public async Task<KindParam?> GetConnectionByKindId(int id, bool? trackable = null)
-        {
-            try
-            {
-                if (trackable == null || trackable == true)
-                    return await context.KindParams.FirstOrDefaultAsync(c => c.KindId == id);
-
-                return await context.KindParams.AsNoTracking().FirstOrDefaultAsync(c => c.KindId == id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Error retrieving kind param connection by kind id, id: {kindId}.", nameof(GetConnectionByKindId), id);
-                return null;
-            }
-        }
-
-        public void Create(KindParam item)
-        {
-            context.KindParams.Add(item);
-        }
-
-        public void Delete(KindParam item)
-        {
-            context.KindParams.Remove(item);
-        }
+        public void Delete(KindParam item) => _delete.Delete(item);
     }
 }

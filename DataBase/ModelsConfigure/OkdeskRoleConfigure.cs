@@ -8,13 +8,12 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<OkdeskRole> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("okdesk_role");
 
-            builder.HasIndex(e => e.Id, "Id_UNIQUE").IsUnique();
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.Property(e => e.Id).HasColumnName("id");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");

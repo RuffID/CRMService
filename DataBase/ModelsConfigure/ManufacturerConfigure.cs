@@ -8,22 +8,26 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Manufacturer> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("manufacturers");
+
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.Property(e => e.Id)
                 .HasColumnName("id")
-                .ValueGeneratedOnAdd();
+                .ValueGeneratedNever();
+
             builder.Property(e => e.Code)
                 .HasMaxLength(30)
                 .HasColumnName("code");
+
             builder.Property(e => e.Description)
                 .HasMaxLength(45)
                 .HasColumnName("description");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(45)
                 .HasColumnName("name");
+
             builder.Property(e => e.Visible).HasColumnName("visible");
         }
     }

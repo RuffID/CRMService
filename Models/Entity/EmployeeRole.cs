@@ -2,13 +2,15 @@
 
 namespace CRMService.Models.Entity
 {
-    public class EmployeeRole : IEntity
+    public class EmployeeRole : ICopyable<EmployeeRole>
     {
-        public int Id { get; set; }
-
         public int EmployeeId { get; set; }
 
         public int RoleId { get; set; }
+
+        public virtual Employee Employee { get; set; } = null!;
+
+        public virtual OkdeskRole Role { get; set; } = null!;
 
         public void CopyData(EmployeeRole newItem)
         {

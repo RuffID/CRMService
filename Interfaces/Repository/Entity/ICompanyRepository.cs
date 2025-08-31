@@ -1,12 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface ICompanyRepository : IGetRepository<Company>, IUpdateRepository<Company>, ICreateRepository<Company>
+    public interface ICompanyRepository : IGetItemByIdRepository<Company, int>, IUpsertItemByIdRepository<Company, int>, ICreateItemRepository<Company>
     {
-        Task<Company?> GetCompanyById(int id, bool? trackable = null);
-        Task<IEnumerable<Company>?> GetCompaniesByCategoryCode(string categoryCode, int startIndexCompany, int limit);
-        public Task CreateOrUpdate(IEnumerable<Company> items);
+        Task<List<Company>> GetCompaniesByCategoryCode(string categoryCode, int startIndexCompany, int limit, CancellationToken ct);
     }
 }

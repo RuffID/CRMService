@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace CRMService.Models.Entity;
 
-public class Company : IEntity
+public class Company : IEntity<int>, ICopyable<Company>
 {
     public int Id { get; set; }
 

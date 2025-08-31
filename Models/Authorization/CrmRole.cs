@@ -1,12 +1,12 @@
-﻿using CRMService.Interfaces.Authorization;
+﻿using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.Authorization
 {
-    public class CrmRole : IEntity
+    public class CrmRole : IEntity<Guid>
     {
         public Guid Id { get; set; }
 
-        public string? Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public virtual ICollection<User> Users { get; set; } = new List<User>();
 

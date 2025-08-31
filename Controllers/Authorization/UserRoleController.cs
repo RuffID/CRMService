@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
+using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,54 +14,53 @@ namespace CRMService.Controllers.Authorization
     public class UserRoleController(IUnitOfWorkAuthorization unitOfWork, IMapper mapper) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetUserRoleConnections([FromQuery] int startIndex = 0, [FromQuery] int endIndex = 100)
+        public async Task<IActionResult> GetUserRoleConnections([FromQuery] int startIndex = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
-            IEnumerable<UserRoleDto>? userRoleConnections = mapper.Map<IEnumerable<UserRoleDto>>(await unitOfWork.UserRole.GetAllItem(new Range(startIndex, endIndex)));
+            List<UserRole> userRoleConnections = await unitOfWork.UserRole.GetItemsByPredicate(skip: startIndex, take: limit, asNoTracking: true, ct: ct);
 
-            if (!userRoleConnections.Any())
-                return NotFound("user-role connections not found.");
-
-            return Ok(userRoleConnections);
+            return Ok(mapper.Map<IEnumerable<UserRoleDto>>(userRoleConnections));
         }
 
         [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetUserRoleConnection([FromQuery] Guid id)
+        public async Task<IActionResult> GetUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId, CancellationToken ct)
         {
-            UserRoleDto? userRoleConnection = mapper.Map<UserRoleDto>(await unitOfWork.UserRole.GetItem(new UserRole() { Id = id }, false));
+            UserRole? userRoleConnection = await unitOfWork.UserRole.GetItemByPredicate(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, asNoTracking: true, ct: ct);
 
             if (userRoleConnection == null)
-                return NotFound($"User-role connection by {id} - not found.");
+                return NotFound($"User-role connection by userId: {userId} and roleId: {roleId} - not found.");
 
-            return Ok(userRoleConnection);
+            return Ok(mapper.Map<UserRoleDto>(userRoleConnection));
         }
 
         [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> CreateUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId)
+        public async Task<IActionResult> CreateUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId, CancellationToken ct)
         {
-            UserRole userRole = new () {Id = Guid.NewGuid(), UserId = userId, RoleId = roleId };
+            UserRole? connection = await unitOfWork.UserRole.GetItemByPredicate(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, asNoTracking: true, ct: ct);
 
-            UserRoleDto? connect = mapper.Map<UserRoleDto>(await unitOfWork.UserRole.GetConnectionByUserAndRoleId(userRole, false));
+            if (connection != null)
+                return BadRequest($"User-role connection by userId: {userId} and roleId: {roleId} - already exists.");
 
-            if (connect != null)
-                return BadRequest($"User-role connection already exists.");
+            connection = new()
+            {
+                UserId = userId,
+                RoleId = roleId
+            };
 
-            unitOfWork.UserRole.Create(userRole);
+            unitOfWork.UserRole.Create(connection);
             await unitOfWork.SaveAsync();
 
             return NoContent();
         }
 
         [HttpDelete, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> DeleteUserRoleConnection([FromQuery] Guid id)
+        public async Task<IActionResult> DeleteUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId, CancellationToken ct)
         {
-            // Поиск сессии по id
-            UserRole? connect = await unitOfWork.UserRole.GetItem(new UserRole() { Id = id}, false);
+            UserRole? connection = await unitOfWork.UserRole.GetItemByPredicate(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, asNoTracking: true, ct: ct);
 
-            if (connect == null)
-                return BadRequest($"User-role connection by {id} - not found.");
+            if (connection == null)
+                return BadRequest($"User-role connection by userId: {userId} and roleId: {roleId} - not found.");
 
-            // Удаление сессии
-            unitOfWork.UserRole.Delete(connect);
+            unitOfWork.UserRole.Delete(connection);
             await unitOfWork.SaveAsync();
 
             return NoContent();

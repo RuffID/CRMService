@@ -26,8 +26,9 @@ namespace CRMService.Service.Entity
                 Select(x => (x.Field<string?>("kindParameterCode"), x.Field<string?>("kindCode"))).ToList();
         }
 
-        public async Task UpdateConnectionsFromCloudDb()
+        public async Task UpdateConnectionsFromCloudDb(CancellationToken ct)
         {
+            //TODO проверить как отрабатывает. Для kindParam элементы были null(?), сделал не nullable
             _logger.LogInformation("[Method:{MethodName}] Starting updating kind - parameter connections.", nameof(UpdateConnectionsFromCloudDb));
 
             List<(string? kindParameterCode, string? kindCode)>? connections = await GetConnectionsFromCloudDb();
@@ -40,37 +41,36 @@ namespace CRMService.Service.Entity
             {
                 if (string.IsNullOrWhiteSpace(kindParameterCode) || string.IsNullOrEmpty(kindCode)) continue;
 
-                KindsParameter? parameter = await unitOfWork.KindParameter.GetKindParameterByCode(kindParameterCode, false);
-                Kind? kind = await unitOfWork.Kind.GetKindByCode(kindCode, false);
+                KindsParameter? parameter = await unitOfWork.KindParameter.GetItemByCode(kindParameterCode, true, ct);
+                Kind? kind = await unitOfWork.Kind.GetItemByCode(kindCode, true, ct);
 
-                if (parameter == null || kind == null) continue;
+                if (parameter == null || kind == null) 
+                    continue;
 
                 KindParam connection = new() { KindParameterId = parameter.Id, KindId = kind.Id };
-                if (connection.KindId == null) continue;
 
-                var connectionFromLocalDb = await unitOfWork.KindParams.GetConnectionByKindId((int)connection.KindId, false);
+                KindParam? connectionFromLocalDb = await unitOfWork.KindParams.GetItemByPredicate(predicate: kp => kp.KindParameterId == parameter.Id && kp.KindId == kind.Id, asNoTracking: true, ct: ct);
+
                 if (connectionFromLocalDb == null)
                     unitOfWork.KindParams.Create(connection);
 
                 kindParams.Add(connection);
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
-            await DeleteIrrelevantConnectionsBetweenKindAndKindParameterFromCloudDb(kindParams);
+            await DeleteIrrelevantConnectionsBetweenKindAndKindParameterFromCloudDb(kindParams, ct);
 
             _logger.LogInformation("[Method:{MethodName}] Kind - parameter connections update completed.", nameof(UpdateConnectionsFromCloudDb));
         }
 
-        private async Task DeleteIrrelevantConnectionsBetweenKindAndKindParameterFromCloudDb(List<KindParam> kindParamsFromCloudDb)
+        private async Task DeleteIrrelevantConnectionsBetweenKindAndKindParameterFromCloudDb(List<KindParam> kindParamsFromCloudDb, CancellationToken ct)
         {
             foreach (KindParam connectionFromCloudDb in kindParamsFromCloudDb)
             {
-                if (connectionFromCloudDb.KindId == null) continue;
+                List<KindParam> localConnections = await unitOfWork.KindParams.GetItemsByPredicate(predicate: kp => kp.KindParameterId == connectionFromCloudDb.KindParameterId && kp.KindId == connectionFromCloudDb.KindId, asNoTracking: true, ct: ct);
 
-                IEnumerable<KindParam>? localConnections = await unitOfWork.KindParams.GetConnectionsByKind((int)connectionFromCloudDb.KindId, false);
-
-                if (localConnections == null || !localConnections.Any())
+                if (localConnections.Count == 0)
                     continue;
 
                 foreach (KindParam connection in localConnections)
@@ -82,7 +82,7 @@ namespace CRMService.Service.Entity
                 }
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

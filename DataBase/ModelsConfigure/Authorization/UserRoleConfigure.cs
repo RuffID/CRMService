@@ -8,20 +8,15 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<UserRole> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("user_role");
 
-            builder.HasIndex(e => e.RoleId, "role_id_idx");
+            builder.HasKey(e => new { e.RoleId, e.UserId })
+              .HasName("PRIMARY");
 
-            builder.HasIndex(e => e.UserId, "user_id_idx");
-
-            builder.Property(e => e.Id)
-                .HasMaxLength(36)
-                .HasColumnName("id");
             builder.Property(e => e.RoleId)
                 .HasMaxLength(36)
                 .HasColumnName("role_id");
+
             builder.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("user_id");
@@ -29,12 +24,14 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
             builder.HasOne(d => d.Role)
                 .WithMany(p => p.UserRoles)
                 .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("role_id");
+                .HasConstraintName("role_id")
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(d => d.User)
                 .WithMany(p => p.UserRoles)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("user_id");
+                .HasConstraintName("user_id")
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

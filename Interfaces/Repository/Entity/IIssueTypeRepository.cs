@@ -1,11 +1,10 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IIssueTypeRepository : IGetRepository<IssueType>, IUpdateRepository<IssueType>, ICreateRepository<IssueType>
+    public interface IIssueTypeRepository : IGetItemByIdRepository<IssueType, int>, IGetItemByCodeRepository<IssueType>, IUpsertItemByCodeRepository<IssueType>, ICreateItemRepository<IssueType>
     {
-        public Task CreateOrUpdate(IEnumerable<IssueType> items);
-        public Task<int> GetCountOfItems();
     }
 }

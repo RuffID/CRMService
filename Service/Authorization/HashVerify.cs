@@ -1,21 +1,13 @@
 ﻿using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
 namespace CRMService.Service.Authorization
 {
     public class HashVerify
     {
-        private readonly HashSettings _hashSettings;
-
-        public HashVerify(IOptions<HashSettings> hashSettings)
-        {
-            _hashSettings = hashSettings.Value;
-        }
-
         public bool Verify(string input, string hashString)
         {
-            string[] segments = hashString.Split(_hashSettings.Separator);
+            string[] segments = hashString.Split(HashSettingsConstants.SEPARATOR);
             byte[] hash = Convert.FromHexString(segments[0]);
             byte[] salt = Convert.FromHexString(segments[1]);
             int iterations = int.Parse(segments[2]);

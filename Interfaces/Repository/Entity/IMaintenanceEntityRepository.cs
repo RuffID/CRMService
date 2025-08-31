@@ -1,11 +1,9 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IMaintenanceEntityRepository : IGetRepository<MaintenanceEntity>, IUpdateRepository<MaintenanceEntity>, ICreateRepository<MaintenanceEntity>
+    public interface IMaintenanceEntityRepository : IGetItemByIdRepository<MaintenanceEntity, int>, IUpsertItemByIdRepository<MaintenanceEntity, int>, ICreateItemRepository<MaintenanceEntity>
     {
-        Task<MaintenanceEntity?> GetMaintenanceEntityById(int id, bool? trackable = null);
-        public Task CreateOrUpdate(IEnumerable<MaintenanceEntity> items);
     }
 }

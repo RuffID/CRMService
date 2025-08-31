@@ -2,13 +2,13 @@
 
 namespace CRMService.Models.Entity
 {
-    public class IssuePriority : IEntity
+    public class IssuePriority : IEntity<int>, IHasCode, ICopyable<IssuePriority>
     {
         public int Id { get; set; }
 
         public string? Name { get; set; }
 
-        public string? Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         public int? Position { get; set; }
 

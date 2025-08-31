@@ -1,11 +1,16 @@
-﻿using CRMService.Interfaces.BaseRepository;
+﻿using CRMService.Interfaces.Repository.Base;
+using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface ICompanyCategoryRepository : IGetRepository<CompanyCategory>, ICreateRepository<CompanyCategory>, IUpdateRepository<CompanyCategory>
+    public interface ICompanyCategoryRepository : 
+        IGetItemByIdRepository<CompanyCategory, int>, 
+        IGetItemByCodeRepository<CompanyCategory>,
+        ICreateItemRepository<CompanyCategory>, 
+        IUpsertItemByIdRepository<CompanyCategory, int>,
+        IUpsertItemByCodeRepository<CompanyCategory>,
+        ICountItemRepository<CompanyCategory>
     {
-        public Task<int> GetCountOfItems();
-        public Task CreateOrUpdate(IEnumerable<CompanyCategory> items);
     }
 }

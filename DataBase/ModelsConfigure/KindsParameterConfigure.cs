@@ -13,12 +13,15 @@ namespace CRMService.DataBase.ModelsConfigure
             builder.ToTable("kinds_parameters");
 
             builder.Property(e => e.Id).HasColumnName("id");
+
             builder.Property(e => e.Code)
                 .HasMaxLength(30)
                 .HasColumnName("code");
+
             builder.Property(e => e.FieldType)
                 .HasMaxLength(30)
                 .HasColumnName("fieldType");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(200)
                 .HasColumnName("name");

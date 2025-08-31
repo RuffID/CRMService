@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
-using Microsoft.Extensions.Options;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
@@ -14,65 +13,56 @@ namespace CRMService.Controllers.Entity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IOptions<OkdeskSettings> okdSettings, IUnitOfWork unitOfWork, EmployeeService service) : Controller
+    public class EmployeeController(IMapper mapper, IUnitOfWork unitOfWork, EmployeeService service) : Controller
     {
 
         [HttpGet]
-        public async Task<IActionResult> GetEmployee([FromQuery] int id)
+        public async Task<IActionResult> GetEmployee([FromQuery] int id, CancellationToken ct)
         {
-            EmployeeDto? employee = mapper.Map<EmployeeDto>(await unitOfWork.Employee.GetItem(new Employee() { Id = id }, false));
+            Employee? employee = await unitOfWork.Employee.GetItemById(id, true, ct);
 
             if (employee == null)
-                return NotFound("Employee not found.");
+                return NotFound();
 
-            return Ok(employee);
+            return Ok(mapper.Map<EmployeeDto>(employee));
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetEmployees([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetEmployees([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            IEnumerable<EmployeeDto>? employees = mapper.Map<IEnumerable<EmployeeDto>>(await unitOfWork.Employee.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(predicate: e => e.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (employees == null || !employees.Any())
-                return NotFound();
-
-            return Ok(employees);
+            return Ok(mapper.Map<List<EmployeeDto>>(employees));
         }
 
         [HttpGet("connections_with_group")]
-        public async Task<IActionResult> GetGroupEmployeesConnections([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetGroupEmployeesConnections(CancellationToken ct)
         {
-            IEnumerable<EmployeeGroup>? connections = await unitOfWork.EmployeeGroup.GetItems(startIndex, await unitOfWork.EmployeeGroup.GetCountOfItems());
-
-            if (connections == null || !connections.Any())
-                return NotFound();
+            List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetItems(asNoTracking: true, ct: ct);
 
             return Ok(connections);
         }
 
         [HttpGet("by_group")]
-        public async Task<IActionResult> GetEmployeesByGroup([FromQuery] int groupId = 1, [FromQuery] int startIndexEmployee = 0)
+        public async Task<IActionResult> GetEmployeesByGroup([FromQuery] int groupId, [FromQuery] int startIndexEmployee, CancellationToken ct)
         {
-            IEnumerable<EmployeeDto>? employees = mapper.Map<IEnumerable<EmployeeDto>>(await unitOfWork.Employee.GetEmployeesByGroup(groupId, startIndexEmployee, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<Employee> employees = await unitOfWork.EmployeeGroup.GetEmployeesByGroup(groupId, startIndexEmployee, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, true, ct);
 
-            if (employees == null || !employees.Any())
-                return NotFound();
-
-            return Ok(employees);
+            return Ok(mapper.Map<List<EmployeeDto>>(employees));
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateEmployeesFromCloudApi([FromQuery] long startIndexEmployee = 0)
+        public async Task<IActionResult> UpdateEmployeesFromCloudApi([FromQuery] long startIndexEmployee, CancellationToken ct)
         {
-            await service.UpdateEmployeesFromCloudApi(startIndexEmployee, okdSettings.Value.LimitForRetrievingEntitiesFromApi);
+            await service.UpdateEmployeesFromCloudApi(startIndexEmployee, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateEmployeesFromCloudDb([FromQuery] int startIndexEmployee = 0)
+        public async Task<IActionResult> UpdateEmployeesFromCloudDb([FromQuery] int startIndexEmployee, CancellationToken ct)
         {
-            await service.UpdateEmployeesFromCloudDb(startIndexEmployee, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await service.UpdateEmployeesFromCloudDb(startIndexEmployee, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
             return NoContent();
         }

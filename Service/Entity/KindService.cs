@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class KindService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<KindService> _logger = logger.CreateLogger<KindService>();
 
@@ -32,12 +32,12 @@ namespace CRMService.Service.Entity
             return table.AsEnumerable().
                 Select(priority => new Kind
                 {
-                    Code = priority.Field<string>("code"),
+                    Code = priority.Field<string>("code") ?? "",
                     Name = priority.Field<string>("name")
                 }).ToList();
         }
 
-        public async Task UpdateKindsFromCloudApi(long startIndex, long limit)
+        public async Task UpdateKindsFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating kinds.", nameof(UpdateKindsFromCloudApi));
 
@@ -45,25 +45,25 @@ namespace CRMService.Service.Entity
             {
                 if (kinds == null || kinds.Count == 0) return;
 
-                await unitOfWork.Kind.CreateOrUpdate(kinds);
+                await unitOfWork.Kind.UpsertByCodes(kinds, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Kinds update completed.", nameof(UpdateKindsFromCloudApi));
 
         }
 
-        public async Task UpdateKindsFromCloudDb()
+        public async Task UpdateKindsFromCloudDb(CancellationToken ct)
         {
             List<Kind>? kinds = await GetKindsFromCloudDb();
 
             if (kinds == null || kinds.Count == 0)
                 return;
 
-            await unitOfWork.Kind.CreateOrUpdate(kinds);
+            await unitOfWork.Kind.UpsertByCodes(kinds, ct);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

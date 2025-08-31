@@ -8,34 +8,40 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<BlockReason> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("block_reason");
 
-            builder.HasIndex(e => e.Id, "id_UNIQUE").IsUnique();
+            builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.Property(e => e.Id)
+                .HasColumnName("id")
                 .HasMaxLength(36)
-                .HasColumnName("id");
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("UUID()");
+
             builder.Property(e => e.BlockingDate)
                 .HasColumnType("datetime")
                 .HasColumnName("blocking_date");
+
             builder.Property(e => e.UnblockingDate)
                 .HasColumnType("datetime")
                 .HasColumnName("unblocking_date");
+
             builder.Property(e => e.ReasonBlock)
                 .HasMaxLength(150)
                 .HasColumnName("reason_block");
+
             builder.Property(e => e.UnblockingReason)
                 .HasMaxLength(150)
                 .HasColumnName("reason_unblock");
+
             builder.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("user_id");
 
             builder.HasOne(d => d.User).WithOne(p => p.BlockReason)
                 .HasForeignKey<BlockReason>(d => d.UserId)
-                .HasConstraintName("user_block_id");
+                .HasConstraintName("user_block_id")
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

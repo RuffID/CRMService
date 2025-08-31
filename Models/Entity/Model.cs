@@ -3,11 +3,11 @@ using Newtonsoft.Json;
 
 namespace CRMService.Models.Entity
 {
-    public class Model : IEntity
+    public class Model : IEntity<int>, IHasCode, ICopyable<Model>
     {
         public int Id { get; set; }
 
-        public string? Code { get; set; }
+        public string Code { get; set; } = string.Empty;
 
         public string? Name { get; set; }
 

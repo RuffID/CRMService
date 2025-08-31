@@ -24,28 +24,28 @@ namespace CRMService.Service.Entity
                     {
                         Id = categoryTable.Rows.IndexOf(category) + 1,
                         Name = category.Field<string>("name"),
-                        Code = category.Field<string>("code"),
+                        Code = category.Field<string>("code") ?? "",
                         Color = category.Field<string>("color")
                     }).ToList();
         }
 
-        public async Task CheckAnonymousCategory()
+        public async Task CheckAnonymousCategory(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting check anonymous company category.", nameof(CheckAnonymousCategory));
 
             // Создание категории с нулевым id которой нет в базе окдеска, но по которой ищутся клиенты без категории
             // Это нужно для первого запуска сервера
             CompanyCategory no_category = new() { Id = 0, Name = "Без категории", Code = "no_category", Color = "#FFFFFF" };
-            if (await _unitOfWork.CompanyCategory.GetItem(no_category, false) == null)
+            if (await _unitOfWork.CompanyCategory.GetItemById(no_category.Id, false, ct) == null)
             {
                 _unitOfWork.CompanyCategory.Create(no_category);
-                await _unitOfWork.SaveAsync();
+                await _unitOfWork.SaveAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Check anonymous company category completed.", nameof(CheckAnonymousCategory));
         }
 
-        public async Task UpdateCategoriesFromCloudDb()
+        public async Task UpdateCategoriesFromCloudDb(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating company categories.", nameof(UpdateCategoriesFromCloudDb));
 
@@ -54,9 +54,9 @@ namespace CRMService.Service.Entity
             if (categories == null || categories.Count == 0)
                 return;
 
-            await _unitOfWork.CompanyCategory.CreateOrUpdate(categories);
+            await _unitOfWork.CompanyCategory.Upsert(categories, ct);
 
-            await _unitOfWork.SaveAsync();
+            await _unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Company categories update completed.", nameof(UpdateCategoriesFromCloudDb));
         }

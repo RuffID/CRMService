@@ -1,27 +1,18 @@
-﻿using CRMService.Interfaces.Authorization;
+﻿using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.Authorization
 {
-    public class User : IEntity
+    public class User : IEntity<Guid>, ICopyable<User>
     {
-        public User() { }
-
-        public User(string? login = null, string? password = null, string? email = null) 
-        {
-            Login = login;
-            PasswordHash = password;
-            Email = email;
-        }
-
         public Guid Id { get; set; }
 
-        public string? Login { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public string? Email { get; set; }
+        public string Login { get; set; } = string.Empty;
 
-        public string? PasswordHash { get; set; }
+        public string Password { get; set; } = string.Empty;
 
-        public bool? Active { get; set; }
+        public bool Active { get; set; }
 
         public virtual BlockReason? BlockReason { get; set; }
 
@@ -34,8 +25,7 @@ namespace CRMService.Models.Authorization
         public void CopyData(User newItem)
         {
             Login = newItem.Login;
-            Email = newItem.Email;
-            PasswordHash = newItem.PasswordHash;
+            Password = newItem.Password;
             Active = newItem.Active;
         }
     }

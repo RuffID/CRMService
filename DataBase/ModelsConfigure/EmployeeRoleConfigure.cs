@@ -9,14 +9,26 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<EmployeeRole> entity)
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
             entity.ToTable("employee_roles");
 
-            entity.Property(e => e.Id)
-                .HasColumnName("id")
-                .ValueGeneratedOnAdd();
-            entity.Property(e => e.EmployeeId).HasColumnName("employeeId");
-            entity.Property(e => e.RoleId).HasColumnName("roleId");
+            entity.HasKey(e => new { e.EmployeeId, e.RoleId })
+               .HasName("PRIMARY");
+
+            entity.Property(e => e.EmployeeId)
+                .HasColumnName("employeeId");
+
+            entity.Property(e => e.RoleId)
+                .HasColumnName("roleId");
+
+            entity.HasOne(e => e.Employee)
+              .WithMany(e => e.EmployeeRoles)
+              .HasForeignKey(e => e.EmployeeId)
+              .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Role)
+                  .WithMany(r => r.EmployeeRoles)
+                  .HasForeignKey(e => e.RoleId)
+                  .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

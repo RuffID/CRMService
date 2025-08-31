@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class EmployeeService(IOptions<ApiEndpoint> endpoint, IOptions<OkdeskSettings> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetItemService _request, ILoggerFactory logger)
+    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetItemService _request, ILoggerFactory logger)
     {
         private readonly ILogger<EmployeeService> _logger = logger.CreateLogger<EmployeeService>();
 
@@ -43,11 +43,11 @@ namespace CRMService.Service.Entity
                     Position = employee.Field<string>("position"),
                     Active = employee.Field<bool>("active"),
                     Email = employee.Field<string>("email"),
-                    Login = employee.Field<string>("login")
+                    Login = employee.Field<string>("login") ?? ""
                 }).ToList();
         }
 
-        public async Task UpdateEmployeesFromCloudApi(long startIndex, long limit)
+        public async Task UpdateEmployeesFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating employees.", nameof(UpdateEmployeesFromCloudApi));
 
@@ -56,17 +56,17 @@ namespace CRMService.Service.Entity
                 if (employees == null || employees.Count == 0)
                     return;
 
-                await unitOfWork.Employee.CreateOrUpdate(employees);
+                await unitOfWork.Employee.Upsert(employees, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
 
-                await UpdateConnectionsBetweenEmployeesAndRoles(employees);
+                await UpdateConnectionsBetweenEmployeesAndRoles(employees, ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Employees update completed.", nameof(UpdateEmployeesFromCloudApi));
         }
 
-        public async Task UpdateEmployeesFromCloudDb(int startIndexEmployee, int limit)
+        public async Task UpdateEmployeesFromCloudDb(int startIndexEmployee, int limit, CancellationToken ct)
         {
             while (true)
             {
@@ -77,48 +77,49 @@ namespace CRMService.Service.Entity
 
                 startIndexEmployee = employees.Last().Id;
 
-                await unitOfWork.Employee.CreateOrUpdate(employees);
+                await unitOfWork.Employee.Upsert(employees, ct);
 
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(ct);
             }
         }
 
-        private async Task UpdateConnectionsBetweenEmployeesAndRoles(List<Employee> employees)
+        private async Task UpdateConnectionsBetweenEmployeesAndRoles(List<Employee> employees, CancellationToken ct)
         {
             foreach (Employee employee in employees)
             {
-                if (employee.Roles == null || !employee.Roles.Any())
+                if (employee.Roles == null || employee.Roles.Count == 0)
                     continue;
 
                 foreach (OkdeskRole role in employee.Roles)
                 {
-                    if (string.IsNullOrWhiteSpace(role.Name)) continue;
+                    if (string.IsNullOrWhiteSpace(role.Name)) 
+                        continue;
 
-                    OkdeskRole? roleFromDb = await unitOfWork.Role.GetRoleByName(role.Name);
+                    OkdeskRole? roleFromDb = await unitOfWork.OkdeskRole.GetRoleByName(role.Name);
 
-                    if (roleFromDb == null) continue;
-                    // Понадобится для удаления
-                    role.Id = roleFromDb.Id;
+                    if (roleFromDb == null) 
+                        continue;
 
                     EmployeeRole connection = new() { EmployeeId = employee.Id, RoleId = roleFromDb.Id };
 
-                    if (await unitOfWork.EmployeeRole.GetItem(connection, false) == null)
+                    if (await unitOfWork.EmployeeRole.GetItem(connection.EmployeeId, connection.RoleId, false, ct) == null)
                         unitOfWork.EmployeeRole.Create(connection);
                 }
             }
-            await unitOfWork.SaveAsync();
 
-            await DeleteIrrelevantConnectionsEmployeeRoleFromCloudApi(employees);
+            await unitOfWork.SaveAsync(ct);
+
+            await DeleteIrrelevantConnectionsEmployeeRoleFromCloudApi(employees, ct);
         }
 
-        private async Task DeleteIrrelevantConnectionsEmployeeRoleFromCloudApi(List<Employee> employees)
+        private async Task DeleteIrrelevantConnectionsEmployeeRoleFromCloudApi(List<Employee> employees, CancellationToken ct)
         {
             foreach (Employee employee in employees)
             {
-                if (employee.Roles == null || !employee.Roles.Any())
+                if (employee.Roles == null || employee.Roles.Count == 0)
                     continue;
 
-                IEnumerable<EmployeeRole>? localConnections = await unitOfWork.EmployeeRole.GetConnectionsByEmployee(employee.Id);
+                IEnumerable<EmployeeRole>? localConnections = await unitOfWork.EmployeeRole.GetConnectionsByEmployee(employee.Id, false, ct);
 
                 if (localConnections == null || !localConnections.Any())
                     continue;
@@ -132,7 +133,7 @@ namespace CRMService.Service.Entity
                 }
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

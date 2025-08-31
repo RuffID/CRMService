@@ -1,14 +1,10 @@
-﻿using CRMService.Interfaces.Entity;
-
-namespace CRMService.Models.Entity
+﻿namespace CRMService.Models.Entity
 {
-    public class KindParam : IEntity
+    public class KindParam
     {
-        public int Id { get; set; }
+        public int KindId { get; set; }
 
-        public int? KindId { get; set; }
-
-        public int? KindParameterId { get; set; }
+        public int KindParameterId { get; set; }
 
         public virtual Kind? Kind { get; set; }
 

@@ -2,42 +2,39 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.ConfigClass;
-using Microsoft.Extensions.Options;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
+using CRMService.Models.Entity;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindController(IMapper mapper, IOptions<DatabaseSettings> dbSettings, IUnitOfWork unitOfWork, KindService service) : Controller
+    public class KindController(IMapper mapper, IUnitOfWork unitOfWork, KindService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetKinds([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> GetKinds([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            var kinds = mapper.Map<ICollection<KindDto>>(await unitOfWork.Kind.GetItems(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb));
+            List<Kind> kinds = await unitOfWork.Kind.GetItemsByPredicateAndSortById(predicate: k => k.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            if (kinds == null || kinds.Count <= 0)
-                return NotFound("Kinds not found.");
-
-            return Ok(kinds);
+            return Ok(mapper.Map<List<KindDto>>(kinds));
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
-        public async Task<IActionResult> UpdateKindsFromCloudApi([FromQuery] int startIndex = 0)
+        public async Task<IActionResult> UpdateKindsFromCloudApi([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            await service.UpdateKindsFromCloudApi(startIndex, dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await service.UpdateKindsFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db")]
-        public async Task<IActionResult> UpdateKindsFromCloudDb()
+        public async Task<IActionResult> UpdateKindsFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateKindsFromCloudDb();
+            await service.UpdateKindsFromCloudDb(ct);
 
             return NoContent();
         }

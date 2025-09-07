@@ -27,11 +27,11 @@ namespace CRMService.Interfaces.Repository
         ITimeEntryRepository TimeEntry { get; }
         IEquipmentRepository Equipment { get; }
         IReportRepository Report { get; }
-        public IBlockReasonRepository BlockReason { get; }
-        public ICrmRoleRepository CrmRole { get; }
-        public ISessionRepository Session { get; }
-        public IUserRepository User { get; }
-        public IUserRoleRepository UserRole { get; }
+        IBlockReasonRepository BlockReason { get; }
+        ICrmRoleRepository CrmRole { get; }
+        ISessionRepository Session { get; }
+        IUserRepository User { get; }
+        IUserRoleRepository UserRole { get; }
 
         Task SaveAsync(CancellationToken ct = default);
         Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default);

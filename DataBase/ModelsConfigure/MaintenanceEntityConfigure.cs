@@ -8,8 +8,6 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<MaintenanceEntity> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
-
             builder.ToTable("maintenance_entity");
 
             builder.HasIndex(e => e.CompanyId, "companyId_idx");

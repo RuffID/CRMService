@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         private async Task<List<Group>?> GetGroupsFromCloudApi()
         {
-            string link = endpoint.Value.OkdeskApi + "/employees/groups?api_token=" + okdeskSettings.Value.ApiToken;
+            string link = endpoint.Value.OkdeskApi + "/employees/groups?api_token=" + okdeskSettings.Value.OkdeskApiToken;
 
             return await request.GetRangeOfItems<Group>(link);
         }
@@ -101,7 +101,7 @@ namespace CRMService.Service.Entity
                 foreach (var employee in group.Employees)
                 {
                     EmployeeGroup? connection = new() { EmployeeId = employee.Id, GroupId = group.Id };
-                    if (await unitOfWork.EmployeeGroup.GetItem(connection.EmployeeId, connection.GroupId, true, ct) == null)
+                    if (await unitOfWork.EmployeeGroup.GetItemByPredicate(predicate: eg => eg.EmployeeId == employee.Id && eg.GroupId == group.Id, asNoTracking: true, ct: ct) == null)
                         unitOfWork.EmployeeGroup.Create(connection);
                 }
             }
@@ -129,7 +129,7 @@ namespace CRMService.Service.Entity
 
         private async Task DeleteIrrelevantConnectionsEmployeeGroupFromCloudDb(List<EmployeeGroup> connectionsFromCloudDb, CancellationToken ct)
         {
-            IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetItems(ct: ct);
+            IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetItemsByPredicate(asNoTracking: true, ct: ct);
 
             if (localConnections == null || !localConnections.Any())
                 return;
@@ -140,16 +140,16 @@ namespace CRMService.Service.Entity
                     unitOfWork.EmployeeGroup.Delete(connection);
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
         }
 
         private async Task DeleteIrrelevantConnectionsEmployeeGroupFromCloudApi(List<Group> groups, CancellationToken ct)
         {
             foreach (Group group in groups)
             {
-                IEnumerable<EmployeeGroup>? localConnections = await unitOfWork.EmployeeGroup.GetConnectionsByGroup(group.Id, true, ct);
+                List<EmployeeGroup> localConnections = await unitOfWork.EmployeeGroup.GetItemsByPredicate(predicate: eg => eg.GroupId == group.Id, asNoTracking: true, ct: ct);
 
-                if (localConnections == null || !localConnections.Any())
+                if (localConnections == null || localConnections.Count == 0)
                     continue;
 
                 foreach (var connection in localConnections)

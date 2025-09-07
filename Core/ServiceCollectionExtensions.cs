@@ -26,22 +26,28 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using CRMService.Interfaces.Repository.Base;
+using CRMService.Repository.Base;
+using CRMService.Interfaces.Repository.Entity;
+using CRMService.Repository.Entity;
+using CRMService.Interfaces.Repository.Report;
+using CRMService.Repository.Report;
 
 namespace CRMService.Core
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddConfig(
-             this IServiceCollection services, IConfiguration configuration)
+        private static IServiceCollection AddConfig(
+             this IServiceCollection services, IConfiguration conf)
         {
             services.Configure<ApiEndpointOptions>(
-                configuration.GetSection(ApiEndpointOptions.APIENDPOINTS));
-            services.Configure<OkdeskOptions>(
-                configuration.GetSection(OkdeskOptions.OKDESK));
+                conf.GetSection(ApiEndpointOptions.SectionName));
+            services.Configure<WebHookOkdeskOptions>(
+                conf.GetSection(WebHookOkdeskOptions.SectionName));
+            services.Configure<OkdeskOptions>(opt => { opt.OkdeskApiToken = conf["OkdeskApiToken"]!; });
             services.Configure<TelegramBotOptions>(
-                configuration.GetSection(TelegramBotOptions.TELEGRAM_BOT));
-            services.Configure<AuthorizationOptions>(
-                configuration.GetSection(AuthorizationOptions.AUTHORIZATION_OPTIONS));
+                conf.GetSection(TelegramBotOptions.SectionName));
+            services.Configure<AuthorizationOptions>(opt => { opt.JWTSymmetricSecurityKey = conf["JWTSymmetricSecurityKey"]!; });
 
             return services;
         }
@@ -49,6 +55,9 @@ namespace CRMService.Core
         public static IServiceCollection ConfigureServices(
              this IServiceCollection services, IConfiguration configuration)
         {
+            AddConfig(services, configuration);
+            AddRepositories(services);
+
             services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddRazorPages(options =>
             {
@@ -66,29 +75,29 @@ namespace CRMService.Core
 
             services.AddDbContext<ApplicationContext>(options =>
             {
-                string? connectionString = configuration.GetConnectionString("MySqlServer");
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+                string? connectionString = configuration.GetConnectionString("MSSql");
+                options.UseSqlServer(connectionString);
             });
 
             services.AddControllers();
             services.AddLogging();
-            services.AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies());
+            services.AddAutoMapper(cfg => { }, typeof(MappingProfiles).Assembly);
             services.AddHttpClient<IRequestService, RequestClient>();
             services.AddSignalR();
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
             services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-                .Configure<IOptions<BearerTokenOptions>>((options, bearerOpt) =>
+                .Configure<IOptions<AuthorizationOptions>>((options, authOpt) =>
                 {
-                    BearerTokenOptions settings = bearerOpt.Value;
+                    AuthorizationOptions settings = authOpt.Value;
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
-                        ValidIssuer = settings.Issuer,
+                        ValidIssuer = JWTSettingsConstants.ISSUER,
                         ValidateAudience = true,
-                        ValidAudience = settings.Audience,
+                        ValidAudience = JWTSettingsConstants.AUDIENCE,
                         ValidateLifetime = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JWTKey ?? "")),
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JWTSymmetricSecurityKey)),
                         ValidateIssuerSigningKey = true,
                     };
 
@@ -96,17 +105,8 @@ namespace CRMService.Core
                 });
 
             services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
-
-            services.AddScoped<BackupService<ApplicationContext>>(sp =>
-            {
-                ApplicationContext db = sp.GetRequiredService<ApplicationContext>();
-                string backupDirectory = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
-                ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                return new BackupService<ApplicationContext>(db, backupDirectory, loggerFactory);
-            });
-
+            services.AddSingleton(new PGConfig(configuration.GetConnectionString("Postgresql")!));
             services.AddSingleton<EntitySyncService>();
-            services.AddScoped<MigrationService<ApplicationContext>>();
             services.AddSingleton<ServerData>();
             services.AddScoped<PGSelect>();
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
@@ -137,11 +137,18 @@ namespace CRMService.Core
 
             services.AddScoped<UpdateDirectoriesService>();
 
-            services.AddScoped<UserLoginService>();
-            services.AddScoped<DataBaseHandler<ApplicationContext>>();
-            services.AddScoped<BackupService<ApplicationContext>>();
             services.AddScoped<GenerateRandomString>();
-            services.AddScoped<GenerateRefreshToken>();
+            services.AddScoped<JwtTokenService>();
+            services.AddScoped<Hasher>();
+            services.AddScoped<UserLoginService>();
+            services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
+            services.AddScoped<BackupService<ApplicationContext>>(sp =>
+            {
+                ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                string connectionString = configuration.GetConnectionString("MSSql")!;
+                string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
+                return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory);
+            });
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();
@@ -157,11 +164,46 @@ namespace CRMService.Core
             return services;
         }
 
-        public static IServiceCollection AddRepositories(
-             this IServiceCollection services, IConfiguration configuration)
+        private static IServiceCollection AddRepositories(
+             this IServiceCollection services)
         {
+            services.AddScoped(typeof(ICreateItemRepository<>), typeof(CreateItemRepository<>));
+            services.AddScoped(typeof(IDeleteItemRepository<>), typeof(DeleteItemRepository<>));
+            services.AddScoped(typeof(IGetItemByIdRepository<,>), typeof(GetItemByIdRepository<,>));
+            services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
+            services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
+            services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
+            services.AddScoped(typeof(IUpsertItemByCodeRepository<>), typeof(UpsertItemByCodeRepository<>));
+            services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
+
             services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();
             services.AddScoped<ICrmRoleRepository, CrmRoleRepository>();
+            services.AddScoped<ISessionRepository, SessionRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+
+            services.AddScoped<ICompanyRepository, CompanyRepository>();
+            services.AddScoped<ICompanyCategoryRepository, CategoryRepository>();
+            services.AddScoped<IEmployeeGroupRepository, EmployeeGroupRepository>();
+            services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            services.AddScoped<IEmployeeRoleRepository, EmployeeRoleRepository>();
+            services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            services.AddScoped<IGroupRepository, GroupRepository>();
+            services.AddScoped<IIssuePriorityRepository, IssuePriorityRepository>();
+            services.AddScoped<IIssueTypeRepository, IssueTypeRepository>();
+            services.AddScoped<IIssueStatusRepository, IssueStatusRepository>();
+            services.AddScoped<IIssueRepository, IssueRepository>();
+            services.AddScoped<IKindParameterRepository, KindParameterRepository>();
+            services.AddScoped<IKindRepository, KindRepository>();
+            services.AddScoped<IKindParamsRepository, KindParamsRepository>();
+            services.AddScoped<IMaintenanceEntityRepository, MaintenanceEntityRepository>();
+            services.AddScoped<IManufacturerRepository, ManufacturerRepository>();
+            services.AddScoped<IModelRepository, ModelRepository>();
+            services.AddScoped<IOkdeskRoleRepository, OkdeskRoleRepository>();
+            services.AddScoped<IParameterRepository, ParameterRepository>();
+            services.AddScoped<ITimeEntryRepository, TimeEntryRepository>();
+
+            services.AddScoped<IReportRepository, ReportRepository>();
 
             return services;
         }

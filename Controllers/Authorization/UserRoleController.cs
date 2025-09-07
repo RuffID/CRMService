@@ -11,7 +11,7 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class UserRoleController(IUnitOfWorkAuthorization unitOfWork, IMapper mapper) : Controller
+    public class UserRoleController(IUnitOfWork unitOfWork, IMapper mapper) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetUserRoleConnections([FromQuery] int startIndex = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)

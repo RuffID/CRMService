@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         private async IAsyncEnumerable<List<Model>?> GetModelsFromCloudApi(long startIndex, long limit)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/equipments/models?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/equipments/models?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             await foreach (List<Model>? manufacturers in request.GetAllItems<Model>(link, startIndex, limit))
                 yield return manufacturers;
@@ -38,7 +38,7 @@ namespace CRMService.Service.Entity
                 Select(model => new Model
                 {                    
                     Code = model.Field<string>("code") ?? "",
-                    Name = model.Field<string>("name"),
+                    Name = model.Field<string>("name") ?? string.Empty,
                     Kind = new() { Code = model.Field<string>("kindCode") ?? "" },
                     Manufacturer = new() { Code = model.Field<string>("manufacturerCode") ?? "" }
                 }).ToList();
@@ -81,12 +81,9 @@ namespace CRMService.Service.Entity
         private async Task CheckModel(Model model, CancellationToken ct)
         {
             if (model.Manufacturer != null)
-                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByCode(model.Manufacturer.Code, asNoTracking: true, ct))?.Id;
+                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicate(m => m.Code == model.Manufacturer.Code, asNoTracking: true, ct))?.Id ?? 0;
             if (model.Kind != null)
-                model.KindId = (await unitOfWork.Kind.GetItemByCode(model.Kind.Code, asNoTracking: true, ct))?.Id;
-
-            model.Manufacturer = null;
-            model.Kind = null;
+                model.KindId = (await unitOfWork.Kind.GetItemByPredicate(k => k.Code == model.Kind.Code, asNoTracking: true, ct))?.Id ?? 0;
         }
     }
 }

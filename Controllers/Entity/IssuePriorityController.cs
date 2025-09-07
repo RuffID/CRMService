@@ -26,7 +26,7 @@ namespace CRMService.Controllers.Entity
         [HttpGet]
         public async Task<IActionResult> GetIssuePriority([FromQuery] string code, CancellationToken ct)
         {
-            IssuePriority? prioriy = await unitOfWork.IssuePriority.GetItemByCode(code, false, ct);
+            IssuePriority? prioriy = await unitOfWork.IssuePriority.GetItemByPredicate(ip => ip.Code == code, true, ct);
 
             if (prioriy == null)
                 return NotFound();

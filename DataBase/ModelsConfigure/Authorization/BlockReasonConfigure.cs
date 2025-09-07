@@ -8,15 +8,12 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<BlockReason> builder)
         {
-            builder.ToTable("block_reason");
-
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.ToTable("block_reason");            
 
             builder.Property(e => e.Id)
                 .HasColumnName("id")
-                .HasMaxLength(36)
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("UUID()");
+                .HasDefaultValueSql("NEWID()");
 
             builder.Property(e => e.BlockingDate)
                 .HasColumnType("datetime")

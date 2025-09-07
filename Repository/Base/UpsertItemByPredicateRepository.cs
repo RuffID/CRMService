@@ -1,21 +1,21 @@
 ﻿using CRMService.Interfaces.Database;
 using CRMService.Interfaces.Entity;
-using CRMService.Interfaces.Repository.Extended;
+using CRMService.Interfaces.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace CRMService.Repository.Extended
+namespace CRMService.Repository.Base
 {
-    public sealed class UpsertByPredicateRepository<TEntity>(IAppDbContext _context) : IUpsertByPredicateRepository<TEntity>
+    public sealed class UpsertItemByPredicateRepository<TEntity>(IAppDbContext context) : IUpsertItemByPredicateRepository<TEntity>
         where TEntity : class, ICopyable<TEntity>
     {
         public async Task Upsert(TEntity item, Expression<Func<TEntity, bool>> predicate, CancellationToken ct = default)
         {
-            TEntity? existing = await _context.Set<TEntity>().FirstOrDefaultAsync(predicate, ct);
+            TEntity? existing = await context.Set<TEntity>().FirstOrDefaultAsync(predicate, ct);
 
             if (existing is null)
             {
-                _context.Set<TEntity>().Add(item);
+                context.Set<TEntity>().Add(item);
                 return;
             }
 
@@ -28,10 +28,10 @@ namespace CRMService.Repository.Extended
             {
                 Expression<Func<TEntity, bool>> predicate = predicateFactory(item);
 
-                TEntity? existing = await _context.Set<TEntity>().FirstOrDefaultAsync(predicate, ct);
+                TEntity? existing = await context.Set<TEntity>().FirstOrDefaultAsync(predicate, ct);
 
                 if (existing is null)
-                    _context.Set<TEntity>().Add(item);
+                    context.Set<TEntity>().Add(item);
                 else
                     existing.CopyData(item);
             }

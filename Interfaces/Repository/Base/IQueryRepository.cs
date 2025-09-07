@@ -1,4 +1,4 @@
-﻿namespace CRMService.Interfaces.Repository.Extended
+﻿namespace CRMService.Interfaces.Repository.Base
 {
     public interface IQueryRepository<TEntity> where TEntity : class
     {

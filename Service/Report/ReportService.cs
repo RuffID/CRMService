@@ -26,7 +26,7 @@ namespace CRMService.Service.Report
                 report.SolvedIssues = await unitOfWork.Report.GetSolvedIssuesByEmployee(dateFrom, dateTo, employee.Id, cancellation);
                 report.SpentedTime = await unitOfWork.Report.GetSpentedTimeByEmployee(dateFrom, dateTo, employee.Id, cancellation);
 
-                if (report.Issues == null && report.SolvedIssues == null && report.SpentedTime == null)
+                if (report.Issues.Length == 0 && report.SolvedIssues == 0 && report.SpentedTime == 0)
                     continue;
 
                 reportInfo.Add(report);

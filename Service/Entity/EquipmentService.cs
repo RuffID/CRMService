@@ -16,7 +16,7 @@ namespace CRMService.Service.Entity
 
         private async IAsyncEnumerable<List<Equipment>?> GetEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             if (companyId > 0)
                 link += $"&company_ids[]={companyId}";
@@ -64,7 +64,7 @@ namespace CRMService.Service.Entity
 
         public async Task UpdateEquipmentFromCloudApi(long id, CancellationToken ct)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.ApiToken}&page[from_id]={id}&page[direction]=forward&page[size]=1";
+            string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.OkdeskApiToken}&page[from_id]={id}&page[direction]=forward&page[size]=1";
 
             List<Equipment>? equipments = await request.GetRangeOfItems<Equipment>(link);
 
@@ -76,7 +76,7 @@ namespace CRMService.Service.Entity
             await unitOfWork.Equipment.Upsert(equipment, ct);
 
             if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                await unitOfWork.Parameter.Upsert(equipment.Parameters, p => (EquipmentParameter i) => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
+                await unitOfWork.Parameter.Upsert(equipment.Parameters, p => i => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
 
             await unitOfWork.SaveAsync(ct);
         }

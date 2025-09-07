@@ -1,8 +1,8 @@
 ﻿namespace CRMService.Middleware
 {
-    public sealed class ExceptionHandlingMiddleware(ILogger<ExceptionHandlingMiddleware> logger) : IMiddleware
+    public sealed class ExceptionHandlingMiddleware(ILoggerFactory logger) : IMiddleware
     {
-        private readonly ILogger<ExceptionHandlingMiddleware> _logger = logger;
+        private readonly ILogger<ExceptionHandlingMiddleware> _logger = logger.CreateLogger<ExceptionHandlingMiddleware>();
 
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
@@ -12,19 +12,17 @@
             }
             catch (OperationCanceledException)
             {
-                _logger.LogWarning("[Middleware] Request cancelled. Path={Path}, TraceId={TraceId}",
+                _logger.LogWarning("Request cancelled. Path={Path}, TraceId={TraceId}",
                     context.Request.Path, context.TraceIdentifier);
                 context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Middleware] Unhandled exception. Path={Path}, TraceId={TraceId}",
+                _logger.LogError(ex, "Unhandled exception. Path={Path}, TraceId={TraceId}",
                     context.Request.Path, context.TraceIdentifier);
 
-                // Вернуть 500 (или маппить доменные исключения в 4xx/5xx)
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                // опционально JSON-ответ
-                // await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error", traceId = context.TraceIdentifier });
+                await context.Response.WriteAsJsonAsync(new { error = "Internal server error", traceId = context.TraceIdentifier });
             }
         }
     }

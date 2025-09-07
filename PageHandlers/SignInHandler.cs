@@ -9,13 +9,13 @@ using System.Security.Claims;
 
 namespace CRMService.PageHandlers
 {
-    public class SignInHandler(IUnitOfWork unitOfWork, Hasher hasher, HashVerify hashVerify, IHttpContextAccessor context)
+    public class SignInHandler(IUnitOfWork unitOfWork, Hasher hasher, Hasher hash, IHttpContextAccessor context)
     {
         public async Task<bool> SignIn(UserPage userPage, ModelStateDictionary modelState, CancellationToken ct)
         {
             User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == userPage.Login, asNoTracking: true, ct);
 
-            if (user is null || !user.Active || !hashVerify.Verify(hasher.Hash(userPage.Password), user.Password))
+            if (user is null || !user.Active || !hash.Verify(hasher.Hash(userPage.Password), user.Password))
             {
                 modelState.AddModelError("", "Wrong login or password.");
                 return false;

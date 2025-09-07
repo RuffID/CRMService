@@ -8,15 +8,12 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<CrmRole> entity)
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.ToTable("crm_role");
 
             entity.Property(e => e.Id)
-                .HasMaxLength(36)
                 .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("UUID()");
+                .HasDefaultValueSql("NEWID()");
 
             entity.Property(e => e.Name)
                 .HasMaxLength(45)                

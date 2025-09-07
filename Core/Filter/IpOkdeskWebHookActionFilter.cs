@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using Microsoft.Extensions.Options;
+using CRMService.Models.ConfigClass;
 
 namespace CRMService.Core.Filter
 {
@@ -11,10 +13,10 @@ namespace CRMService.Core.Filter
         private readonly List<(IPAddress Network, int PrefixLength)> _cidrWhitelist = [];
         private readonly List<IPAddress> _singleIpWhitelist = [];
 
-        public IpOkdeskWebHookActionFilterAttribute(ILogger<IpOkdeskWebHookActionFilterAttribute> logger, IConfiguration configuration)
+        public IpOkdeskWebHookActionFilterAttribute(ILoggerFactory logger, IOptions<WebHookOkdeskOptions> webHookOptions)
         {
-            _logger = logger;
-            string[] ipList = configuration.GetSection("WebHookOkdeskIpAddressList").Get<string[]>() ?? [];
+            _logger = logger.CreateLogger<IpOkdeskWebHookActionFilterAttribute>();
+            string[] ipList = webHookOptions.Value.IpAddressList;
 
             // Запись ip адресов из конфига в переменную для дальнейшей работы
             foreach (var ip in ipList)

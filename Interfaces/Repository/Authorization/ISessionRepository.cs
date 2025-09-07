@@ -1,5 +1,4 @@
 ﻿using CRMService.Interfaces.Repository.Base;
-using CRMService.Interfaces.Repository.Extended;
 using CRMService.Models.Authorization;
 
 namespace CRMService.Interfaces.Repository.Authorization

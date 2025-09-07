@@ -6,8 +6,8 @@
 
         public int KindParameterId { get; set; }
 
-        public virtual Kind? Kind { get; set; }
+        public virtual Kind Kind { get; set; } = null!;
 
-        public virtual KindsParameter? KindParameter { get; set; }
+        public virtual KindsParameter KindParameter { get; set; } = null!;
     }
 }

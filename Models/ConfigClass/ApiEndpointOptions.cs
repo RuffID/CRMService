@@ -2,10 +2,10 @@
 {
     public class ApiEndpointOptions
     {
-        public const string APIENDPOINTS = "ApiEndpoints";
-        public string OkdeskDomain { get; set; } = string.Empty;
-        public string TelegramBot { get; set; } = string.Empty;
-        public string OkdeskApiPath { get; set; } = string.Empty;
-        public string OkdeskApi => OkdeskDomain + OkdeskApiPath;
+        public const string SectionName = "ApiEndpoints";
+        public const string OKDESK_API_PATH = "/api/v1";
+        public string TelegramBotUrl { get; set; } = string.Empty;
+        public string OkdeskDomainUrl { get; set; } = string.Empty;
+        public string OkdeskApi => OkdeskDomainUrl + OKDESK_API_PATH;
     }
 }

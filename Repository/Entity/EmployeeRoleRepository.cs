@@ -1,35 +1,30 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using CRMService.Models.Entity;
 using CRMService.Interfaces.Repository.Entity;
-using CRMService.Interfaces.Repository.Extended;
 using CRMService.Interfaces.Repository.Base;
 using System.Linq.Expressions;
 
 namespace CRMService.Repository.Entity
 {
-    public class EmployeeRoleRepository(IQueryRepository<EmployeeRole> _query,
-        ICreateItemRepository<EmployeeRole> _create,
-        IUpsertByPredicateRepository<EmployeeRole> _upsert,
-        IGetItemByPredicateRepository<EmployeeRole> _getByPredicate,
-        IDeleteItemRepository<EmployeeRole> _delete) : IEmployeeRoleRepository
+    public class EmployeeRoleRepository(IGetItemByPredicateRepository<EmployeeRole> getItemByPredicate,
+        ICreateItemRepository<EmployeeRole> create,
+        IUpsertItemByPredicateRepository<EmployeeRole> upsertItemByPredicate,
+        IDeleteItemRepository<EmployeeRole> delete) : IEmployeeRoleRepository
     {
-        public Task<List<EmployeeRole>> GetItems(int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default)
-            => _getByPredicate.GetItemsByPredicate(skip: skip, take: take, asNoTracking: asNoTracking, ct: ct);
+        public Task<EmployeeRole?> GetItemByPredicate(Expression<Func<EmployeeRole, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<EmployeeRole, object>>[] includes)
+            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
 
-        public Task<EmployeeRole?> GetItem(int employeeId, int roleId, bool asNoTracking = false, CancellationToken ct = default)
-            => _getByPredicate.GetItemByPredicate(c => c.EmployeeId == employeeId && c.RoleId == roleId, asNoTracking, ct);
+        public Task<List<EmployeeRole>> GetItemsByPredicate(Expression<Func<EmployeeRole, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<EmployeeRole, object>>[] includes)
+            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
 
-        public async Task<IEnumerable<EmployeeRole>?> GetConnectionsByEmployee(int employeeId, bool asNoTracking = false, CancellationToken ct = default)
-            => await _query.Query(asNoTracking).Where(c => c.EmployeeId == employeeId).ToListAsync(ct);
-
-        public void Create(EmployeeRole item) => _create.Create(item);
+        public void Create(EmployeeRole item) => create.Create(item);
 
         public Task Upsert(EmployeeRole item, Expression<Func<EmployeeRole, bool>> predicate, CancellationToken ct = default)
-            => _upsert.Upsert(item, predicate, ct);
+            => upsertItemByPredicate.Upsert(item, predicate, ct);
 
         public Task Upsert(IEnumerable<EmployeeRole> items, Func<EmployeeRole, Expression<Func<EmployeeRole, bool>>> predicateFactory, CancellationToken ct = default)
-            => _upsert.Upsert(items, predicateFactory, ct);
+            => upsertItemByPredicate.Upsert(items, predicateFactory, ct);
 
-        public void Delete(EmployeeRole item) => _delete.Delete(item);
+        public void Delete(EmployeeRole item) => delete.Delete(item);        
     }
 }

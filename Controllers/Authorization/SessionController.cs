@@ -11,7 +11,7 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class SessionController(IMapper mapper, IUnitOfWorkAuthorization unitOfWork) : Controller
+    public class SessionController(IMapper mapper, IUnitOfWork unitOfWork) : Controller
     {
 
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]

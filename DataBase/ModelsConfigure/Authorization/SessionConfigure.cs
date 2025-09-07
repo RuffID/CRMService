@@ -10,15 +10,14 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
         {
             builder.ToTable("session");
 
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            
 
             builder.HasIndex(e => e.UserId, "user_session_id_idx");
 
             builder.Property(e => e.Id)
-                .HasMaxLength(36)
                 .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("UUID()");
+                .HasDefaultValueSql("NEWID()");
 
             builder.Property(e => e.ExpirationRefreshToken)
                 .HasColumnType("datetime")

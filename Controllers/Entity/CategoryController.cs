@@ -25,7 +25,7 @@ namespace CRMService.Controllers.Entity
         [HttpGet]
         public async Task<IActionResult> GetCategory([FromQuery] string code, CancellationToken ct)
         {
-            CompanyCategory? categoryFromDb = await unitOfWork.CompanyCategory.GetItemByCode(code, true, ct);
+            CompanyCategory? categoryFromDb = await unitOfWork.CompanyCategory.GetItemByPredicate(predicate: cc => cc.Code == code, asNoTracking: true, ct: ct);
 
             if (categoryFromDb == null)
                 return NotFound();
@@ -36,7 +36,7 @@ namespace CRMService.Controllers.Entity
         [HttpPut, Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> UpdateCategory([FromBody] CategoryDto updatedCategory, CancellationToken ct)
         {
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByCode(updatedCategory.Code, true, ct);
+            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByPredicate(predicate: cc => cc.Code == updatedCategory.Code, asNoTracking: true, ct: ct);
 
             if (category == null)
                 return NotFound();

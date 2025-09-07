@@ -17,10 +17,8 @@ namespace CRMService.Repository.Entity
 
         public void Create(Equipment item) => create.Create(item);
 
-        public Task Upsert(Equipment item, CancellationToken ct = default)
-            => upsert.Upsert(item, ct);
+        public Task Upsert(Equipment item, CancellationToken ct = default) => upsert.Upsert(item, ct);
 
-        public Task Upsert(IEnumerable<Equipment> items, CancellationToken ct = default)
-            => upsert.Upsert(items, ct);
+        public Task Upsert(IEnumerable<Equipment> items, CancellationToken ct = default) => upsert.Upsert(items, ct);
     }
 }

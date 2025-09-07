@@ -8,7 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<IssuePriority> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            
 
             builder.ToTable("issue_priority");
 

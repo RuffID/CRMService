@@ -23,7 +23,7 @@ namespace CRMService.API
                 return; 
             }
 
-            await request.SendPost(endpoint.TelegramBot + $"?chatId={chatId}", new StringContent(json, Encoding.UTF8, "application/json"));
+            await request.SendPost(endpoint.TelegramBotUrl + $"?chatId={chatId}", new StringContent(json, Encoding.UTF8, "application/json"));
         }
     }
 }

@@ -13,7 +13,7 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class UserController(IUnitOfWorkAuthorization unitOfWork, IMapper mapper, Hasher hasher) : Controller
+    public class UserController(IUnitOfWork unitOfWork, IMapper mapper, Hasher hasher) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetUsers([FromQuery] int startIndex = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)

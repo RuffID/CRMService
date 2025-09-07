@@ -2,7 +2,6 @@
 {
     public class OkdeskOptions
     {
-        public const string OKDESK = "Okdesk";
-        public string ApiToken { get; set; } = string.Empty;
+        public string OkdeskApiToken { get; set; } = string.Empty;
     }
 }

@@ -23,10 +23,10 @@ namespace CRMService.Service.Authorization
             JwtSecurityTokenHandler tokenHandler = new ();
             SecurityTokenDescriptor tokenDescriptor = new()
             {                
-                Issuer = _authOptions.Issuer,
-                Audience = _authOptions.Audience,
+                Issuer = JWTSettingsConstants.ISSUER,
+                Audience = JWTSettingsConstants.AUDIENCE,
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(_authOptions.AccessTokenLifeTimeFromMinutes),
+                Expires = DateTime.UtcNow.AddMinutes(JWTSettingsConstants.ACCESS_TOKEN_LIFE_TIME_FROM_MINUTES),
                 SigningCredentials = new SigningCredentials(SymmetricSecurityKey, SecurityAlgorithms.HmacSha256Signature)
             };            
 
@@ -38,9 +38,9 @@ namespace CRMService.Service.Authorization
         {
             get
             {
-                if (string.IsNullOrEmpty(_authOptions.SymmetricSecurityKey))
+                if (string.IsNullOrEmpty(_authOptions.JWTSymmetricSecurityKey))
                     throw new InvalidOperationException("Not set symmetric security key in server config.");
-                return new(Encoding.UTF8.GetBytes(_authOptions.SymmetricSecurityKey));
+                return new(Encoding.UTF8.GetBytes(_authOptions.JWTSymmetricSecurityKey));
             }
         }
     }

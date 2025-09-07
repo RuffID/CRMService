@@ -5,9 +5,9 @@ using CRMService.Service.Entity;
 
 namespace CRMService.Service.Webhook
 {
-    public class CompanyWebhookService(IUnitOfWork unitOfWork, CompanyService companyService, CancellationToken ct) : IWebhookHandler
+    public class CompanyWebhookService(IUnitOfWork unitOfWork, CompanyService companyService) : IWebhookHandler
     {
-        public async Task<bool> HandleWebhook(RootEvent @event)
+        public async Task<bool> HandleWebhook(RootEvent @event, CancellationToken ct)
         {
             if (@event.Company == null)
                 return false;

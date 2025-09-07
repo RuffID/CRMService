@@ -14,14 +14,13 @@ namespace CRMService.Service.Entity
 
         private async IAsyncEnumerable<List<Employee>?> GetEmployeesFromCloudApi(long startIndex, long limit)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/employees/list?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/employees/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             await foreach (var employees in _request.GetAllItems<Employee>(link, startIndex, limit))
                 yield return employees;
-
         }
 
-        private async Task<List<Employee>?> GetEmployeesFromCloudDb(int startIndex, int limit)
+        private async Task<List<Employee>> GetEmployeesFromCloudDb(int startIndex, int limit)
         {
             string sqlCommand = string.Format("SELECT * FROM users " +
                 "WHERE type = 'Employee' AND users.sequential_id > '{0}' " +
@@ -31,7 +30,7 @@ namespace CRMService.Service.Entity
             DataSet ds = await pGSelect.Select(sqlCommand);
             DataTable? employeesTable = ds.Tables["Table"];
             if (employeesTable == null)
-                return null;
+                return new ();
 
             return employeesTable.AsEnumerable().
                 Select(employee => new Employee
@@ -43,7 +42,7 @@ namespace CRMService.Service.Entity
                     Position = employee.Field<string>("position"),
                     Active = employee.Field<bool>("active"),
                     Email = employee.Field<string>("email"),
-                    Login = employee.Field<string>("login") ?? ""
+                    Login = employee.Field<string>("login") ?? string.Empty
                 }).ToList();
         }
 
@@ -54,7 +53,7 @@ namespace CRMService.Service.Entity
             await foreach (List<Employee>? employees in GetEmployeesFromCloudApi(startIndex, limit))
             {
                 if (employees == null || employees.Count == 0)
-                    return;
+                    break;
 
                 await unitOfWork.Employee.Upsert(employees, ct);
 
@@ -73,7 +72,7 @@ namespace CRMService.Service.Entity
                 List<Employee>? employees = await GetEmployeesFromCloudDb(startIndexEmployee, limit);
 
                 if (employees == null || employees.Count == 0)
-                    return;
+                    break;
 
                 startIndexEmployee = employees.Last().Id;
 
@@ -95,14 +94,14 @@ namespace CRMService.Service.Entity
                     if (string.IsNullOrWhiteSpace(role.Name)) 
                         continue;
 
-                    OkdeskRole? roleFromDb = await unitOfWork.OkdeskRole.GetRoleByName(role.Name);
+                    OkdeskRole? roleFromDb = await unitOfWork.OkdeskRole.GetItemByPredicate(r => r.Name == role.Name, asNoTracking: true, ct: ct);
 
                     if (roleFromDb == null) 
                         continue;
 
                     EmployeeRole connection = new() { EmployeeId = employee.Id, RoleId = roleFromDb.Id };
 
-                    if (await unitOfWork.EmployeeRole.GetItem(connection.EmployeeId, connection.RoleId, false, ct) == null)
+                    if (await unitOfWork.EmployeeRole.GetItemByPredicate(predicate: er => er.EmployeeId == employee.Id && er.RoleId == roleFromDb.Id, asNoTracking: false, ct) == null)
                         unitOfWork.EmployeeRole.Create(connection);
                 }
             }
@@ -119,9 +118,9 @@ namespace CRMService.Service.Entity
                 if (employee.Roles == null || employee.Roles.Count == 0)
                     continue;
 
-                IEnumerable<EmployeeRole>? localConnections = await unitOfWork.EmployeeRole.GetConnectionsByEmployee(employee.Id, false, ct);
+                List<EmployeeRole> localConnections = await unitOfWork.EmployeeRole.GetItemsByPredicate(predicate: er => er.EmployeeId == employee.Id, asNoTracking: false, ct: ct);
 
-                if (localConnections == null || !localConnections.Any())
+                if (localConnections == null || localConnections.Count == 0)
                     continue;
 
                 foreach (var connection in localConnections)

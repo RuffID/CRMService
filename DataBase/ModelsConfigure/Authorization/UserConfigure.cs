@@ -10,18 +10,17 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
         {
             builder.ToTable("user");
 
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            
 
             builder.HasIndex(e => e.Login, "login_UNIQUE").IsUnique();
 
             builder.Property(e => e.Id)
-                .HasMaxLength(36)
                 .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("UUID()");
+                .HasDefaultValueSql("NEWID()");
 
             builder.Property(e => e.Password)
-                .HasMaxLength(150)
+                .HasMaxLength(256)
                 .HasColumnName("password_hash");
 
             builder.Property(e => e.Login)

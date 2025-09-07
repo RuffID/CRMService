@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Authorization
 {
-    public class UserLoginService(IUnitOfWorkAuthorization unitOfWork, ILoggerFactory logger, IOptions<AuthorizationOptions> authOptions, GenerateRefreshToken generateRefresh)
+    public class UserLoginService(IUnitOfWork unitOfWork, ILoggerFactory logger, IOptions<AuthorizationOptions> authOptions, GenerateRandomString getString)
     {
         private readonly JwtTokenService _accessToken = new(authOptions);        
         private readonly ILogger<UserLoginService> _logger = logger.CreateLogger<UserLoginService>();
@@ -15,18 +15,18 @@ namespace CRMService.Service.Authorization
             Token token = new()
             {
                 AccessToken = _accessToken.Create(user),
-                RefreshToken = generateRefresh.Generate()
+                RefreshToken = getString.GetBase64RandomString()
             };
 
             Session session = new()
             {
                 UserId = user.Id,
                 RefreshToken = token.RefreshToken,
-                ExpirationRefreshToken = DateTime.UtcNow.AddDays(authOptions.Value.RefreshTokenLifeTimeFromDays)
+                ExpirationRefreshToken = DateTime.UtcNow.AddDays(JWTSettingsConstants.REFRESH_TOKEN_LIFE_TIME_FROM_DAYS)
             };
 
             unitOfWork.Session.Create(session);
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return token;
         }
@@ -44,13 +44,13 @@ namespace CRMService.Service.Authorization
             Token token = new()
             {
                 AccessToken = _accessToken.Create(user),
-                RefreshToken = generateRefresh.Generate()
+                RefreshToken = getString.GetBase64RandomString()
             };
 
             session.RefreshToken = token.RefreshToken;
-            session.ExpirationRefreshToken = DateTime.UtcNow.AddDays(authOptions.Value.RefreshTokenLifeTimeFromDays);
+            session.ExpirationRefreshToken = DateTime.UtcNow.AddDays(JWTSettingsConstants.REFRESH_TOKEN_LIFE_TIME_FROM_DAYS);
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return token;
         }

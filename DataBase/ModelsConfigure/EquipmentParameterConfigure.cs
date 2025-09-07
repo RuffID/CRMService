@@ -10,8 +10,7 @@ namespace CRMService.DataBase.ModelsConfigure
         {
             builder.ToTable("equipment_parameter");
 
-            builder.HasKey(e => new { e.EquipmentId, e.KindParameterId })
-              .HasName("PRIMARY");
+            builder.HasKey(e => new { e.EquipmentId, e.KindParameterId });
 
             builder.HasIndex(e => e.EquipmentId, "equipmentId_idx");
 
@@ -35,7 +34,7 @@ namespace CRMService.DataBase.ModelsConfigure
             builder.HasOne(d => d.KindParameter)
                 .WithMany(p => p.Parameters)
                 .HasForeignKey(d => d.KindParameterId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

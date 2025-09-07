@@ -8,9 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Company> builder)
         {
-            builder.ToTable("company");
-
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.ToTable("company");            
 
             builder.HasIndex(e => e.CategoryId, "categoryId_idx");
 
@@ -26,7 +24,7 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.HasOne(d => d.Category).WithMany(p => p.Companies)
                 .HasForeignKey(d => d.CategoryId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

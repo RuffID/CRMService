@@ -41,8 +41,8 @@ namespace CRMService.Service.Entity
             {
                 if (string.IsNullOrWhiteSpace(kindParameterCode) || string.IsNullOrEmpty(kindCode)) continue;
 
-                KindsParameter? parameter = await unitOfWork.KindParameter.GetItemByCode(kindParameterCode, true, ct);
-                Kind? kind = await unitOfWork.Kind.GetItemByCode(kindCode, true, ct);
+                KindsParameter? parameter = await unitOfWork.KindParameter.GetItemByPredicate(kp => kp.Code == kindParameterCode, asNoTracking: true, ct);
+                Kind? kind = await unitOfWork.Kind.GetItemByPredicate(k => k.Code == kindCode, asNoTracking: true, ct);
 
                 if (parameter == null || kind == null) 
                     continue;

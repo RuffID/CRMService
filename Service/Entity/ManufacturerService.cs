@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         private async IAsyncEnumerable<List<Manufacturer>?> GetManufacturersFromCloudApi(long startIndex, long limit)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/equipments/manufacturers?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/equipments/manufacturers?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             await foreach (List<Manufacturer> manufacturers in request.GetAllItems<Manufacturer>(link, startIndex, limit))
                 yield return manufacturers;
@@ -33,7 +33,7 @@ namespace CRMService.Service.Entity
                 Select(manufacture => new Manufacturer
                 {
                     Code = manufacture.Field<string>("code") ?? "",
-                    Name = manufacture.Field<string>("name")
+                    Name = manufacture.Field<string>("name") ?? string.Empty
                 }).ToList();
         }
 

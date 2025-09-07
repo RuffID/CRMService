@@ -23,8 +23,8 @@ namespace CRMService.Service.Entity
                     Select(category => new CompanyCategory
                     {
                         Id = categoryTable.Rows.IndexOf(category) + 1,
-                        Name = category.Field<string>("name"),
-                        Code = category.Field<string>("code") ?? "",
+                        Name = category.Field<string>("name") ?? string.Empty,
+                        Code = category.Field<string>("code") ?? string.Empty,
                         Color = category.Field<string>("color")
                     }).ToList();
         }

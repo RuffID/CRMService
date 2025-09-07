@@ -1,36 +1,27 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MySql.Data.MySqlClient;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Service.DataBase
 {
-    public class BackupService<TContext>(TContext db, string backupFolder, ILoggerFactory logger) where TContext : DbContext
+    public class BackupService<TContext>(string connectionString, string backupFolder, ILoggerFactory logger) where TContext : DbContext
     {
-        private readonly TContext _db = db;
-        private readonly string _backupFolder = backupFolder;
         private readonly ILogger<BackupService<TContext>> _logger = logger.CreateLogger<BackupService<TContext>>();
 
         public void CreateSqlServerBackup()
         {
-            try
-            {
-                string? connectionString = _db.Database.GetConnectionString();
-                string timestamp = DateTime.Now.ToString("yyyy.MM.dd_HHmmss");
-                string backupFilePath = Path.Combine(_backupFolder, $"backup_{timestamp}.sql");
+            string timestamp = DateTime.Now.ToString("yyyy.MM.dd_HHmmss");
+            string backupFilePath = Path.Combine(backupFolder, $"backup_{timestamp}.sql");
 
-                using MySqlConnection connection = new(connectionString);
-                using MySqlCommand cmd = connection.CreateCommand();
-                using MySqlBackup mb = new(cmd);
+            using SqlConnection connection = new(connectionString);
+            connection.Open();
 
-                connection.Open();
-                mb.ExportToFile(backupFilePath);
-                connection.Close();
+            string dbName = new SqlConnectionStringBuilder(connectionString).InitialCatalog;
+            string sql = $"BACKUP DATABASE [{dbName}] TO DISK = N'{backupFilePath}' WITH FORMAT, INIT, NAME = 'Scheduled Backup';";
 
-                _logger.LogInformation("[Method:{MethodName}] Backup created at: {BackupFilePath}", nameof(CreateSqlServerBackup), backupFilePath);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Method:{MethodName}] Failed to create MySQL backup", nameof(CreateSqlServerBackup));
-            }
+            using SqlCommand command = new(sql, connection);
+            command.ExecuteNonQuery();
+
+            _logger.LogInformation("[Method:{MethodName}] Backup created at: {BackupFilePath}", nameof(CreateSqlServerBackup), backupFilePath);
         }
     }
 }

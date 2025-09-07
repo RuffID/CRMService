@@ -8,9 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Equipment> builder)
         {
-            builder.ToTable("equipment");
-
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.ToTable("equipment");            
 
             builder.HasIndex(e => e.CompanyId, "companyId_idx");
 
@@ -40,32 +38,32 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.HasOne(d => d.Company).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.CompanyId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("equipmentCompanyId");
 
             builder.HasOne(d => d.Kind).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.KindId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("kindEquipId");
 
             builder.HasOne(d => d.MaintenanceEntities).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.MaintenanceEntitiesId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("equipmentMaintenanceEntitiesId");
 
             builder.HasOne(d => d.Manufacturer).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.ManufacturerId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("manufacturerEquipId");
 
             builder.HasOne(d => d.Model).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.ModelId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(e => e.Parameters)
                 .WithOne(p => p.Equipment)
                 .HasForeignKey(p => p.EquipmentId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

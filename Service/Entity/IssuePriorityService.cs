@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         public async Task<List<IssuePriority>?> GetIssuePrioritiesFromCloudApi()
         {
-            string link = endpoint.Value.OkdeskApi + "/issues/priorities?api_token=" + okdeskSettings.Value.ApiToken;
+            string link = endpoint.Value.OkdeskApi + "/issues/priorities?api_token=" + okdeskSettings.Value.OkdeskApiToken;
 
             return await request.GetRangeOfItems<IssuePriority>(link);
         }

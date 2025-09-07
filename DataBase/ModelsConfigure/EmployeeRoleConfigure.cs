@@ -11,8 +11,7 @@ namespace CRMService.DataBase.ModelsConfigure
         {
             entity.ToTable("employee_roles");
 
-            entity.HasKey(e => new { e.EmployeeId, e.RoleId })
-               .HasName("PRIMARY");
+            entity.HasKey(e => new { e.EmployeeId, e.RoleId });
 
             entity.Property(e => e.EmployeeId)
                 .HasColumnName("employeeId");

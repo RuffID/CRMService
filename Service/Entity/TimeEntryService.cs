@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         public async Task<TimeEntries?> GetimeEntriesFromCloudApi(int issueId)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/issues/{issueId}/time_entries?api_token={okdesk.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/issues/{issueId}/time_entries?api_token={okdesk.Value.OkdeskApiToken}";
 
             return await request.GetItem<TimeEntries>(link);
         }

@@ -6,15 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.DataBase;
 
-public partial class ApplicationContext : DbContext
+public partial class ApplicationContext(DbContextOptions<ApplicationContext> options) : DbContext(options)
 {
-    //private readonly DatabaseSettings _dbSettings;
-    public ApplicationContext(/*IOptions<DatabaseSettings> dbSetings*/)
-    {
-        //_dbSettings = dbSetings.Value;
-        Database.EnsureCreated();
-    }
-
     public virtual DbSet<Company> Companies { get; set; }
     public virtual DbSet<CompanyCategory> CompanyCategories { get; set; }
     public virtual DbSet<Employee> Employees { get; set; }
@@ -41,18 +34,8 @@ public partial class ApplicationContext : DbContext
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
-    /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseMySql(_dbSettings.MySqlMainCRM,
-                new MySqlServerVersion(new Version(_dbSettings.MySqlVersion)));
-    }*/
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder
-            .UseCollation("utf8mb4_0900_ai_ci")
-            .HasCharSet("utf8mb4");
-
         modelBuilder
             .ApplyConfiguration(new CompanyConfigure())
             .ApplyConfiguration(new CompanyCategoryConfigure())

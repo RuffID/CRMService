@@ -14,10 +14,10 @@ namespace CRMService.Models.Entity
         public string? Title { get; set; }
 
         [JsonProperty("updated_at")]
-        public DateTime? EmployeesUpdatedAt { get; set; }
+        public DateTime EmployeesUpdatedAt { get; set; }
 
         [JsonProperty("created_at")]
-        public DateTime? CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; }
 
         [JsonProperty("completed_at")]
         public DateTime? CompletedAt { get; set; }
@@ -31,11 +31,11 @@ namespace CRMService.Models.Entity
         [JsonProperty("deleted_at")]
         public DateTime? DeletedAt { get; set; }
 
-        public int? StatusId { get; set; }
+        public int StatusId { get; set; }
 
-        public int? TypeId { get; set; }
+        public int TypeId { get; set; }
 
-        public int? PriorityId { get; set; }
+        public int PriorityId { get; set; }
 
         public int? CompanyId { get; set; }
 
@@ -45,14 +45,14 @@ namespace CRMService.Models.Entity
 
         public virtual Company? Company { get; set; }
 
-        public virtual IssuePriority? Priority { get; set; }
-
         [JsonProperty("service_object")]
         public virtual MaintenanceEntity? ServiceObject { get; set; }
 
-        public virtual IssueStatus? Status { get; set; }
+        public virtual IssuePriority Priority { get; set; } = null!;
 
-        public virtual IssueType? Type { get; set; }
+        public virtual IssueStatus Status { get; set; } = null!;
+
+        public virtual IssueType Type { get; set; } = null!;
 
         public virtual ICollection<TimeEntry>? TimeEntries { get; set; } = new List<TimeEntry>();
 

@@ -1,15 +1,15 @@
 ﻿using CRMService.Interfaces.Database;
-using CRMService.Interfaces.Repository.Extended;
+using CRMService.Interfaces.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace CRMService.Repository.Extended
+namespace CRMService.Repository.Base
 {
-    public class GetByPredicateRepository<TEntity>(IAppDbContext _context) : IGetItemByPredicateRepository<TEntity> where TEntity : class
+    public class GetItemByPredicateRepository<TEntity>(IAppDbContext context) : IGetItemByPredicateRepository<TEntity> where TEntity : class
     {
         public Task<TEntity?> GetItemByPredicate(Expression<Func<TEntity, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes)
         {
-            IQueryable<TEntity> query = _context.Set<TEntity>();
+            IQueryable<TEntity> query = context.Set<TEntity>();
 
             if (asNoTracking) 
                 query = query.AsNoTracking();
@@ -22,7 +22,7 @@ namespace CRMService.Repository.Extended
 
         public Task<List<TEntity>> GetItemsByPredicate(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes)
         {
-            IQueryable<TEntity> query = _context.Set<TEntity>();
+            IQueryable<TEntity> query = context.Set<TEntity>();
 
             if (asNoTracking) 
                 query = query.AsNoTracking();

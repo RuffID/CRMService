@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         public async Task<List<KindsParameter>?> GetKindParametersFromCloudApi()
         {
-            string link = $"{endpoint.Value.OkdeskApi} /equipments/parameters?api_token= {okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi} /equipments/parameters?api_token= {okdeskSettings.Value.OkdeskApiToken}";
 
             return await request.GetRangeOfItems<KindsParameter>(link);
         }
@@ -74,8 +74,8 @@ namespace CRMService.Service.Entity
 
                 foreach (string code in parameter.Equipment_kind_codes)
                 {
-                    KindsParameter? paramFromLocalDb = await unitOfWork.KindParameter.GetItemByCode(parameter.Code, true, ct);
-                    Kind? kindFromLocalDb = await unitOfWork.Kind.GetItemByCode(code, true, ct);
+                    KindsParameter? paramFromLocalDb = await unitOfWork.KindParameter.GetItemByPredicate(p => p.Code == parameter.Code, true, ct);
+                    Kind? kindFromLocalDb = await unitOfWork.Kind.GetItemByPredicate(k => k.Code == code, asNoTracking: true, ct);
 
                     if (paramFromLocalDb == null || kindFromLocalDb == null)
                         continue;

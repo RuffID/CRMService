@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         private async IAsyncEnumerable<List<Kind>?> GetKindsFromCloudApi(long startIndex, long limit)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/equipments/kinds?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/equipments/kinds?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             await foreach (List<Kind> kinds in request.GetAllItems<Kind>(link, startIndex, limit))
                 yield return kinds;
@@ -33,7 +33,7 @@ namespace CRMService.Service.Entity
                 Select(priority => new Kind
                 {
                     Code = priority.Field<string>("code") ?? "",
-                    Name = priority.Field<string>("name")
+                    Name = priority.Field<string>("name") ?? string.Empty
                 }).ToList();
         }
 

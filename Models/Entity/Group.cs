@@ -1,5 +1,4 @@
 ﻿using CRMService.Interfaces.Entity;
-using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Models.Entity
 {
@@ -13,7 +12,7 @@ namespace CRMService.Models.Entity
 
         public string? Description { get; set; }
 
-        public virtual IEnumerable<EmployeeDto>? Employees { get; set; } = new List<EmployeeDto>();
+        public virtual IEnumerable<Employee>? Employees { get; set; } = new List<Employee>();
 
         public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 

@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         public async Task<List<IssueStatus>?> GetIssueStatusesFromCloudApi()
         {
-            string link = endpoint.Value.OkdeskApi + "/issues/statuses?api_token=" + okdeskSettings.Value.ApiToken;
+            string link = endpoint.Value.OkdeskApi + "/issues/statuses?api_token=" + okdeskSettings.Value.OkdeskApiToken;
 
             return await request.GetRangeOfItems<IssueStatus>(link);
         }
@@ -32,7 +32,7 @@ namespace CRMService.Service.Entity
                 Select(status => new IssueStatus
                 {
                     Code = status.Field<string>("code") ?? "",
-                    Name = status.Field<string>("name")
+                    Name = status.Field<string>("name") ?? string.Empty
                 }).ToList();
         }
 

@@ -10,8 +10,7 @@ namespace CRMService.DataBase.ModelsConfigure
         {
             builder.ToTable("employee_groups");
 
-            builder.HasKey(e => new { e.EmployeeId, e.GroupId })
-               .HasName("PRIMARY");
+            builder.HasKey(e => new { e.EmployeeId, e.GroupId });
 
             builder.Property(e => e.EmployeeId)
                 .HasColumnName("employeeId");

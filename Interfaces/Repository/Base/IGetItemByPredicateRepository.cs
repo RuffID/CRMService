@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace CRMService.Interfaces.Repository.Extended
+namespace CRMService.Interfaces.Repository.Base
 {
     public interface IGetItemByPredicateRepository<TEntity> where TEntity : class
     {

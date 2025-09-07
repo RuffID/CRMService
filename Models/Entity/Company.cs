@@ -7,14 +7,14 @@ public class Company : IEntity<int>, ICopyable<Company>
 {
     public int Id { get; set; }
 
-    public string? Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [JsonProperty("additional_name")]
     public string? AdditionalName { get; set; }
 
-    public bool? Active { get; set; }
+    public bool Active { get; set; }
 
-    public int? CategoryId { get; set; }
+    public int CategoryId { get; set; }
 
     public virtual CompanyCategory? Category { get; set; }
 

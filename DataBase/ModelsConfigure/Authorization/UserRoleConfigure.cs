@@ -10,8 +10,7 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
         {
             builder.ToTable("user_role");
 
-            builder.HasKey(e => new { e.RoleId, e.UserId })
-              .HasName("PRIMARY");
+            builder.HasKey(e => new { e.RoleId, e.UserId });
 
             builder.Property(e => e.RoleId)
                 .HasMaxLength(36)

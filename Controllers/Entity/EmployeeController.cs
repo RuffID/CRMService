@@ -36,9 +36,9 @@ namespace CRMService.Controllers.Entity
         }
 
         [HttpGet("connections_with_group")]
-        public async Task<IActionResult> GetGroupEmployeesConnections(CancellationToken ct)
+        public async Task<IActionResult> GetGroupEmployeesConnections([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
-            List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetItems(asNoTracking: true, ct: ct);
+            List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
             return Ok(connections);
         }
@@ -46,7 +46,7 @@ namespace CRMService.Controllers.Entity
         [HttpGet("by_group")]
         public async Task<IActionResult> GetEmployeesByGroup([FromQuery] int groupId, [FromQuery] int startIndexEmployee, CancellationToken ct)
         {
-            List<Employee> employees = await unitOfWork.EmployeeGroup.GetEmployeesByGroup(groupId, startIndexEmployee, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, true, ct);
+            List<Employee> employees = await unitOfWork.EmployeeGroup.GetEmployeesByGroup(groupId, startIndexEmployee, true, ct);
 
             return Ok(mapper.Map<List<EmployeeDto>>(employees));
         }

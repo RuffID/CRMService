@@ -15,14 +15,14 @@ namespace CRMService.Service.Entity
 
         public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/{maintenanceEntityId}?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/{maintenanceEntityId}?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             return await request.GetItem<MaintenanceEntity>(link);
         }
 
         private async IAsyncEnumerable<List<MaintenanceEntity>?> GetMaintenanceEntitiesFromCloudApi(long startIndex, long limit)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/list?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
             await foreach (List<MaintenanceEntity> me in request.GetAllItems<MaintenanceEntity>(link, startIndex, limit))
                 yield return me;
         }
@@ -44,7 +44,7 @@ namespace CRMService.Service.Entity
                 Select(me => new MaintenanceEntity
                 {
                     Id = me.Field<int>("sequential_id"),
-                    Name = me.Field<string>("name"),
+                    Name = me.Field<string>("name") ?? string.Empty,
                     CompanyId = me.Field<int>("companyId"),
                     Active = me.Field<bool>("active")
                 }).ToList();

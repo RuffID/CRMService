@@ -10,8 +10,7 @@ namespace CRMService.DataBase.ModelsConfigure
         {
             builder.ToTable("kindparams");
 
-            builder.HasKey(e => new { e.KindId, e.KindParameterId })
-              .HasName("PRIMARY");
+            builder.HasKey(e => new { e.KindId, e.KindParameterId });
 
             builder.HasIndex(e => e.KindId, "kindKey_idx");
 

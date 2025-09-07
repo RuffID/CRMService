@@ -12,7 +12,7 @@ namespace CRMService.Service.Entity
 
         private async Task<List<OkdeskRole>?> GetRolesFromCloudApi()
         {
-            string link = $"{endpoint.Value.OkdeskApi}/employees/roles?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/employees/roles?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             return await request.GetRangeOfItems<OkdeskRole>(link);
         }

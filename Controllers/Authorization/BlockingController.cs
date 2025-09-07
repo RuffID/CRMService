@@ -11,7 +11,7 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class BlockingController(IMapper mapper, IUnitOfWorkAuthorization unitOfWork) : Controller
+    public class BlockingController(IMapper mapper, IUnitOfWork unitOfWork) : Controller
     {
         [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
         public async Task<IActionResult> GetBlocks([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)

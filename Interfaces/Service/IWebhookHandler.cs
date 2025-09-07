@@ -4,6 +4,6 @@ namespace CRMService.Interfaces.Service
 {
     public interface IWebhookHandler
     {
-        Task<bool> HandleWebhook(RootEvent @event);
+        Task<bool> HandleWebhook(RootEvent @event, CancellationToken ct);
     }
 }

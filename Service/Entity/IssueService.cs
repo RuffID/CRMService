@@ -17,7 +17,7 @@ namespace CRMService.Service.Entity
         private async IAsyncEnumerable<List<Issue>?> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit)
         {
             string link = string.Format("{0}/issues/list?api_token={1}&updated_since={2}&updated_until={3}&assignee_ids[]={4}",
-                    endpoint.Value.OkdeskApi, okdeskSettings.Value.ApiToken, updatedSinceFrom.ToString("dd-MM-yyyy HH:mm:ss"), updatedUntilTo.ToString("dd-MM-yyyy HH:mm:ss"), assigneeId);
+                    endpoint.Value.OkdeskApi, okdeskSettings.Value.OkdeskApiToken, updatedSinceFrom.ToString("dd-MM-yyyy HH:mm:ss"), updatedUntilTo.ToString("dd-MM-yyyy HH:mm:ss"), assigneeId);
 
             await foreach (List<Issue> issues in itemService.GetAllItems<Issue>(link, startIndex, limit, pageNumber))
                 yield return issues;
@@ -56,11 +56,11 @@ namespace CRMService.Service.Entity
                     Status = new() { Code = issue.Field<string>("statusCode") ?? "" },
                     Type = new() { Code = issue.Field<string>("typeCode") ?? "" },
                     Priority = new() { Code = issue.Field<string>("priorityCode") ?? "" },
-                    CreatedAt = issue.Field<DateTime?>("created_at")?.ToLocalTime(),
+                    CreatedAt = issue.Field<DateTime>("created_at").ToLocalTime(),
                     CompletedAt = issue.Field<DateTime?>("completed_at")?.ToLocalTime(),
                     DeadlineAt = issue.Field<DateTime?>("deadline_at")?.ToLocalTime(),
                     DelayTo = issue.Field<DateTime?>("delay_to")?.ToLocalTime(),
-                    EmployeesUpdatedAt = issue.Field<DateTime?>("employees_updated_at")?.ToLocalTime(),
+                    EmployeesUpdatedAt = issue.Field<DateTime>("employees_updated_at").ToLocalTime(),
                     DeletedAt = issue.Field<DateTime?>("deleted_at")?.ToLocalTime(),
                     TimeEntries = new List<TimeEntry>()
                 }).ToList();
@@ -80,22 +80,18 @@ namespace CRMService.Service.Entity
                 issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItemById((int)issue.ServiceObjectId, true, ct))?.Id;
 
             if (issue.Status != null)
-                issue.StatusId = (await unitOfWork.IssueStatus.GetItemById(issue.Status.Id, true, ct))?.Id;
+                issue.StatusId = (await unitOfWork.IssueStatus.GetItemById(issue.Status.Id, true, ct))?.Id ?? 0;
             if (issue.Priority != null)
-                issue.PriorityId = (await unitOfWork.IssuePriority.GetItemById(issue.Priority.Id, true, ct))?.Id;
+                issue.PriorityId = (await unitOfWork.IssuePriority.GetItemById(issue.Priority.Id, true, ct))?.Id ?? 0;
             if (issue.Type != null)
-                issue.TypeId = (await unitOfWork.IssueType.GetItemById(issue.Type.Id, true, ct))?.Id;
+                issue.TypeId = (await unitOfWork.IssueType.GetItemById(issue.Type.Id, true, ct))?.Id ?? 0;
 
             if (issue.AssigneeId != null && issue.AssigneeId != 0)
                 issue.AssigneeId = (await unitOfWork.Employee.GetItemById((int)issue.AssigneeId, true, ct))?.Id;
 
             // Если не зануллить то будет выдавать ошибку EF (id уже использовался)
-            issue.Company = null;
-            issue.ServiceObject = null;
-            issue.Status = null;
-            issue.Priority = null;
-            issue.Type = null;
-            issue.Assignee = null;
+            /*issue.Company = null;
+            issue.ServiceObject = null;*/
         }
 
         public async Task UpdateIssuesFromCloudApi(DateTime dateFrom, DateTime dateTo, long startIndex = 0, long limit = 0, [CallerMemberName] string caller = "", CancellationToken ct = default)

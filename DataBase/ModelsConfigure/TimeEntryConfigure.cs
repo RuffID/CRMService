@@ -10,7 +10,7 @@ namespace CRMService.DataBase.ModelsConfigure
         {
             builder.ToTable("time_entry");
 
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            
 
             builder.HasIndex(e => e.EmployeeId, "employeeId_idx");
 

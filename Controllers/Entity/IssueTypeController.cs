@@ -26,7 +26,7 @@ namespace CRMService.Controllers.Entity
         [HttpGet]
         public async Task<IActionResult> GetIssueType([FromQuery] string code, CancellationToken ct)
         {
-            IssueType? type = await unitOfWork.IssueType.GetItemByCode(code, false, ct);
+            IssueType? type = await unitOfWork.IssueType.GetItemByPredicate(it => it.Code == code, true, ct);
 
             if (type == null)
                 return NotFound();

@@ -42,10 +42,10 @@ namespace CRMService.Core
             CreateMap<MaintenanceEntityWebHook, MaintenanceEntity>();
             CreateMap<User, UserDto>();
             CreateMap<UserDto, User>();
-            CreateMap<Models.Authorization.CrmRole, RoleDto>();
-            CreateMap<RoleDto, Models.Authorization.CrmRole>();
+            CreateMap<CrmRole, RoleDto>();
+            CreateMap<RoleDto, CrmRole>();
             CreateMap<Session, SessionDto>();
-            CreateMap<Models.Authorization.UserRole, UserRoleDto>();
+            CreateMap<UserRole, UserRoleDto>();
             CreateMap<BlockReason, BlockReasonDto>();
         }
     }

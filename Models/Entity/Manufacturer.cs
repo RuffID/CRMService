@@ -8,11 +8,11 @@ namespace CRMService.Models.Entity
 
         public string Code { get; set; } = string.Empty;
 
-        public string? Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public string? Description { get; set; }
 
-        public bool? Visible { get; set; }
+        public bool Visible { get; set; }
 
         public virtual ICollection<Equipment> Equipment { get; set; } = new List<Equipment>();
 

@@ -14,7 +14,7 @@ namespace CRMService.Controllers.WebHook
         private readonly IEnumerable<IWebhookHandler> _handlers = handlers;
 
         [HttpPost]
-        public async Task<IActionResult> WebHookAction([FromBody] RootEvent @event)
+        public async Task<IActionResult> WebHookAction([FromBody] RootEvent @event, CancellationToken ct)
         {
             if (@event?.Event?.Event_type == null)
                 return BadRequest("Empty event or action object.");
@@ -23,7 +23,7 @@ namespace CRMService.Controllers.WebHook
             {
                 foreach (IWebhookHandler handler in _handlers)
                 {
-                    if (await handler.HandleWebhook(@event))
+                    if (await handler.HandleWebhook(@event, ct))
                         break;
                 }
             });

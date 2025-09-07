@@ -15,7 +15,7 @@ namespace CRMService.Service.Entity
 
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
-            string link = $"{endpoint.Value.OkdeskApi}/companies?api_token={okdSettings.Value.ApiToken}&id={companyId}";
+            string link = $"{endpoint.Value.OkdeskApi}/companies?api_token={okdSettings.Value.OkdeskApiToken}&id={companyId}";
 
             return await _request.GetItem<Company>(link);
         }
@@ -24,7 +24,7 @@ namespace CRMService.Service.Entity
         {
             foreach (var category in categories)
             {
-                string link = $"{endpoint.Value.OkdeskApi}/companies/list?api_token={okdSettings.Value.ApiToken}&category_ids[]={category.Id}";
+                string link = $"{endpoint.Value.OkdeskApi}/companies/list?api_token={okdSettings.Value.OkdeskApiToken}&category_ids[]={category.Id}";
                 await foreach (List<Company> companies in _request.GetAllItems<Company>(link, startIndex, limit))
                 {
                     foreach (var company in companies)
@@ -65,7 +65,7 @@ namespace CRMService.Service.Entity
                         Select(company => new Company
                         {
                             Id = company.Field<int>("id"),
-                            Name = company.Field<string>("name"),
+                            Name = company.Field<string>("name") ?? string.Empty,
                             AdditionalName = company.Field<string>("additional_name"),
                             CategoryId = category.Id,
                             Active = company.Field<bool>("active"),

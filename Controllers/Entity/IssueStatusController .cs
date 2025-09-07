@@ -26,7 +26,7 @@ namespace CRMService.Controllers.Entity
         [HttpGet]
         public async Task<IActionResult> GetIssueStatus([FromQuery] string code, CancellationToken ct)
         {
-            IssueStatus? status = await unitOfWork.IssueStatus.GetItemByCode(code, false, ct);
+            IssueStatus? status = await unitOfWork.IssueStatus.GetItemByPredicate(ip => ip.Code == code, true, ct);
 
             if (status == null)
                 return NotFound();

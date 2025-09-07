@@ -8,7 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Issue> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            
 
             builder.ToTable("issue");
 
@@ -68,32 +68,32 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.HasOne(d => d.Assignee).WithMany(p => p.Issues)
                 .HasForeignKey(d => d.AssigneeId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("issue_assigneeId");
 
             builder.HasOne(d => d.Company).WithMany(p => p.Issues)
                 .HasForeignKey(d => d.CompanyId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("issue_companyId");
 
             builder.HasOne(d => d.Priority).WithMany(p => p.Issues)
                 .HasForeignKey(d => d.PriorityId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("issue_priorityId");
 
             builder.HasOne(d => d.ServiceObject).WithMany(p => p.Issues)
                 .HasForeignKey(d => d.ServiceObjectId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("issue_service_objectId");
 
             builder.HasOne(d => d.Status).WithMany(p => p.Issues)
                 .HasForeignKey(d => d.StatusId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("issue_statusId");
 
             builder.HasOne(d => d.Type).WithMany(p => p.Issues)
                 .HasForeignKey(d => d.TypeId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("issue_typeId");
         }
     }

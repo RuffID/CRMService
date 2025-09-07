@@ -4,9 +4,9 @@ using CRMService.Models.WebHook;
 
 namespace CRMService.Service.Webhook
 {
-    public class EquipmentWebhookService(IUnitOfWork unitOfWork, CancellationToken ct) : IWebhookHandler
+    public class EquipmentWebhookService(IUnitOfWork unitOfWork) : IWebhookHandler
     {
-        public async Task<bool> HandleWebhook(RootEvent @event)
+        public async Task<bool> HandleWebhook(RootEvent @event, CancellationToken ct)
         {
             if (@event.Equipment == null)
                 return false;

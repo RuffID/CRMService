@@ -1,21 +1,21 @@
 ﻿using CRMService.Interfaces.Database;
 using CRMService.Interfaces.Entity;
-using CRMService.Interfaces.Repository.Extended;
+using CRMService.Interfaces.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 
-namespace CRMService.Repository.Extended
+namespace CRMService.Repository.Base
 {
-    public sealed class UpsertItemByCodeRepository<TEntity>(IAppDbContext _context) : IUpsertItemByCodeRepository<TEntity>
+    public sealed class UpsertItemByCodeRepository<TEntity>(IAppDbContext context) : IUpsertItemByCodeRepository<TEntity>
         where TEntity : class, IHasCode, ICopyable<TEntity>
     {
         public async Task UpsertByCode(TEntity item, CancellationToken ct = default)
         {
-            TEntity? existing = await _context.Set<TEntity>()
+            TEntity? existing = await context.Set<TEntity>()
                 .FirstOrDefaultAsync(e => e.Code == item.Code, ct);
 
             if (existing is null)
             {
-                _context.Set<TEntity>().Add(item);
+                context.Set<TEntity>().Add(item);
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace CRMService.Repository.Extended
 
             List<TEntity> existingList = codes.Count == 0
                 ? new List<TEntity>()
-                : await _context.Set<TEntity>()
+                : await context.Set<TEntity>()
                     .Where(e => codes.Contains(e.Code))
                     .ToListAsync(ct);
 
@@ -44,7 +44,7 @@ namespace CRMService.Repository.Extended
                 if (existingByCode.TryGetValue(item.Code, out TEntity? existing))
                     existing.CopyData(item);
                 else
-                    _context.Set<TEntity>().Add(item);
+                    context.Set<TEntity>().Add(item);
             }
         }
 
@@ -56,11 +56,11 @@ namespace CRMService.Repository.Extended
                 return;
             }
 
-            TEntity? existing = await _context.Set<TEntity>().FirstOrDefaultAsync(e => e.Code == oldCode, ct);
+            TEntity? existing = await context.Set<TEntity>().FirstOrDefaultAsync(e => e.Code == oldCode, ct);
 
             if (existing is null)
             {
-                _context.Set<TEntity>().Add(item);
+                context.Set<TEntity>().Add(item);
                 return;
             }
 
@@ -81,7 +81,7 @@ namespace CRMService.Repository.Extended
 
             List<TEntity> existingList = lookupCodes.Count == 0
                 ? new List<TEntity>()
-                : await _context.Set<TEntity>()
+                : await context.Set<TEntity>()
                     .Where(e => lookupCodes.Contains(e.Code))
                     .ToListAsync(ct);
 
@@ -92,7 +92,7 @@ namespace CRMService.Repository.Extended
                 if (!string.IsNullOrWhiteSpace(OldCode) && existingByOld.TryGetValue(OldCode, out TEntity? existing))
                     existing.CopyData(Item);
                 else
-                    _context.Set<TEntity>().Add(Item);
+                    context.Set<TEntity>().Add(Item);
             }
         }
     }

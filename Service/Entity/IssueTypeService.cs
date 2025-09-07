@@ -14,7 +14,7 @@ namespace CRMService.Service.Entity
 
         public async Task<List<IssueType>?> GetIssueTypesFromCloudApi()
         {
-            string link = $"{endpoint.Value.OkdeskApi}/dictionaries/issues/types?api_token={okdeskSettings.Value.ApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/dictionaries/issues/types?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             List<IssueType>? typesFromApi = await request.GetRangeOfItems<IssueType>(link);
 
@@ -59,7 +59,7 @@ namespace CRMService.Service.Entity
                 Select(type => new IssueType
                 {
                     Code = type.Field<string>("code") ?? "",
-                    Name = type.Field<string>("name"),
+                    Name = type.Field<string>("name") ?? string.Empty,
                     Inner = type.Field<bool>("inner")
                 }).ToList();
         }

@@ -7,14 +7,14 @@ namespace CRMService.Models.WebHook
     {
         public int Id { get; set; }
         public string? Title { get; set; }
-        public IssueType? Type { get; set; }
-        public IssuePriority? Priority { get; set; }
-        public IssueStatus? Status { get; set; }
+        public IssueType Type { get; set; } = null!;
+        public IssuePriority Priority { get; set; } = null!;
+        public IssueStatus Status { get; set; } = null!;
         public Client? Client { get; set; }
         public MaintenanceEntityWebHook? Maintenance_entity { get; set; }
         public EmployeeWebHook? Author { get; set; }
         public AssigneeWebHook? Assignee { get; set; }
-        public DateTime? Created_at { get; set; }
+        public DateTime Created_at { get; set; }
         public DateTime? Deadline_at { get; set; }
         public DateTime? Completed_at { get; set; }
 
@@ -25,11 +25,11 @@ namespace CRMService.Models.WebHook
             convertIssue.Id = Id;
             convertIssue.Title = Title;
             convertIssue.Type = Type;
-            convertIssue.TypeId = Type?.Id;
+            convertIssue.TypeId = Type.Id;
             convertIssue.Priority = Priority;
-            convertIssue.PriorityId = Priority?.Id;
+            convertIssue.PriorityId = Priority.Id;
             convertIssue.Status = Status;
-            convertIssue.StatusId = Status?.Id;
+            convertIssue.StatusId = Status.Id;
             convertIssue.AuthorId = Author?.Id;
             if (Assignee != null && Assignee.Employee != null)
             {

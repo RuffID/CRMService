@@ -8,9 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Model> builder)
         {
-            builder.ToTable("model");
-
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.ToTable("model");            
 
             builder.HasIndex(e => e.KindId, "kindId_idx");
 
@@ -40,12 +38,12 @@ namespace CRMService.DataBase.ModelsConfigure
 
             builder.HasOne(d => d.Kind).WithMany(p => p.Models)
                 .HasForeignKey(d => d.KindId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("kindId");
 
             builder.HasOne(d => d.Manufacturer).WithMany(p => p.Models)
                 .HasForeignKey(d => d.ManufacturerId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("manufacturerId");
         }
     }

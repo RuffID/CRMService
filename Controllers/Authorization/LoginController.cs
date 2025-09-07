@@ -10,18 +10,14 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class LoginController(UserLoginService userLoginService, HashVerify hashVerify, IUnitOfWorkAuthorization unitOfWork) : Controller
+    public class LoginController(UserLoginService userLoginService, Hasher hash, IUnitOfWork unitOfWork) : Controller
     {
         [HttpPost, AllowAnonymous]
         public async Task<IActionResult> Login([FromQuery] string login, [FromQuery] string password, CancellationToken ct)
         {
             User? user = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == login, asNoTracking: true, ct: ct, includes: u => u.Roles);
 
-            if (user == null)
-                return Unauthorized("Incorrect login or password.");
-
-            // Хеширование пароля из запроса и сравнение с хешем из БД
-            if (user.Active == false || string.IsNullOrEmpty(user.Password) || !hashVerify.Verify(password, user.Password))
+            if (user == null || user.Active == false || string.IsNullOrEmpty(user.Password) || !hash.Verify(password, user.Password))
                 return Unauthorized("Incorrect login or password.");
 
             Token token = await userLoginService.LoginInService(user, ct);

@@ -14,7 +14,7 @@ namespace CRMService.Controllers.WebHook
         private readonly IEnumerable<IWebhookHandler> _handlers = handlers;
 
         [HttpPost]
-        public async Task<IActionResult> WebHookAction([FromBody] RootEvent @event, CancellationToken ct)
+        public async Task<IActionResult> WebHookAction([FromBody] RootEventWebHook @event, CancellationToken ct)
         {
             if (@event?.Event?.Event_type == null)
                 return BadRequest("Empty event or action object.");

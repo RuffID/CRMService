@@ -11,13 +11,13 @@ namespace CRMService.Service.Entity
         private readonly ILogger<CompanyCategoryService> _logger = logger.CreateLogger<CompanyCategoryService>();
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-        private async Task<List<CompanyCategory>?> GetCategoriesFromCloudDb()
+        private async Task<List<CompanyCategory>> GetCategoriesFromCloudDb()
         {
             string sqlCommand = "SELECT * FROM company_categories;";
             DataSet ds = await _pGSelect.Select(sqlCommand);
             DataTable? categoryTable = ds.Tables["Table"];
             if (categoryTable == null)
-                return null;
+                return new();
 
             return categoryTable.AsEnumerable().
                     Select(category => new CompanyCategory
@@ -25,7 +25,7 @@ namespace CRMService.Service.Entity
                         Id = categoryTable.Rows.IndexOf(category) + 1,
                         Name = category.Field<string>("name") ?? string.Empty,
                         Code = category.Field<string>("code") ?? string.Empty,
-                        Color = category.Field<string>("color")
+                        Color = category.Field<string>("color") ?? string.Empty
                     }).ToList();
         }
 
@@ -49,9 +49,9 @@ namespace CRMService.Service.Entity
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating company categories.", nameof(UpdateCategoriesFromCloudDb));
 
-            List<CompanyCategory>? categories = await GetCategoriesFromCloudDb();
+            List<CompanyCategory> categories = await GetCategoriesFromCloudDb();
 
-            if (categories == null || categories.Count == 0)
+            if (categories.Count == 0)
                 return;
 
             await _unitOfWork.CompanyCategory.Upsert(categories, ct);

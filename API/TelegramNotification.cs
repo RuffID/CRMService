@@ -1,29 +1,19 @@
 ﻿using CRMService.Interfaces.Api;
 using CRMService.Models.ConfigClass;
-using Newtonsoft.Json;
-using System.Text;
 
 namespace CRMService.API
 {
-    public  class TelegramNotification(IRequestService request, ApiEndpointOptions endpoint, ILoggerFactory logger)
+    public  class TelegramNotification(IHttpApiClient client, ApiEndpointOptions endpoint)
     {
-        private readonly ILogger<TelegramNotification> _logger = logger.CreateLogger<TelegramNotification>();
-
-        public async Task SendMessage(long? chatId, string content)
+        public async Task SendMessage(long? chatId, string content, CancellationToken ct = default)
         {
-            if (string.IsNullOrEmpty(content) || chatId == null) return;
-            string json;
-            try
-            {
-                json = JsonConvert.SerializeObject(content);
-            }
-            catch (Exception ex) 
-            {
-                _logger.LogError(ex, "Error while telegram bot sending message.");
-                return; 
-            }
+            if (string.IsNullOrEmpty(content) || chatId == null) 
+                return;
 
-            await request.SendPost(endpoint.TelegramBotUrl + $"?chatId={chatId}", new StringContent(json, Encoding.UTF8, "application/json"));
+            object body = new { content };
+            string url = $"{endpoint.TelegramBotUrl}?chatId={chatId}";
+
+            await client.PostAsync(url, body, contentType: "application/json", ct: ct);
         }
     }
 }

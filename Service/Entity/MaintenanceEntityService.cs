@@ -9,7 +9,7 @@ using System.Data;
 namespace CRMService.Service.Entity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint, 
-        IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<MaintenanceEntityService> _logger = logger.CreateLogger<MaintenanceEntityService>();
 
@@ -20,14 +20,14 @@ namespace CRMService.Service.Entity
             return await request.GetItem<MaintenanceEntity>(link);
         }
 
-        private async IAsyncEnumerable<List<MaintenanceEntity>?> GetMaintenanceEntitiesFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudApi(long startIndex, long limit)
         {
             string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
             await foreach (List<MaintenanceEntity> me in request.GetAllItems<MaintenanceEntity>(link, startIndex, limit))
                 yield return me;
         }
 
-        private async Task<List<MaintenanceEntity>?> GetMaintenanceEntitiesFromCloudDb(long startIndex, long limit)
+        private async Task<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudDb(long startIndex, long limit)
         {
             string sqlCommand = string.Format(
                 "SELECT company_maintenance_entities.sequential_id, company_maintenance_entities.name, companies.sequential_id AS companyId, company_maintenance_entities.active " +
@@ -38,7 +38,7 @@ namespace CRMService.Service.Entity
             DataSet ds = await pGSelect.Select(sqlCommand);
             DataTable? meTable = ds.Tables["Table"];
             if (meTable == null)
-                return null;
+                return new();
 
             return meTable.AsEnumerable().
                 Select(me => new MaintenanceEntity
@@ -66,10 +66,10 @@ namespace CRMService.Service.Entity
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
 
-            await foreach (List<MaintenanceEntity>? me in GetMaintenanceEntitiesFromCloudApi(startIndex, limit))
+            await foreach (List<MaintenanceEntity> me in GetMaintenanceEntitiesFromCloudApi(startIndex, limit))
             {
-                if (me == null || me.Count == 0)
-                    return;
+                if (me.Count == 0)
+                    continue;
 
                 await unitOfWork.MaintenanceEntity.Upsert(me, ct);
 
@@ -85,9 +85,9 @@ namespace CRMService.Service.Entity
 
             while (true)
             {
-                List<MaintenanceEntity>? me = await GetMaintenanceEntitiesFromCloudDb(startIndex, limit);
+                List<MaintenanceEntity> me = await GetMaintenanceEntitiesFromCloudDb(startIndex, limit);
 
-                if (me == null || me.Count == 0)
+                if (me.Count == 0)
                     break;
 
                 startIndex = me.Last().Id;

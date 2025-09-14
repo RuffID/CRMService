@@ -3,7 +3,7 @@ using CRMService.Models.Entity;
 
 namespace CRMService.Interfaces.Repository.Entity
 {
-    public interface IKindParameterRepository : IGetItemByIdRepository<KindsParameter, int>, IGetItemByPredicateRepository<KindsParameter>, IUpsertItemByCodeRepository<KindsParameter>, ICreateItemRepository<KindsParameter>
+    public interface IKindParameterRepository : IGetItemByIdRepository<KindsParameter, int>, IGetItemByPredicateRepository<KindsParameter>, IUpsertItemByIdRepository<KindsParameter, int>, ICreateItemRepository<KindsParameter>
     {
     }
 }

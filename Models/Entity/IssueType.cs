@@ -1,6 +1,4 @@
 ﻿using CRMService.Interfaces.Entity;
-using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.Entity
 {
@@ -12,17 +10,15 @@ namespace CRMService.Models.Entity
 
         public string Code { get; set; } = string.Empty;
 
-        public bool? Default { get; set; }
+        public bool IsDefault { get; set; }
 
-        public bool? Inner { get; set; }
+        public bool IsInner { get; set; }
 
-        [JsonProperty("available_for_client")]
-        public bool? AvailableForClient { get; set; }
+        public bool AvailableForClient { get; set; }
 
-        public string? Type { get; set; }
+        public int? GroupId { get; set; }
 
-        [NotMapped]
-        public List<IssueType>? Children { get; set; }
+        public virtual IssueTypeGroup? Group { get; set; }
 
         public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 
@@ -30,10 +26,9 @@ namespace CRMService.Models.Entity
         {
             Code = type.Code;
             Name = type.Name;
-            Default = type.Default;
-            Inner = type.Inner;
+            IsDefault = type.IsDefault;
+            IsInner = type.IsInner;
             AvailableForClient = type.AvailableForClient;
-            Type = type.Type;
         }
     }
 }

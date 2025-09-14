@@ -10,7 +10,7 @@ public class CompanyCategory : IEntity<int>, IHasCode, ICopyable<CompanyCategory
 
     public string Name { get; set; } = string.Empty;
 
-    public string? Color { get; set; }
+    public string Color { get; set; } = string.Empty;
 
     public virtual ICollection<Company> Companies { get; set; } = new List<Company>();
 

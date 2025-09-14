@@ -2,7 +2,7 @@
 {
     public class IssueDto
     {
-        public uint Id { get; set; }
+        public int Id { get; set; }
 
         public int? AssigneeId { get; set; }
 

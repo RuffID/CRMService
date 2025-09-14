@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<KindParameterService> _logger = logger.CreateLogger<KindParameterService>();
 
@@ -42,7 +42,7 @@ namespace CRMService.Service.Entity
 
             if (parameters == null || parameters.Count == 0) return;
 
-            await unitOfWork.KindParameter.UpsertByCodes(parameters, ct);
+            await unitOfWork.KindParameter.Upsert(parameters, ct);
 
             await unitOfWork.SaveAsync(ct);
 
@@ -58,7 +58,7 @@ namespace CRMService.Service.Entity
             if (kinds == null || kinds.Count == 0)
                 return;
 
-            await unitOfWork.KindParameter.UpsertByCodes(kinds, ct);
+            await unitOfWork.KindParameter.Upsert(kinds, ct);
 
             await unitOfWork.SaveAsync(ct);
 

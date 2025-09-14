@@ -2,7 +2,7 @@
 
 namespace CRMService.Models.Dto.Authorization
 {
-    public class SessionDto : IEntity<Guid>
+    public class SessionDto
     {
         public Guid Id { get; set; }
 

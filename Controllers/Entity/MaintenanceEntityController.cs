@@ -1,9 +1,7 @@
-﻿using AutoMapper;
-using CRMService.Interfaces.Repository;
+﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
-using CRMService.Models.Enum;
 using CRMService.Service.Entity;
 using CRMService.Service.Sync;
 using Microsoft.AspNetCore.Authorization;
@@ -14,17 +12,25 @@ namespace CRMService.Controllers.Entity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class MaintenanceEntityController(IMapper mapper, IUnitOfWork unitOfWork, EntitySyncService sync, MaintenanceEntityService service) : Controller
+    public class MaintenanceEntityController(IUnitOfWork unitOfWork, EntitySyncService sync, MaintenanceEntityService service) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetMaintenanceEntity([FromQuery] int id, CancellationToken ct)
         {
-            MaintenanceEntity? maintenanceEntityFromDB = await unitOfWork.MaintenanceEntity.GetItemById(id, true, ct);
+            MaintenanceEntity? maintenanceEntity = await unitOfWork.MaintenanceEntity.GetItemById(id, true, ct);
 
-            if (maintenanceEntityFromDB == null)
+            if (maintenanceEntity == null)
                 return NotFound();
 
-            return Ok(mapper.Map<MaintenanceEntityDto>(maintenanceEntityFromDB));
+            MaintenanceEntityDto dto = new()
+            {
+                Id = maintenanceEntity.Id,
+                Name = maintenanceEntity.Name,
+                Address = maintenanceEntity.Address,
+                Active = maintenanceEntity.Active
+            };
+
+            return Ok(dto);
         }
 
         [HttpGet("list")]
@@ -32,15 +38,20 @@ namespace CRMService.Controllers.Entity
         {
             List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAndSortById(predicate: me => me.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            return Ok(mapper.Map<List<MaintenanceEntityDto>>(maintenanceEntities));
+            List<MaintenanceEntityDto> dtos = maintenanceEntities.Select(me =>  new MaintenanceEntityDto()
+            {
+                Id = me.Id,
+                Name = me.Name,
+                Address = me.Address,
+                Active = me.Active
+            }).ToList();
+
+            return Ok(dtos);
         }
 
-        [HttpPut("update_maintenance_entity_from_cloud_api")]
+        [HttpPut("update_from_api")]
         public async Task<IActionResult> UpdateMaintenanceEntityFromCloudApi([FromQuery] int maintenanceEntityId, CancellationToken ct)
         {
-            if (maintenanceEntityId == 0)
-                return BadRequest("Wrong id.");
-
             await sync.RunExclusive(async () =>
             {
                 await service.UpdateMaintenanceEntityFromCloudApi(maintenanceEntityId, ct);
@@ -49,7 +60,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
@@ -60,7 +71,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>

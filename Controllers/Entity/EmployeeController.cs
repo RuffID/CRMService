@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using AutoMapper;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
@@ -13,9 +11,8 @@ namespace CRMService.Controllers.Entity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeController(IMapper mapper, IUnitOfWork unitOfWork, EmployeeService service) : Controller
+    public class EmployeeController(IUnitOfWork unitOfWork, EmployeeService service) : Controller
     {
-
         [HttpGet]
         public async Task<IActionResult> GetEmployee([FromQuery] int id, CancellationToken ct)
         {
@@ -24,7 +21,15 @@ namespace CRMService.Controllers.Entity
             if (employee == null)
                 return NotFound();
 
-            return Ok(mapper.Map<EmployeeDto>(employee));
+            EmployeeDto dto = new()
+            {
+                Id = employee.Id,
+                LastName = employee.LastName,
+                FirstName = employee.FirstName,
+                Patronymic = employee.Patronymic
+            };
+
+            return Ok(dto);
         }
 
         [HttpGet("list")]
@@ -32,7 +37,15 @@ namespace CRMService.Controllers.Entity
         {
             List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(predicate: e => e.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            return Ok(mapper.Map<List<EmployeeDto>>(employees));
+            List<EmployeeDto> dtos = employees.Select(e => new EmployeeDto()
+            {
+                Id = e.Id,
+                LastName = e.LastName,
+                FirstName = e.FirstName,
+                Patronymic = e.Patronymic
+            }).ToList();
+
+            return Ok(dtos);
         }
 
         [HttpGet("connections_with_group")]
@@ -40,7 +53,13 @@ namespace CRMService.Controllers.Entity
         {
             List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
-            return Ok(connections);
+            List<EmployeeGroupDto> dtos = connections.Select(eg => new EmployeeGroupDto()
+            {
+                EmployeeId = eg.EmployeeId,
+                GroupId = eg.GroupId
+            }).ToList();
+
+            return Ok(dtos);
         }
 
         [HttpGet("by_group")]
@@ -48,10 +67,18 @@ namespace CRMService.Controllers.Entity
         {
             List<Employee> employees = await unitOfWork.EmployeeGroup.GetEmployeesByGroup(groupId, startIndexEmployee, true, ct);
 
-            return Ok(mapper.Map<List<EmployeeDto>>(employees));
+            List<EmployeeDto> dtos = employees.Select(e => new EmployeeDto()
+            {
+                Id = e.Id,
+                LastName = e.LastName,
+                FirstName = e.FirstName,
+                Patronymic = e.Patronymic
+            }).ToList();
+
+            return Ok(dtos);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateEmployeesFromCloudApi([FromQuery] long startIndexEmployee, CancellationToken ct)
         {
             await service.UpdateEmployeesFromCloudApi(startIndexEmployee, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
@@ -59,7 +86,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateEmployeesFromCloudDb([FromQuery] int startIndexEmployee, CancellationToken ct)
         {
             await service.UpdateEmployeesFromCloudDb(startIndexEmployee, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);

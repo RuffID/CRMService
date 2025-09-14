@@ -48,6 +48,7 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
             .ApplyConfiguration(new IssuePriorityConfigure())
             .ApplyConfiguration(new IssueStatusConfigure())
             .ApplyConfiguration(new IssueTypeConfigure())
+            .ApplyConfiguration(new IssueTypeGroupConfigure())
             .ApplyConfiguration(new KindConfigure())
             .ApplyConfiguration(new KindsParameterConfigure())
             .ApplyConfiguration(new KindParamConfigure())
@@ -56,9 +57,7 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
             .ApplyConfiguration(new ManufacturerConfigure())
             .ApplyConfiguration(new EquipmentParameterConfigure())
             .ApplyConfiguration(new OkdeskRoleConfigure())
-            .ApplyConfiguration(new TimeEntryConfigure());
-
-        modelBuilder
+            .ApplyConfiguration(new TimeEntryConfigure())
             .ApplyConfiguration(new UserConfigure())
             .ApplyConfiguration(new CrmRoleConfigure())
             .ApplyConfiguration(new BlockReasonConfigure())

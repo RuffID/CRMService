@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Models.Enum;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
+using CRMService.Models.Dto.Entity;
 
 namespace CRMService.Controllers.Entity
 {
@@ -13,16 +13,21 @@ namespace CRMService.Controllers.Entity
     [ApiController]
     public class RoleController(IUnitOfWork unitOfWork, RoleService service) : Controller
     {
-        //TODO сделать dto для ролей
         [HttpGet("list")]
         public async Task<IActionResult> GetRoles([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
             List<OkdeskRole> roles = await unitOfWork.OkdeskRole.GetItemsByPredicateAndSortById(predicate: r => r.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            return Ok(roles);
+            List<OkdeskRoleDto> dtos = roles.Select(r => new OkdeskRoleDto()
+            {
+                Id = r.Id,
+                Name = r.Name
+            }).ToList();
+
+            return Ok(dtos);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateRolesFromCloudApi(CancellationToken ct)
         {
             await service.UpdateRolesFromCloudApi(ct);

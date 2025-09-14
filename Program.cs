@@ -1,8 +1,8 @@
-using CRMService.Middleware;
 using CRMService.Core;
 using Serilog;
 using CRMService.Service.DataBase;
 using CRMService.DataBase;
+using CRMService.Core.Middleware;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

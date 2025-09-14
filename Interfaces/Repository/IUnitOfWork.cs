@@ -17,6 +17,7 @@ namespace CRMService.Interfaces.Repository
         IIssueRepository Issue { get; }
         IIssueStatusRepository IssueStatus { get; }
         IIssueTypeRepository IssueType { get; }
+        IIssueTypeGroupRepository IssueTypeGroup { get; }
         IKindParamsRepository KindParams { get; }
         IKindRepository Kind { get; }
         IKindParameterRepository KindParameter { get; }

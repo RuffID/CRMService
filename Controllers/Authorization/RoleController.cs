@@ -13,7 +13,7 @@ namespace CRMService.Controllers.Authorization
     [Route("api/authorize/[controller]")]
     public class RoleController(IUnitOfWork unitOfWork) : Controller
     {
-        [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpGet("list"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> GetRoles([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
             List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
@@ -27,7 +27,7 @@ namespace CRMService.Controllers.Authorization
             return Ok(roleDtos);
         }
 
-        [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpGet, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> GetRole([FromQuery] Guid id, CancellationToken ct)
         {
             CrmRole? role = await unitOfWork.CrmRole.GetItemById(id, asNoTracking: true, ct);
@@ -35,7 +35,7 @@ namespace CRMService.Controllers.Authorization
             if (role == null)
                 return NotFound("Role not found.");
 
-            RoleDto dto = new RoleDto
+            RoleDto dto = new ()
             {
                 Id = role.Id,
                 Name = role.Name,
@@ -44,7 +44,7 @@ namespace CRMService.Controllers.Authorization
             return Ok(dto);
         }
 
-        [HttpPost, Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpPost, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> CreateRole([FromBody] RoleDto role, CancellationToken ct)
         {
             CrmRole? existRole = await unitOfWork.CrmRole.GetItemById(role.Id, asNoTracking: true, ct);
@@ -52,7 +52,7 @@ namespace CRMService.Controllers.Authorization
             if (existRole != null)
                 return Conflict($"Role {role.Name} is already exists.");
 
-            CrmRole roleCreate = new CrmRole
+            CrmRole roleCreate = new ()
             {
                 Id = role.Id,
                 Name = role.Name,

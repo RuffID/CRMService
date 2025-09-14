@@ -9,12 +9,12 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.Entity
 {
-    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService itemService, 
+    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService itemService, 
         IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueService> _logger = logger.CreateLogger<IssueService>();
 
-        private async IAsyncEnumerable<List<Issue>?> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit)
+        private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit)
         {
             string link = string.Format("{0}/issues/list?api_token={1}&updated_since={2}&updated_until={3}&assignee_ids[]={4}",
                     endpoint.Value.OkdeskApi, okdeskSettings.Value.OkdeskApiToken, updatedSinceFrom.ToString("dd-MM-yyyy HH:mm:ss"), updatedUntilTo.ToString("dd-MM-yyyy HH:mm:ss"), assigneeId);
@@ -26,7 +26,7 @@ namespace CRMService.Service.Entity
         private async Task<List<Issue>?> GetIssuesFromCloudDb(DateTime updatedSinceFrom, DateTime updatedUntilTo, int startIndex, int limit)
         {
             string sqlCommand = string.Format(
-                    "SELECT issues.sequential_id, assigned.sequential_id AS assignee_id, author.sequential_id AS author_id, issues.title, issues.created_at, issues.completed_at, issues.deadline_at, issues.employees_updated_at, issues.deleted_at, issues.delay_to, issue_statuses.code AS statusCode, issue_work_types.code AS typeCode, issue_priorities.code AS priorityCode, companies.sequential_id AS companyId, company_maintenance_entities.sequential_id AS maintenanceEntityId " +
+                    "SELECT issues.sequential_id, assigned.sequential_id AS assignee_id, author.sequential_id AS author_id, issues.title, issues.created_at, issues.completed_at, issues.deadline_at, issues.employees_updated_at, issues.deleted_at, issues.delay_to, issue_statuses.id AS statusId, issue_work_types.id AS typeId, issue_priorities.id AS priorityId, companies.sequential_id AS companyId, company_maintenance_entities.sequential_id AS maintenanceEntityId " +
                     "FROM issues " +
                     "LEFT OUTER JOIN issue_statuses ON issues.status_id = issue_statuses.id " +
                     "LEFT OUTER JOIN issue_work_types ON issues.work_type_id = issue_work_types.id " +
@@ -48,59 +48,43 @@ namespace CRMService.Service.Entity
                 Select(issue => new Issue
                 {
                     Id = issue.Field<int>("sequential_id"),
-                    Title = issue.Field<string>("title"),
+                    Title = issue.Field<string>("title") ?? "",
                     AssigneeId = issue.Field<int?>("assignee_id"),
-                    AuthorId = issue.Field<int?>("author_id"),
+                    AuthorId = issue.Field<int>("author_id"),
                     CompanyId = issue.Field<int?>("companyid"),
                     ServiceObjectId = issue.Field<int?>("maintenanceEntityId"),
-                    Status = new() { Code = issue.Field<string>("statusCode") ?? "" },
-                    Type = new() { Code = issue.Field<string>("typeCode") ?? "" },
-                    Priority = new() { Code = issue.Field<string>("priorityCode") ?? "" },
+                    StatusId = issue.Field<int>("statusId"),
+                    TypeId = issue.Field<int>("typeId"),
+                    PriorityId = issue.Field<int>("priorityId"),
                     CreatedAt = issue.Field<DateTime>("created_at").ToLocalTime(),
                     CompletedAt = issue.Field<DateTime?>("completed_at")?.ToLocalTime(),
                     DeadlineAt = issue.Field<DateTime?>("deadline_at")?.ToLocalTime(),
                     DelayTo = issue.Field<DateTime?>("delay_to")?.ToLocalTime(),
                     EmployeesUpdatedAt = issue.Field<DateTime>("employees_updated_at").ToLocalTime(),
-                    DeletedAt = issue.Field<DateTime?>("deleted_at")?.ToLocalTime(),
-                    TimeEntries = new List<TimeEntry>()
+                    DeletedAt = issue.Field<DateTime?>("deleted_at")?.ToLocalTime()
                 }).ToList();
         }
 
         public async Task CheckAttributes(Issue issue, CancellationToken ct)
         {
-            // Проверка всех внешних ключей (элементов) что они есть в локальной БД
-            if (issue.Company != null)
-                issue.CompanyId = (await unitOfWork.Company.GetItemById(issue.Company.Id, true, ct))?.Id;
-            else if (issue.CompanyId != null)
-                issue.CompanyId = (await unitOfWork.Company.GetItemById((int)issue.CompanyId, true, ct))?.Id;
+            issue.StatusId = (await unitOfWork.IssueStatus.GetItemById(issue.Status.Id, true, ct))?.Id 
+                ?? throw new Exception($"StatusId: {issue.StatusId} - not found in DB.");
+            issue.PriorityId = (await unitOfWork.IssuePriority.GetItemById(issue.Priority.Id, true, ct))?.Id 
+                ?? throw new Exception($"PriorityId: {issue.PriorityId} - not found in DB.");
+            issue.TypeId = (await unitOfWork.IssueType.GetItemById(issue.Type.Id, true, ct))?.Id 
+                ?? throw new Exception($"TypeId: {issue.TypeId} - not found in DB.");
 
-            if (issue.ServiceObject != null)
-                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItemById(issue.ServiceObject.Id, true, ct))?.Id;
-            else if (issue.ServiceObjectId != null)
-                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItemById((int)issue.ServiceObjectId, true, ct))?.Id;
-
-            if (issue.Status != null)
-                issue.StatusId = (await unitOfWork.IssueStatus.GetItemById(issue.Status.Id, true, ct))?.Id ?? 0;
-            if (issue.Priority != null)
-                issue.PriorityId = (await unitOfWork.IssuePriority.GetItemById(issue.Priority.Id, true, ct))?.Id ?? 0;
-            if (issue.Type != null)
-                issue.TypeId = (await unitOfWork.IssueType.GetItemById(issue.Type.Id, true, ct))?.Id ?? 0;
-
-            if (issue.AssigneeId != null && issue.AssigneeId != 0)
-                issue.AssigneeId = (await unitOfWork.Employee.GetItemById((int)issue.AssigneeId, true, ct))?.Id;
-
-            // Если не зануллить то будет выдавать ошибку EF (id уже использовался)
-            /*issue.Company = null;
-            issue.ServiceObject = null;*/
+            if (issue.AssigneeId != null)
+                issue.AssigneeId = (await unitOfWork.Employee.GetItemById(issue.AssigneeId.Value, true, ct))?.Id;
         }
 
         public async Task UpdateIssuesFromCloudApi(DateTime dateFrom, DateTime dateTo, long startIndex = 0, long limit = 0, [CallerMemberName] string caller = "", CancellationToken ct = default)
         {
             _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudApi), caller);
 
-            IEnumerable<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(predicate: e => e.Id >= startIndex, asNoTracking: true, ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(predicate: e => e.Id >= startIndex, asNoTracking: true, ct: ct);
 
-            if (employees == null || !employees.Any())
+            if (employees.Count == 0)
                 return;
 
             long pageNubmer = 1;

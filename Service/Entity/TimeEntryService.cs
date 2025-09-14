@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<TimeEntryService> _logger = logger.CreateLogger<TimeEntryService>();
 

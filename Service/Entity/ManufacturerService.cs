@@ -8,11 +8,11 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<ManufacturerService> _logger = logger.CreateLogger<ManufacturerService>();
 
-        private async IAsyncEnumerable<List<Manufacturer>?> GetManufacturersFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<Manufacturer>> GetManufacturersFromCloudApi(long startIndex, long limit)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/manufacturers?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
@@ -20,14 +20,14 @@ namespace CRMService.Service.Entity
                 yield return manufacturers;
         }
 
-        private async Task<List<Manufacturer>?> GetManufacturersFromCloudDb()
+        private async Task<List<Manufacturer>> GetManufacturersFromCloudDb()
         {
             string sqlCommand = "SELECT * FROM equipment_manufacturers ORDER BY id;";
 
             DataSet ds = await pGSelect.Select(sqlCommand);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
-                return null;
+                return new();
 
             return table.AsEnumerable().
                 Select(manufacture => new Manufacturer
@@ -41,11 +41,9 @@ namespace CRMService.Service.Entity
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating manufacturers.", nameof(UpdateManufacturersFromCloudApi));
 
-            await foreach (List<Manufacturer>? manufacturers in GetManufacturersFromCloudApi(startIndex, limit))
+            await foreach (List<Manufacturer> manufacturers in GetManufacturersFromCloudApi(startIndex, limit))
             {
-                if (manufacturers == null || manufacturers.Count == 0) return;
-
-                await unitOfWork.Manufacturer.UpsertByCodes(manufacturers, ct);
+                await unitOfWork.Manufacturer.Upsert(manufacturers, ct);
 
                 await unitOfWork.SaveAsync(ct);
             }
@@ -55,12 +53,9 @@ namespace CRMService.Service.Entity
 
         public async Task UpdateManufacturersFromCloudDb(CancellationToken ct)
         {
-            List<Manufacturer>? manufacturers = await GetManufacturersFromCloudDb();
+            List<Manufacturer> manufacturers = await GetManufacturersFromCloudDb();
 
-            if (manufacturers == null || manufacturers.Count == 0)
-                return;
-
-            await unitOfWork.Manufacturer.UpsertByCodes(manufacturers, ct);
+            await unitOfWork.Manufacturer.Upsert(manufacturers, ct);
 
             await unitOfWork.SaveAsync(ct);
         }

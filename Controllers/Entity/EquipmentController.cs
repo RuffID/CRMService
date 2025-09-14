@@ -4,7 +4,6 @@ using CRMService.Models.ConfigClass;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
 using AutoMapper;
@@ -76,7 +75,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromCloudApi([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
@@ -87,7 +86,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>

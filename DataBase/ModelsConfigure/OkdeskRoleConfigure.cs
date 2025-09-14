@@ -10,9 +10,11 @@ namespace CRMService.DataBase.ModelsConfigure
         {
             builder.ToTable("okdesk_role");
 
-            
+            builder.HasKey(e => e.Id);
 
-            builder.Property(e => e.Id).HasColumnName("id");
+            builder.Property(e => e.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
 
             builder.Property(e => e.Name)
                 .HasMaxLength(100)

@@ -11,8 +11,8 @@ namespace CRMService.Core
     {
         public MappingProfiles() 
         {
-            CreateMap<CompanyCategory, CategoryDto>();
-            CreateMap<CategoryDto, CompanyCategory>();
+            CreateMap<CompanyCategory, CompanyCategoryDto>();
+            CreateMap<CompanyCategoryDto, CompanyCategory>();
             CreateMap<Company, CompanyDto>();
             CreateMap<CompanyDto, Company>();
             CreateMap<Manufacturer, ManufacturerDto>();

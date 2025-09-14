@@ -3,93 +3,115 @@ using CRMService.DataBase.Postgresql;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
+using CRMService.Models.Request;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<IssueTypeService> _logger = logger.CreateLogger<IssueTypeService>();
 
-        public async Task<List<IssueType>?> GetIssueTypesFromCloudApi()
+        public async Task<(List<IssueType> Types, List<IssueTypeGroup> TypeGroups)> GetIssueTypesFromCloudApi()
         {
             string link = $"{endpoint.Value.OkdeskApi}/dictionaries/issues/types?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            List<IssueType>? typesFromApi = await request.GetRangeOfItems<IssueType>(link);
+            List<IssueTypeResponse> root = await request.GetRangeOfItems<IssueTypeResponse>(link);
+            List<IssueType> types = new List<IssueType>();
+            List<IssueTypeGroup> groups = new List<IssueTypeGroup>();
+            
+            foreach (IssueTypeResponse type in root)
+                TypeHandler(type, null, groups, types);
 
-            if (typesFromApi != null && typesFromApi.Count != 0)
-            {
-                List<IssueType> types = [];
-                LoopThroughAllElementsCollection(typesFromApi, types);
-                return types;
-            }
-            return null;
+            return (types, groups);
         }
-
-        private static void LoopThroughAllElementsCollection(List<IssueType> typesFromApi, List<IssueType> collectedType)
-        {
-            // Цикл проходит по всем полученным группам из API
-            // Продолжать выполнение цикла пока не закончатся все полученные элементы
-            foreach (var type in typesFromApi)
-            {
-                // Если элемент является группой, то пройтись по всем его вложенным элементам
-                if (type.Type == "group" && type.Children != null && type.Children.Count != 0)
-                    LoopThroughAllElementsCollection(type.Children, collectedType);
-
-                // Если элемент является обычным типом без вложенности, то добавить его в новую коллекцию
-                if (type.Type == "type")
-                {
-                    type.Id = default;
-                    collectedType.Add(type);
-                }
-            }
-        }
-
-        public async Task<List<IssueType>?> GetIssueTypesFromCloudDb()
+        
+        public async Task<List<IssueType>> GetIssueTypesFromCloudDb()
         {
             string sqlCommand = "SELECT * FROM issue_work_types ORDER BY id;";
 
             DataSet ds = await pGSelect.Select(sqlCommand);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
-                return null;
+                return new List<IssueType>();
 
             return table.AsEnumerable().
                 Select(type => new IssueType
                 {
+                    Id = type.Field<int>("id"),
                     Code = type.Field<string>("code") ?? "",
                     Name = type.Field<string>("name") ?? string.Empty,
-                    Inner = type.Field<bool>("inner")
+                    IsInner = type.Field<bool>("inner")
                 }).ToList();
         }
 
         public async Task UpdateIssueTypesFromCloudApi(CancellationToken ct)
         {
-            List<IssueType>? types = await GetIssueTypesFromCloudApi();
+            (List<IssueType> Types, List<IssueTypeGroup> Groups) = await GetIssueTypesFromCloudApi();
 
-            if (types == null || types.Count == 0)
+            if (Types.Count == 0 && Groups.Count == 0)
                 return;
 
-            await unitOfWork.IssueType.UpsertByCodes(types, ct);
+            await unitOfWork.ExecuteInTransaction(async () =>
+            {
+                await unitOfWork.IssueTypeGroup.Upsert(Groups, ct);
 
-            await unitOfWork.SaveAsync(ct);
+                await unitOfWork.IssueType.Upsert(Types, ct);
+            }, ct);
         }
 
         public async Task UpdateIssueTypesFromCloudDb(CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating issue types.", nameof(UpdateIssueTypesFromCloudDb));
 
-            List<IssueType>? types = await GetIssueTypesFromCloudDb();
+            List<IssueType> types = await GetIssueTypesFromCloudDb();
 
-            if (types == null || types.Count == 0)
-                return;
+            if (types.Count != 0)
+            {
+                await unitOfWork.IssueType.Upsert(types, ct);
 
-            await unitOfWork.IssueType.UpsertByCodes(types, ct);
-
-            await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveAsync(ct);
+            }
 
             _logger.LogInformation("[Method:{MethodName}] Issue types update completed.", nameof(UpdateIssueTypesFromCloudDb));
+        }
+
+        private void TypeHandler(IssueTypeResponse node, int? parentGroupId, List<IssueTypeGroup> groups, List<IssueType> types)
+        {
+            bool isGroup = string.Equals(node.Type, "group", StringComparison.OrdinalIgnoreCase);
+
+            if (isGroup)
+            {
+                IssueTypeGroup group = new IssueTypeGroup
+                {
+                    Id = node.Id,
+                    Code = node.Code,
+                    Name = node.Name,
+                    ParentGroupId = parentGroupId
+                };
+                groups.Add(group);
+
+                if (node.Children != null)
+                {
+                    foreach (IssueTypeResponse child in node.Children)
+                        TypeHandler(child, node.Id, groups, types);
+                }
+            }
+            else
+            {
+                IssueType type = new IssueType
+                {
+                    Id = node.Id,
+                    Code = node.Code,
+                    Name = node.Name,
+                    IsDefault = node.Default,
+                    IsInner = node.Inner,
+                    AvailableForClient = node.AvailableForClient,
+                    GroupId = parentGroupId
+                };
+                types.Add(type);
+            }
         }
     }
 }

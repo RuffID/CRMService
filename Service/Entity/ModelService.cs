@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetItemService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<ModelService> _logger = logger.CreateLogger<ModelService>();
 
@@ -55,7 +55,7 @@ namespace CRMService.Service.Entity
                 foreach (Model model in models)
                     await CheckModel(model, ct);
 
-                await unitOfWork.Model.UpsertByCodes(models, ct);
+                await unitOfWork.Model.Upsert(models, ct);
 
                 await unitOfWork.SaveAsync(ct);
             }
@@ -73,7 +73,7 @@ namespace CRMService.Service.Entity
             foreach (Model model in models)
                 await CheckModel(model, ct);
 
-            await unitOfWork.Model.UpsertByCodes(models, ct);
+            await unitOfWork.Model.Upsert(models, ct);
 
             await unitOfWork.SaveAsync(ct);
         }

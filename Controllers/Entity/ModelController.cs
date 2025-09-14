@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Entity;
@@ -24,7 +23,7 @@ namespace CRMService.Controllers.Entity
         }
                 
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateModelsFromCloudApi([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             await service.UpdateModelsFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
@@ -32,7 +31,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateModelsFromCloudDb(CancellationToken ct)
         {
             await service.UpdateModelsFromCloudDb(ct);

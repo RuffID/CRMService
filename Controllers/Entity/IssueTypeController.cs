@@ -1,10 +1,8 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.Entity;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.ConfigClass;
 
@@ -13,14 +11,21 @@ namespace CRMService.Controllers.Entity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueTypeController(IMapper mapper, IUnitOfWork unitOfWork, IssueTypeService service) : Controller
+    public class IssueTypeController(IUnitOfWork unitOfWork, IssueTypeService service) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueTypes([FromQuery] int startIndex, CancellationToken ct)
         {
             List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAndSortById(predicate: t => t.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
-            return Ok(mapper.Map<List<TaskTypeDto>>(types));
+            List<TaskTypeDto> dtos = types.Select(p => new TaskTypeDto()
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Code = p.Code
+            }).ToList();
+
+            return Ok(dtos);
         }
 
         [HttpGet]
@@ -31,10 +36,17 @@ namespace CRMService.Controllers.Entity
             if (type == null)
                 return NotFound();
 
-            return Ok(mapper.Map<TaskTypeDto>(type));
+            TaskTypeDto dto = new()
+            {
+                Id = type.Id,
+                Name = type.Name,
+                Code = type.Code
+            };
+
+            return Ok(dto);
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateIssueTypesFromCloudApi(CancellationToken ct)
         {
             await service.UpdateIssueTypesFromCloudApi(ct);
@@ -42,7 +54,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdatetIssueTypesFromCloudDb(CancellationToken ct)
         {
             await service.UpdateIssueTypesFromCloudDb(ct);

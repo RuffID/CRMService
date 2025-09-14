@@ -8,8 +8,6 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<Issue> builder)
         {
-            
-
             builder.ToTable("issue");
 
             builder.HasIndex(e => e.AssigneeId, "issue_assigneeId_idx");

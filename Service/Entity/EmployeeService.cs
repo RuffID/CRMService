@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.Entity
 {
-    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetItemService _request, ILoggerFactory logger)
+    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetOkdeskEntityService _request, ILoggerFactory logger)
     {
         private readonly ILogger<EmployeeService> _logger = logger.CreateLogger<EmployeeService>();
 
@@ -59,7 +59,7 @@ namespace CRMService.Service.Entity
 
                 await unitOfWork.SaveAsync(ct);
 
-                await UpdateConnectionsBetweenEmployeesAndRoles(employees, ct);
+                //await UpdateConnectionsBetweenEmployeesAndRoles(employees, ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Employees update completed.", nameof(UpdateEmployeesFromCloudApi));
@@ -123,7 +123,7 @@ namespace CRMService.Service.Entity
                 if (localConnections == null || localConnections.Count == 0)
                     continue;
 
-                foreach (var connection in localConnections)
+                foreach (EmployeeRole connection in localConnections)
                 {
                     // Если связи нет в облачном API, но она есть в локальной БД
                     if (employee.Roles.FirstOrDefault(c => c.Id == connection.RoleId) == null)

@@ -1,30 +1,36 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
+﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
-using CRMService.Service.Entity;
-using CRMService.Interfaces.Repository;
-using CRMService.Service.Sync;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
+using CRMService.Service.Entity;
+using CRMService.Service.Sync;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRMService.Controllers.Entity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CompanyController(IMapper mapper, IUnitOfWork unitOfWork, EntitySyncService sync, CompanyService service) : Controller
+    public class CompanyController(IUnitOfWork unitOfWork, EntitySyncService sync, CompanyService service) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetCompany([FromQuery] int id, CancellationToken ct)
         {
-            Company? companyFromDB = await unitOfWork.Company.GetItemById(id, false, ct);
+            Company? company = await unitOfWork.Company.GetItemById(id, false, ct);
 
-            if (companyFromDB == null)
+            if (company == null)
                 return NotFound();
 
-            return Ok(mapper.Map<CompanyDto>(companyFromDB));
+            CompanyDto dto = new()
+            {
+                Id = company.Id,
+                Name = company.Name,
+                AdditionalName = company.AdditionalName,
+                Active = company.Active
+            };
+
+            return Ok(dto);
         }
 
         [HttpGet("by_category")]
@@ -32,10 +38,18 @@ namespace CRMService.Controllers.Entity
         {
             List<Company> companies = await unitOfWork.Company.GetCompaniesByCategoryCode(categoryCode: categoryCode, startIndexCompany: startIndex, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
 
-            return Ok(mapper.Map<List<CompanyDto>>(companies));
+            List<CompanyDto> dtos = companies.Select(c => new CompanyDto()
+            {
+                Id = c.Id,
+                Name = c.Name,
+                AdditionalName = c.AdditionalName,
+                Active = c.Active
+            }).ToList();
+
+            return Ok(dtos);
         }        
 
-        [HttpPut("update_company_from_cloud_api")]
+        [HttpPut("update_from_api")]
         public async Task<IActionResult> UpdateCompanyFromCloudApi([FromQuery] int companyId, CancellationToken ct)
         {
             await sync.RunExclusive(async () =>
@@ -46,7 +60,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateCompaniesFromCloudApi([FromQuery] int startIndexCategory, int startIndexCompany, CancellationToken ct)
         {
             await sync.RunExclusive(async () =>
@@ -57,7 +71,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateCompaniesFromCloudDb([FromQuery] int startIndexCategory, int startIndexCompany, CancellationToken ct)
         {
             await sync.RunExclusive(async () =>

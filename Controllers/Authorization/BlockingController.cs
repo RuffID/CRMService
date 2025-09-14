@@ -13,7 +13,7 @@ namespace CRMService.Controllers.Authorization
     [Route("api/authorize/[controller]")]
     public class BlockingController(IMapper mapper, IUnitOfWork unitOfWork) : Controller
     {
-        [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpGet("list"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> GetBlocks([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
             List<BlockReason> blocks = await unitOfWork.BlockReason.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
@@ -21,7 +21,7 @@ namespace CRMService.Controllers.Authorization
             return Ok(mapper.Map<IEnumerable<BlockReasonDto>>(blocks));
         }
 
-        [HttpPut("block"), Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpPut("block"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> BlockUser([FromQuery] Guid userId, string reasonForBlocking, CancellationToken ct)
         {
             BlockReason block = new()
@@ -36,7 +36,7 @@ namespace CRMService.Controllers.Authorization
             if (existBlock != null)
                 return Conflict($"User has already been blocked.");
 
-            User? user = await unitOfWork.User.GetItemById(userId, true);
+            User? user = await unitOfWork.User.GetItemById(userId, true, ct);
             if (user == null)
                 return NotFound($"User {userId} not found.");
 
@@ -46,12 +46,12 @@ namespace CRMService.Controllers.Authorization
             user.Active = false;
 
             unitOfWork.BlockReason.Create(block);
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return NoContent();
         }
 
-        [HttpPut("unblock"), Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpPut("unblock"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UnblockUser([FromQuery] Guid userId, string reason_for_unblocking, CancellationToken ct)
         {
             BlockReason? block = await unitOfWork.BlockReason.GetItemByPredicate(predicate: b => b.UserId == userId && b.UnblockingDate == null, asNoTracking: false, ct);
@@ -70,7 +70,7 @@ namespace CRMService.Controllers.Authorization
             user.Active = true;
             block.UnblockingDate = DateTime.Now;
             block.UnblockingReason = reason_for_unblocking;
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return NoContent();
         }

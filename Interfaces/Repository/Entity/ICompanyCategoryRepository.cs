@@ -7,8 +7,7 @@ namespace CRMService.Interfaces.Repository.Entity
         IGetItemByIdRepository<CompanyCategory, int>, 
         IGetItemByPredicateRepository<CompanyCategory>,
         ICreateItemRepository<CompanyCategory>, 
-        IUpsertItemByIdRepository<CompanyCategory, int>,
-        IUpsertItemByCodeRepository<CompanyCategory>
+        IUpsertItemByIdRepository<CompanyCategory, int>
     {
     }
 }

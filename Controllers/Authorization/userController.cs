@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using CRMService.Interfaces.Repository;
+﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Authorization;
@@ -13,28 +12,54 @@ namespace CRMService.Controllers.Authorization
     [Authorize]
     [ApiController]
     [Route("api/authorize/[controller]")]
-    public class UserController(IUnitOfWork unitOfWork, IMapper mapper, Hasher hasher) : Controller
+    public class UserController(IUnitOfWork unitOfWork) : Controller
     {
-        [HttpGet("list"), Authorize(Roles = RolesDefinition.ADMIN)]
+        private readonly Hasher hash = new();
+
+        [HttpGet("list"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> GetUsers([FromQuery] int startIndex = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
             List<User> users = await unitOfWork.User.GetItemsByPredicate(skip: startIndex, take: limit, asNoTracking: true, ct: ct);
 
-            return Ok(mapper.Map<List<UserDto>>(users));
+            List<UserDto> dtos = users.Select(u => new UserDto()
+            {
+                Id = u.Id,
+                Login = u.Login,
+                Active = u.Active,
+                Roles = u.Roles.Select(r => new RoleDto()
+                {
+                    Id = r.Id,
+                    Name = r.Name
+                }).ToList()
+            }).ToList();
+
+            return Ok(dtos);
         }
 
-        [HttpGet, Authorize(Roles = RolesDefinition.ADMIN)]
-        public async Task<IActionResult> GetUser([FromBody] UserRequest userCreate, CancellationToken ct)
+        [HttpGet, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        public async Task<IActionResult> GetUser([FromBody] UserRequest userGet, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == userCreate.Login, asNoTracking: true, ct: ct);
+            User? user = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == userGet.Login, asNoTracking: true, ct: ct);
 
             if (user == null)
                 return NotFound("User not found.");
 
-            return Ok(mapper.Map<UserDto>(user));
+            UserDto dto = new ()
+            {
+                Id = user.Id,
+                Login = user.Login,
+                Active = user.Active,
+                Roles = user.Roles.Select(r => new RoleDto()
+                {
+                    Id = r.Id,
+                    Name = r.Name
+                }).ToList()
+            };
+
+            return Ok(dto);
         }
 
-        [HttpPut, Authorize(Roles = RolesDefinition.ADMIN)]
+        [HttpPut, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateUser([FromBody] UserRequest userUpdate, CancellationToken ct)
         {
             User? user = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == userUpdate.Login, asNoTracking: false, ct: ct);
@@ -42,7 +67,7 @@ namespace CRMService.Controllers.Authorization
             if (user == null)
                 return NotFound($"User not found.");
 
-            user.Password = hasher.Hash(user.Password);
+            user.Password = hash.Hash(user.Password);
             user.Active = user.Active;
 
             if (user.Roles != null && user.Roles.Count != 0)
@@ -54,7 +79,7 @@ namespace CRMService.Controllers.Authorization
                 }).ToList();
             }
 
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(ct);
 
             return NoContent();
         }        

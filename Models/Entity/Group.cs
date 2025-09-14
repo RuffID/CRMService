@@ -1,4 +1,5 @@
 ﻿using CRMService.Interfaces.Entity;
+using System.Text.Json.Serialization;
 
 namespace CRMService.Models.Entity
 {
@@ -12,9 +13,11 @@ namespace CRMService.Models.Entity
 
         public string? Description { get; set; }
 
-        public virtual IEnumerable<Employee>? Employees { get; set; } = new List<Employee>();
+        [JsonIgnore]
 
-        public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
+        public virtual ICollection<Employee>? Employees { get; set; } = new List<Employee>();
+
+        public virtual ICollection<EmployeeGroup>? EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 
         public void CopyData(Group newItem)
         {

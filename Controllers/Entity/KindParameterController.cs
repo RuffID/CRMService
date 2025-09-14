@@ -3,7 +3,6 @@ using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
-using CRMService.Models.Enum;
 using CRMService.Service.Entity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +22,7 @@ namespace CRMService.Controllers.Entity
             return Ok(mapper.Map<List<KindParameterDto>>(kindParameters));
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
             await kindParameterService.UpdateKindParametersFromCloudApi(ct);
@@ -32,7 +31,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateKindParametersFromCloudDb(CancellationToken ct)
         {
             await kindParameterService.UpdateKindParametersFromCloudDb(ct);
@@ -40,7 +39,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateConnectionsFromCloudApi(CancellationToken ct)
         {
             await kindParamService.UpdateConnectionsFromCloudDb(ct);

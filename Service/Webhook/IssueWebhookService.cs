@@ -10,14 +10,14 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook
 {
-    public class IssueWebhookService(IUnitOfWork unitOfWork, IssueService issueService, IOptions<ApiEndpointOptions> endp,
-        IRequestService request, IOptions<TelegramBotOptions> tgSettings, ILoggerFactory logger) : IWebhookHandler
+    public class IssueWebhookService(IUnitOfWork unitOfWork, IHttpApiClient client, IssueService issueService, IOptions<ApiEndpointOptions> endp,
+        IOptions<TelegramBotOptions> tgSettings, ILoggerFactory logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
-        private readonly TelegramNotification telegramNotification = new(request, endp.Value, logger);
         private readonly ILogger<IssueWebhookService> _logger = logger.CreateLogger<IssueWebhookService>();
+        private readonly TelegramNotification tgNotif = new(client, endp.Value);
 
-        public async Task<bool> HandleWebhook(RootEvent @event, CancellationToken ct)
+        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
         {
             if (@event.Issue == null)
                 return false;
@@ -40,7 +40,7 @@ namespace CRMService.Service.Webhook
                     await MarkIssueAsDeletedAsync(@event.Issue, ct);
                     break;
                 case "new_comment":
-                    await NewComment(@event);
+                    await NewComment(@event, ct);
                     break;
                 default:
                     return false;
@@ -49,7 +49,7 @@ namespace CRMService.Service.Webhook
             return true;
         }
 
-        private async Task CreateIssue(IssueJSON issueJson, CancellationToken ct)
+        private async Task CreateIssue(IssueWebHook issueJson, CancellationToken ct)
         {
             Issue issue = issueJson.ConvertToIssue();
 
@@ -69,10 +69,10 @@ namespace CRMService.Service.Webhook
             content += $"{endp.Value.OkdeskDomainUrl}/issues/{issue.Id}";
 
             if (issueJson.Author?.Type == AUTHOR_CONTACT_TYPE)
-                await telegramNotification.SendMessage(tgSettings.Value.ChatId, content);
+                await tgNotif.SendMessage(tgSettings.Value.ChatId, content, ct);
         }
 
-        private async Task UpdateStatusAndSaveTimeEntries(RootEvent @event, CancellationToken ct)
+        private async Task UpdateStatusAndSaveTimeEntries(RootEventWebHook @event, CancellationToken ct)
         {
             Issue issue = @event.Issue!.ConvertToIssue();
             await issueService.CheckAttributes(issue, ct);
@@ -98,7 +98,7 @@ namespace CRMService.Service.Webhook
                     });
                 }
 
-                await unitOfWork.TimeEntry.Upsert(entries);
+                await unitOfWork.TimeEntry.Upsert(entries, ct);
 
                 _logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.Assignee?.Employee?.Id);
@@ -107,7 +107,7 @@ namespace CRMService.Service.Webhook
             await unitOfWork.SaveAsync(ct);
         }
 
-        private async Task UpdateIssue(IssueJSON issueJson, CancellationToken ct)
+        private async Task UpdateIssue(IssueWebHook issueJson, CancellationToken ct)
         {
             Issue issue = issueJson.ConvertToIssue();
             await issueService.CheckAttributes(issue, ct);
@@ -119,7 +119,7 @@ namespace CRMService.Service.Webhook
             await unitOfWork.SaveAsync(ct);
         }
 
-        private async Task MarkIssueAsDeletedAsync(IssueJSON issueJson, CancellationToken ct)
+        private async Task MarkIssueAsDeletedAsync(IssueWebHook issueJson, CancellationToken ct)
         {
             Issue convertIssue = issueJson.ConvertToIssue();
             await issueService.CheckAttributes(convertIssue, ct);
@@ -133,7 +133,7 @@ namespace CRMService.Service.Webhook
             await unitOfWork.SaveAsync(ct);
         }
 
-        private async Task NewComment(RootEvent @event)
+        private async Task NewComment(RootEventWebHook @event, CancellationToken ct)
         {
             if (@event.Event?.Author?.Type != AUTHOR_CONTACT_TYPE || string.IsNullOrEmpty(@event.Event?.Comment?.Content))
                 return;
@@ -147,17 +147,17 @@ namespace CRMService.Service.Webhook
                 return;
 
             // Не уведомлять при объединении заявок
-            if (@event.Event?.Comment?.Content.Contains("Комментарий добавлен при объединении заявок") == true)
+            if (@event.Event?.Comment?.Content.Contains("Комментарий добавлен при объединении заявок", StringComparison.CurrentCultureIgnoreCase) == true)
                 return;
 
             string content = string.Empty;
-            content += Priority(@event?.Issue?.Priority?.Code?.ToLower());
-            content += " Добавлен комментарий: " + @event?.Event?.Comment?.Content + Environment.NewLine;
-            content += FullName(@event?.Event?.Author) + Environment.NewLine;
+            content += Priority(@event.Issue?.Priority.Code.ToLower());
+            content += " Добавлен комментарий: " + @event.Event?.Comment.Content + Environment.NewLine;
+            content += FullName(@event.Event?.Author) + Environment.NewLine;
             content += $"{@event?.Issue?.Client?.Company?.Name}" + Environment.NewLine + Environment.NewLine;
             content += $"{endp.Value.OkdeskDomainUrl}/issues/{@event?.Issue?.Id}";
 
-            await telegramNotification.SendMessage(tgSettings.Value.ChatId, content);
+            await tgNotif.SendMessage(tgSettings.Value.ChatId, content, ct);
         }
 
         private static string Priority(string? priority) => priority switch

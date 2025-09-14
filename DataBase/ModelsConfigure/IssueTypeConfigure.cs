@@ -8,31 +8,28 @@ namespace CRMService.DataBase.ModelsConfigure
     {
         public void Configure(EntityTypeBuilder<IssueType> builder)
         {
-            
-
             builder.ToTable("issue_type");
 
-            builder.Property(e => e.Id)
-                .HasColumnName("id")
-                .ValueGeneratedNever();
+            builder.Property(e => e.Id).HasColumnName("id").ValueGeneratedNever();
+
+            builder.Property(e => e.Name).HasMaxLength(100).HasColumnName("name");
+
+            builder.Property(e => e.GroupId).HasColumnName("groupId");
+
+            builder.HasIndex(e => e.GroupId, "groupId_idx");
 
             builder.Property(e => e.AvailableForClient).HasColumnName("available_for_client");
 
-            builder.Property(e => e.Code)
-                .HasMaxLength(60)
-                .HasColumnName("code");
+            builder.Property(e => e.Code).HasMaxLength(60).HasColumnName("code");
 
-            builder.Property(e => e.Default).HasColumnName("default");
+            builder.Property(e => e.IsDefault).HasColumnName("is_default");
 
-            builder.Property(e => e.Inner).HasColumnName("inner");
+            builder.Property(e => e.IsInner).HasColumnName("is_inner");
 
-            builder.Property(e => e.Name)
-                .HasMaxLength(100)
-                .HasColumnName("name");
-
-            builder.Property(e => e.Type)
-                .HasMaxLength(45)
-                .HasColumnName("type");
+            builder.HasOne(x => x.Group)
+                .WithMany(g => g.Types)
+                .HasForeignKey(x => x.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -9,7 +9,7 @@ using System.Data;
 namespace CRMService.Service.Entity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        GetItemService _request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        GetOkdeskEntityService _request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<CompanyService> _logger = logger.CreateLogger<CompanyService>();
 
@@ -28,17 +28,14 @@ namespace CRMService.Service.Entity
                 await foreach (List<Company> companies in _request.GetAllItems<Company>(link, startIndex, limit))
                 {
                     foreach (var company in companies)
-                    {
-                        company.CategoryId = category.Id;
-                        company.Category = null;
-                    }
+                        company.Category = category;
 
                     yield return companies;
                 }
             }
         }
 
-        private async IAsyncEnumerable<List<Company>?> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, long startIndexCompany)
+        private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, long startIndexCompany)
         {
             foreach (CompanyCategory category in categories)
             {
@@ -103,14 +100,14 @@ namespace CRMService.Service.Entity
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudApi));
 
-            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
+            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, ct: ct);
 
-            if (categories == null || !categories.Any())
+            if (categories.Count == 0)
                 return;
 
             await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API))
             {
-                if (companies == null || companies.Count == 0)
+                if (companies.Count == 0)
                     continue;
 
                 await unitOfWork.Company.Upsert(companies, ct);
@@ -130,9 +127,9 @@ namespace CRMService.Service.Entity
             if (categories == null || !categories.Any())
                 return;
 
-            await foreach (List<Company>? companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany))
+            await foreach (List<Company> companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany))
             {
-                if (companies == null || companies.Count == 0)
+                if (companies.Count == 0)
                     continue;
 
                 await unitOfWork.Company.Upsert(companies, ct);

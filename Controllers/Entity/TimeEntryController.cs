@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Service.Entity;
-using CRMService.Models.Enum;
 using CRMService.Models.ConfigClass;
 
 namespace CRMService.Controllers.Entity
@@ -11,7 +10,7 @@ namespace CRMService.Controllers.Entity
     [ApiController]
     public class TimeEntryController(TimeEntryService service) : Controller
     {
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateTimeEntriesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
             if (dateFrom > dateTo)
@@ -25,7 +24,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateTimeEntriesFromCloudApi([FromQuery] int issueId, CancellationToken ct)
         {
             await service.UpdateTimeEntriesFromCloudApi(issueId, ct);

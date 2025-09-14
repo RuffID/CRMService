@@ -9,9 +9,9 @@ namespace CRMService.Models.Entity
 
         public int? AssigneeId { get; set; }
 
-        public int? AuthorId { get; set; }
+        public int AuthorId { get; set; }
 
-        public string? Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         [JsonProperty("updated_at")]
         public DateTime EmployeesUpdatedAt { get; set; }

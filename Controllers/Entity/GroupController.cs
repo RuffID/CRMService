@@ -4,7 +4,6 @@ using CRMService.Models.ConfigClass;
 using AutoMapper;
 using CRMService.Service.Entity;
 using CRMService.Interfaces.Repository;
-using CRMService.Models.Enum;
 using CRMService.Models.Dto.Entity;
 using CRMService.Models.Entity;
 
@@ -24,7 +23,7 @@ namespace CRMService.Controllers.Entity
             return Ok(mapper.Map<List<GroupDto>>(groups));
         }
 
-        [HttpPut("update_from_cloud_api"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateGroupsFromCloudApi(CancellationToken ct)
         {
             await service.UpdateGroupsFromCloudApi(ct);
@@ -32,7 +31,7 @@ namespace CRMService.Controllers.Entity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
         public async Task<IActionResult> UpdateGroupsFromCloudDb(CancellationToken ct)
         {
             await service.UpdateGroupsFromCloudDb(ct);

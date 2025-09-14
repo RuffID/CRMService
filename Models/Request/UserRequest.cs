@@ -1,17 +1,20 @@
 ﻿using CRMService.Models.Dto.Authorization;
+using System.ComponentModel.DataAnnotations;
 
 namespace CRMService.Models.Request
 {
     public class UserRequest
     {
-        public string Login { get; set; } = string.Empty;
+        [MinLength(1, ErrorMessage = "Login must not be empty")]
+        public string Login { get; set; } = null!;
 
-        public string Name { get; set; } = string.Empty;
+        [MinLength(1, ErrorMessage = "Login must not be empty")]
+        public string Name { get; set; } = null!;
 
-        public string Password { get; set; } = string.Empty;
+        [MinLength(1, ErrorMessage = "Password must not be empty")]
+        public string Password { get; set; } = null!;
 
-        public bool Active { get; set; }
-
-        public ICollection<RoleDto> Roles { get; set; } = new List<RoleDto>();
+        [MinLength(1, ErrorMessage = "User role must not be empty.")]
+        public ICollection<RoleDto> Roles { get; set; } = null!;
     }
 }

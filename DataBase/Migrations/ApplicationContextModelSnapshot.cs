@@ -213,6 +213,7 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnName("code");
 
                     b.Property<string>("Color")
+                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)")
                         .HasColumnName("color");
@@ -565,7 +566,7 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
-                    b.Property<bool?>("AvailableForClient")
+                    b.Property<bool>("AvailableForClient")
                         .HasColumnType("bit")
                         .HasColumnName("available_for_client");
 
@@ -575,13 +576,17 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnType("nvarchar(60)")
                         .HasColumnName("code");
 
-                    b.Property<bool?>("Default")
-                        .HasColumnType("bit")
-                        .HasColumnName("default");
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("int")
+                        .HasColumnName("groupId");
 
-                    b.Property<bool?>("Inner")
+                    b.Property<bool>("IsDefault")
                         .HasColumnType("bit")
-                        .HasColumnName("inner");
+                        .HasColumnName("is_default");
+
+                    b.Property<bool>("IsInner")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_inner");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -589,14 +594,40 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("name");
 
-                    b.Property<string>("Type")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("type");
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "GroupId" }, "groupId_idx");
+
+                    b.ToTable("issue_type", (string)null);
+                });
+
+            modelBuilder.Entity("CRMService.Models.Entity.IssueTypeGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("ParentGroupId")
+                        .HasColumnType("int")
+                        .HasColumnName("parent_group_id");
 
                     b.HasKey("Id");
 
-                    b.ToTable("issue_type", (string)null);
+                    b.HasIndex("ParentGroupId");
+
+                    b.ToTable("issue_type_groups", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.Entity.Kind", b =>
@@ -791,11 +822,8 @@ namespace CRMService.DataBase.Migrations
             modelBuilder.Entity("CRMService.Models.Entity.OkdeskRole", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1059,6 +1087,26 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Type");
                 });
 
+            modelBuilder.Entity("CRMService.Models.Entity.IssueType", b =>
+                {
+                    b.HasOne("CRMService.Models.Entity.IssueTypeGroup", "Group")
+                        .WithMany("Types")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("CRMService.Models.Entity.IssueTypeGroup", b =>
+                {
+                    b.HasOne("CRMService.Models.Entity.IssueTypeGroup", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
+                });
+
             modelBuilder.Entity("CRMService.Models.Entity.KindParam", b =>
                 {
                     b.HasOne("CRMService.Models.Entity.Kind", "Kind")
@@ -1203,6 +1251,13 @@ namespace CRMService.DataBase.Migrations
             modelBuilder.Entity("CRMService.Models.Entity.IssueType", b =>
                 {
                     b.Navigation("Issues");
+                });
+
+            modelBuilder.Entity("CRMService.Models.Entity.IssueTypeGroup", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Types");
                 });
 
             modelBuilder.Entity("CRMService.Models.Entity.Kind", b =>

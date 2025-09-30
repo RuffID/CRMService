@@ -1,7 +1,7 @@
 ﻿using CRMService.Interfaces.Repository;
-using CRMService.Models.ConfigClass;
-using CRMService.Models.Entity;
-using CRMService.Service.Entity;
+using CRMService.Models.Constants;
+using CRMService.Models.OkdeskEntity;
+using CRMService.Service.OkdeskEntity;
 using CRMService.Service.Sync;
 
 namespace CRMService.Service.HostedServices

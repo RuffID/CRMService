@@ -1,6 +1,6 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

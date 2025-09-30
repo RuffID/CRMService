@@ -1,7 +1,7 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
-using CRMService.Models.Dto.Authorization;
+using CRMService.Models.Constants;
+using CRMService.Models.Dto.Mappers.Authorize;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,24 +13,15 @@ namespace CRMService.Controllers.Authorization
     public class SessionController(IUnitOfWork unitOfWork) : Controller
     {
 
-        [HttpGet("list"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpGet("list"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> GetSessions([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
             List<Session> sessions = await unitOfWork.Session.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
-            List<SessionDto> dtos = sessions.Select(s => new SessionDto()
-            {
-                Id = s.Id,
-                UserId = s.UserId,
-                RefreshToken = s.RefreshToken,
-                ExpirationRefreshToken = s.ExpirationRefreshToken
-
-            }).ToList();
-
-            return Ok(dtos);
+            return Ok(sessions.ToDto());
         }
 
-        [HttpGet, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpGet, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> GetSession([FromQuery] Guid id, CancellationToken ct)
         {
             Session? session = await unitOfWork.Session.GetItemById(id, asNoTracking: true, ct);
@@ -38,18 +29,10 @@ namespace CRMService.Controllers.Authorization
             if (session == null)
                 return NotFound($"Session {id} not found.");
 
-            SessionDto dto = new()
-            {
-                Id = session.Id,
-                UserId = session.UserId,
-                RefreshToken = session.RefreshToken,
-                ExpirationRefreshToken = session.ExpirationRefreshToken
-            };
-
-            return Ok(dto);
+            return Ok(session.ToDto());
         }
 
-        [HttpDelete, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpDelete, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> DeleteSession([FromQuery] Guid id, CancellationToken ct)
         {
             Session? session = await unitOfWork.Session.GetItemById(id, asNoTracking: true, ct);

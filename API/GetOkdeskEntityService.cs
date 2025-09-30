@@ -1,6 +1,6 @@
 ﻿using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Entity;
-using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.API

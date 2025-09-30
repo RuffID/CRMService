@@ -1,4 +1,4 @@
-﻿using CRMService.Models.Entity;
+﻿using CRMService.Models.OkdeskEntity;
 
 namespace CRMService.Models.WebHook
 {

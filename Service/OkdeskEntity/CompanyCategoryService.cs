@@ -1,0 +1,64 @@
+﻿using CRMService.DataBase.Postgresql;
+using CRMService.Interfaces.Repository;
+using CRMService.Models.OkdeskEntity;
+using System.Data;
+
+namespace CRMService.Service.OkdeskEntity
+{
+    public class CompanyCategoryService(PGSelect pGSelect, IUnitOfWork unitOfWork, ILoggerFactory logger)
+    {
+        private readonly PGSelect _pGSelect = pGSelect;
+        private readonly ILogger<CompanyCategoryService> _logger = logger.CreateLogger<CompanyCategoryService>();
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+
+        private async Task<List<CompanyCategory>> GetCategoriesFromCloudDb()
+        {
+            string sqlCommand = "SELECT * FROM company_categories;";
+            DataSet ds = await _pGSelect.Select(sqlCommand);
+            DataTable? categoryTable = ds.Tables["Table"];
+            if (categoryTable == null)
+                return new();
+
+            return categoryTable.AsEnumerable().
+                    Select(category => new CompanyCategory
+                    {
+                        Id = categoryTable.Rows.IndexOf(category) + 1,
+                        Name = category.Field<string>("name") ?? string.Empty,
+                        Code = category.Field<string>("code") ?? string.Empty,
+                        Color = category.Field<string>("color") ?? string.Empty
+                    }).ToList();
+        }
+
+        public async Task CheckAnonymousCategory(CancellationToken ct)
+        {
+            _logger.LogInformation("[Method:{MethodName}] Starting check anonymous company category.", nameof(CheckAnonymousCategory));
+
+            // Создание категории с нулевым id которой нет в базе окдеска, но по которой ищутся клиенты без категории
+            // Это нужно для первого запуска сервера
+            CompanyCategory no_category = new() { Id = 0, Name = "Без категории", Code = "no_category", Color = "#FFFFFF" };
+            if (await _unitOfWork.CompanyCategory.GetItemById(no_category.Id, false, ct) == null)
+            {
+                _unitOfWork.CompanyCategory.Create(no_category);
+                await _unitOfWork.SaveAsync(ct);
+            }
+
+            _logger.LogInformation("[Method:{MethodName}] Check anonymous company category completed.", nameof(CheckAnonymousCategory));
+        }
+
+        public async Task UpdateCategoriesFromCloudDb(CancellationToken ct)
+        {
+            _logger.LogInformation("[Method:{MethodName}] Starting updating company categories.", nameof(UpdateCategoriesFromCloudDb));
+
+            List<CompanyCategory> categories = await GetCategoriesFromCloudDb();
+
+            if (categories.Count == 0)
+                return;
+
+            await _unitOfWork.CompanyCategory.Upsert(categories, ct);
+
+            await _unitOfWork.SaveAsync(ct);
+
+            _logger.LogInformation("[Method:{MethodName}] Company categories update completed.", nameof(UpdateCategoriesFromCloudDb));
+        }
+    }
+}

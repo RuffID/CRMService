@@ -1,7 +1,7 @@
-﻿using CRMService.DataBase.ModelsConfigure;
-using CRMService.DataBase.ModelsConfigure.Authorization;
+﻿using CRMService.DataBase.ModelsConfigure.Authorization;
+using CRMService.DataBase.ModelsConfigure.OkdeskEntity;
 using CRMService.Models.Authorization;
-using CRMService.Models.Entity;
+using CRMService.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.DataBase;

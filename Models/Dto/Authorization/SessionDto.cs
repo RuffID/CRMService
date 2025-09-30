@@ -1,6 +1,4 @@
-﻿using CRMService.Interfaces.Entity;
-
-namespace CRMService.Models.Dto.Authorization
+﻿namespace CRMService.Models.Dto.Authorization
 {
     public class SessionDto
     {

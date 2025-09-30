@@ -1,5 +1,5 @@
 ﻿using CRMService.Interfaces.Repository.Authorization;
-using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.OkdeskEntity;
 using CRMService.Interfaces.Repository.Report;
 
 namespace CRMService.Interfaces.Repository

@@ -1,7 +1,7 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.WebHook;
-using CRMService.Service.Entity;
+using CRMService.Service.OkdeskEntity;
 
 namespace CRMService.Service.Webhook
 {

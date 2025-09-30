@@ -1,4 +1,4 @@
-﻿using CRMService.Models.ConfigClass;
+﻿using CRMService.Models.Constants;
 using System.Security.Cryptography;
 
 namespace CRMService.Service.Authorization

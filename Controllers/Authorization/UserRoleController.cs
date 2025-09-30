@@ -1,7 +1,7 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
-using CRMService.Models.Dto.Authorization;
+using CRMService.Models.Constants;
+using CRMService.Models.Dto.Mappers.Authorize;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,21 +12,15 @@ namespace CRMService.Controllers.Authorization
     [Route("api/authorize/[controller]")]
     public class UserRoleController(IUnitOfWork unitOfWork) : Controller
     {
-        [HttpGet("list"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpGet("list"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> GetUserRoleConnections([FromQuery] int startIndex = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
             List<UserRole> userRoleConnections = await unitOfWork.UserRole.GetItemsByPredicate(skip: startIndex, take: limit, asNoTracking: true, ct: ct);
 
-            List<UserRoleDto> dtos = userRoleConnections.Select(ur => new UserRoleDto()
-            {
-                UserId = ur.UserId,
-                RoleId = ur.RoleId
-            }).ToList();
-
-            return Ok(dtos);
+            return Ok(userRoleConnections.ToDto());
         }
 
-        [HttpGet, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpGet, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> GetUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId, CancellationToken ct)
         {
             UserRole? userRoleConnection = await unitOfWork.UserRole.GetItemByPredicate(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, asNoTracking: true, ct: ct);
@@ -34,16 +28,10 @@ namespace CRMService.Controllers.Authorization
             if (userRoleConnection == null)
                 return NotFound($"User-role connection by userId: {userId} and roleId: {roleId} - not found.");
 
-            UserRoleDto dto = new()
-            {
-                UserId = userRoleConnection.UserId,
-                RoleId = userRoleConnection.RoleId
-            };
-
-            return Ok(dto);
+            return Ok(userRoleConnection.ToDto());
         }
 
-        [HttpPost, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpPost, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> CreateUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId, CancellationToken ct)
         {
             UserRole? connection = await unitOfWork.UserRole.GetItemByPredicate(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, asNoTracking: true, ct: ct);
@@ -63,7 +51,7 @@ namespace CRMService.Controllers.Authorization
             return NoContent();
         }
 
-        [HttpDelete, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpDelete, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> DeleteUserRoleConnection([FromQuery] Guid userId, [FromQuery] Guid roleId, CancellationToken ct)
         {
             UserRole? connection = await unitOfWork.UserRole.GetItemByPredicate(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, asNoTracking: true, ct: ct);

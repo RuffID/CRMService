@@ -1,6 +1,6 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.Request;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +15,7 @@ namespace CRMService.Controllers.Authorization
     {
         private readonly Hasher hash = new();
 
-        [HttpPost, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpPost, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> Registration([FromBody] UserRequest userCreate, CancellationToken ct)
         {
             User? existingUser = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == userCreate.Login, asNoTracking: true, ct);

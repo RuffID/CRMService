@@ -1,5 +1,5 @@
-﻿using CRMService.Models.ConfigClass;
-using CRMService.Service.Entity;
+﻿using CRMService.Models.Constants;
+using CRMService.Service.OkdeskEntity;
 
 namespace CRMService.Service.Hosted
 {

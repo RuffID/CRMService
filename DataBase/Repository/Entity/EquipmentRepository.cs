@@ -1,6 +1,6 @@
-﻿using CRMService.Interfaces.Repository.Entity;
+﻿using CRMService.Interfaces.Repository.OkdeskEntity;
 using CRMService.Interfaces.Repository.Base;
-using CRMService.Models.Entity;
+using CRMService.Models.OkdeskEntity;
 using System.Linq.Expressions;
 
 namespace CRMService.DataBase.Repository.Entity

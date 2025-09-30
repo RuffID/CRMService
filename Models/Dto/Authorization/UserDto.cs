@@ -8,6 +8,6 @@
 
         public bool Active { get; set; }
 
-        public ICollection<RoleDto> Roles { get; set; } = new List<RoleDto>();
+        public ICollection<CrmRoleDto> Roles { get; set; } = new List<CrmRoleDto>();
     }
 }

@@ -15,6 +15,6 @@ namespace CRMService.Models.Request
         public string Password { get; set; } = null!;
 
         [MinLength(1, ErrorMessage = "User role must not be empty.")]
-        public ICollection<RoleDto> Roles { get; set; } = null!;
+        public ICollection<CrmRoleDto> Roles { get; set; } = null!;
     }
 }

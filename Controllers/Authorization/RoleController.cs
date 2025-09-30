@@ -1,10 +1,10 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.Dto.Authorization;
+using CRMService.Models.Dto.Mappers.Authorize;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
 
 namespace CRMService.Controllers.Authorization
 {
@@ -13,21 +13,15 @@ namespace CRMService.Controllers.Authorization
     [Route("api/authorize/[controller]")]
     public class RoleController(IUnitOfWork unitOfWork) : Controller
     {
-        [HttpGet("list"), Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpGet("list"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> GetRoles([FromQuery] int skip = 0, [FromQuery] int limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, CancellationToken ct = default)
         {
             List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsByPredicate(skip: skip, take: limit, asNoTracking: true, ct: ct);
 
-            List<RoleDto> roleDtos = roles.Select(r => new RoleDto
-            {
-                Id = r.Id,
-                Name = r.Name,
-            }).ToList();
-
-            return Ok(roleDtos);
+            return Ok(roles.ToDto());
         }
 
-        [HttpGet, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
+        [HttpGet, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> GetRole([FromQuery] Guid id, CancellationToken ct)
         {
             CrmRole? role = await unitOfWork.CrmRole.GetItemById(id, asNoTracking: true, ct);
@@ -35,30 +29,18 @@ namespace CRMService.Controllers.Authorization
             if (role == null)
                 return NotFound("Role not found.");
 
-            RoleDto dto = new ()
-            {
-                Id = role.Id,
-                Name = role.Name,
-            };
-
-            return Ok(dto);
+            return Ok(role.ToDto());
         }
 
-        [HttpPost, Authorize(Roles = RolesDefinitionConstants.ADMIN)]
-        public async Task<IActionResult> CreateRole([FromBody] RoleDto role, CancellationToken ct)
+        [HttpPost, Authorize(Roles = RolesConstants.ADMIN)]
+        public async Task<IActionResult> CreateRole([FromBody] CrmRoleDto roleCreate, CancellationToken ct)
         {
-            CrmRole? existRole = await unitOfWork.CrmRole.GetItemById(role.Id, asNoTracking: true, ct);
+            CrmRole? existRole = await unitOfWork.CrmRole.GetItemById(roleCreate.Id, asNoTracking: true, ct);
 
             if (existRole != null)
-                return Conflict($"Role {role.Name} is already exists.");
+                return Conflict($"Role {roleCreate.Name} is already exists.");
 
-            CrmRole roleCreate = new ()
-            {
-                Id = role.Id,
-                Name = role.Name,
-            };
-
-            unitOfWork.CrmRole.Create(roleCreate);
+            unitOfWork.CrmRole.Create(roleCreate.ToEntity());
             await unitOfWork.SaveAsync(ct);
 
             return NoContent();

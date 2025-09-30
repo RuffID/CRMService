@@ -13,13 +13,13 @@ using CRMService.Interfaces.Database;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Repository.Authorization;
 using CRMService.Interfaces.Repository.Base;
-using CRMService.Interfaces.Repository.Entity;
+using CRMService.Interfaces.Repository.OkdeskEntity;
 using CRMService.Interfaces.Repository.Report;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Server;
 using CRMService.Service.DataBase;
-using CRMService.Service.Entity;
+using CRMService.Service.OkdeskEntity;
 using CRMService.Service.Hosted;
 using CRMService.Service.HostedServices;
 using CRMService.Service.Report;
@@ -33,6 +33,7 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Net;
 using System.Text;
+using CRMService.Models.Constants;
 
 namespace CRMService.Core
 {
@@ -87,7 +88,6 @@ namespace CRMService.Core
 
             services.AddControllers();
             services.AddLogging();
-            services.AddAutoMapper(cfg => { }, typeof(MappingProfiles).Assembly);
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
             {

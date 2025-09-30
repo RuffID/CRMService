@@ -3,14 +3,13 @@ using CRMService.Interfaces.Api;
 using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
-using CRMService.Models.Entity;
+using CRMService.Models.OkdeskEntity;
 using CRMService.Models.WebHook;
-using CRMService.Service.Entity;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook
 {
-    public class IssueWebhookService(IUnitOfWork unitOfWork, IHttpApiClient client, IssueService issueService, IOptions<ApiEndpointOptions> endp,
+    public class IssueWebhookService(IUnitOfWork unitOfWork, IHttpApiClient client, IOptions<ApiEndpointOptions> endp,
         IOptions<TelegramBotOptions> tgSettings, ILoggerFactory logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
@@ -53,7 +52,6 @@ namespace CRMService.Service.Webhook
         {
             Issue issue = issueJson.ConvertToIssue();
 
-            await issueService.CheckAttributes(issue, ct);
             await unitOfWork.Issue.Upsert(issue, ct);
 
             _logger.LogInformation("[Method:{MethodName}] Create issue from webhook: Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
@@ -75,7 +73,6 @@ namespace CRMService.Service.Webhook
         private async Task UpdateStatusAndSaveTimeEntries(RootEventWebHook @event, CancellationToken ct)
         {
             Issue issue = @event.Issue!.ConvertToIssue();
-            await issueService.CheckAttributes(issue, ct);
 
             _logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, @event.Issue.Id, @event.Issue.Status?.Code, @event.Issue.Priority?.Code, @event.Issue.Type?.Code, @event.Issue.Client?.Company?.Id, @event.Issue.Maintenance_entity?.Id, @event.Issue.Assignee?.Employee?.Id);
@@ -110,7 +107,6 @@ namespace CRMService.Service.Webhook
         private async Task UpdateIssue(IssueWebHook issueJson, CancellationToken ct)
         {
             Issue issue = issueJson.ConvertToIssue();
-            await issueService.CheckAttributes(issue, ct);
             await unitOfWork.Issue.Upsert(issue, ct);
 
             _logger.LogInformation("[Method:{MethodName}] Update issue from webhook: Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
@@ -122,7 +118,6 @@ namespace CRMService.Service.Webhook
         private async Task MarkIssueAsDeletedAsync(IssueWebHook issueJson, CancellationToken ct)
         {
             Issue convertIssue = issueJson.ConvertToIssue();
-            await issueService.CheckAttributes(convertIssue, ct);
 
             convertIssue.DeletedAt = DateTime.Now;
             await unitOfWork.Issue.Upsert(convertIssue, ct);

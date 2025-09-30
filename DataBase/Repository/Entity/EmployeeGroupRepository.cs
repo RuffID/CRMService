@@ -1,7 +1,7 @@
 ﻿using CRMService.Interfaces.Repository.Base;
-using CRMService.Interfaces.Repository.Entity;
-using CRMService.Models.ConfigClass;
-using CRMService.Models.Entity;
+using CRMService.Interfaces.Repository.OkdeskEntity;
+using CRMService.Models.Constants;
+using CRMService.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 

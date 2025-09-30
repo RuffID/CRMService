@@ -1,5 +1,5 @@
 ﻿using CRMService.Interfaces.Repository;
-using CRMService.Models.Entity;
+using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Report;
 
 namespace CRMService.Service.Report

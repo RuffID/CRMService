@@ -1,6 +1,6 @@
 ﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.Report;
-using CRMService.Models.Entity;
+using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Report;
 using Microsoft.EntityFrameworkCore;
 

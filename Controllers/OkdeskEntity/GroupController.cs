@@ -4,7 +4,6 @@ using CRMService.Service.OkdeskEntity;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.Dto.Mappers.Authorize;
 
@@ -15,7 +14,6 @@ namespace CRMService.Controllers.OkdeskEntity
     [ApiController]
     public class GroupController(IUnitOfWork unitOfWork, GroupService service) : Controller
     {
-
         [HttpGet("list")]
         public async Task<IActionResult> GetGroups([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
@@ -32,10 +30,10 @@ namespace CRMService.Controllers.OkdeskEntity
             return NoContent();
         }
 
-        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateGroupsFromCloudDb(CancellationToken ct)
+        [HttpPut("update_connections_with_employees_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
+        public async Task<IActionResult> UpdateGroupConnectionsWithEmployeeFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateGroupsFromCloudDb(ct);
+            await service.UpsertEmployeeGroupConnectionsFromApi(ct);
 
             return NoContent();
         }

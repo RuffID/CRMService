@@ -2,21 +2,21 @@
 using CRMService.DataBase.Postgresql;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect)
     {
-        private readonly ILogger<ModelService> _logger = logger.CreateLogger<ModelService>();
-
-        private async IAsyncEnumerable<List<Model>?> GetModelsFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<ModelDto>> GetModelsFromCloudApi(long startIndex, long limit)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/models?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            await foreach (List<Model>? manufacturers in request.GetAllItems<Model>(link, startIndex, limit))
+            await foreach (List<ModelDto> manufacturers in request.GetAllItems<ModelDto>(link, startIndex, limit))
                 yield return manufacturers;
         }
 
@@ -46,21 +46,12 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateModelsFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating models.", nameof(UpdateModelsFromCloudApi));
-
-            await foreach (List<Model>? models in GetModelsFromCloudApi(startIndex, limit))
+            await foreach (List<ModelDto> models in GetModelsFromCloudApi(startIndex, limit))
             {
-                if (models == null || models.Count == 0) return;
-
-                foreach (Model model in models)
-                    await CheckModel(model, ct);
-
-                await unitOfWork.Model.Upsert(models, ct);
+                await unitOfWork.Model.Upsert(models.ToEntity(), ct);
 
                 await unitOfWork.SaveAsync(ct);
             }
-
-            _logger.LogInformation("[Method:{MethodName}] Models update completed.", nameof(UpdateModelsFromCloudApi));
         }
 
         public async Task UpdateModelsFromCloudDb(CancellationToken ct)

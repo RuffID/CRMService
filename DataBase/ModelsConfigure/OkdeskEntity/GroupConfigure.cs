@@ -10,13 +10,12 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
         {
             builder.ToTable("group");
 
-            
-
             builder.Property(e => e.Id)
                 .HasColumnName("id")
                 .ValueGeneratedNever();
 
-            builder.Property(e => e.Active).HasColumnName("active");
+            builder.Property(e => e.Active)
+                .HasColumnName("active");
 
             builder.Property(e => e.Description)
                 .HasMaxLength(200)

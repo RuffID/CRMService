@@ -11,7 +11,7 @@ namespace CRMService.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class RoleController(IUnitOfWork unitOfWork, RoleService service) : Controller
+    public class RoleController(IUnitOfWork unitOfWork, RoleService roleService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetRoles([FromQuery] int startIndex = 0, CancellationToken ct = default)
@@ -24,7 +24,15 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateRolesFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateRolesFromCloudApi(ct);
+            await roleService.UpdateRolesFromCloudApi(ct);
+
+            return NoContent();
+        }
+
+        [HttpPut("update_connections_with_employees_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
+        public async Task<IActionResult> UpdateEmployeeRoleConnectionsFromCloudApi(CancellationToken ct)
+        {
+            await roleService.UpsertEmployeeRoleConnectionsFromApi(ct);
 
             return NoContent();
         }

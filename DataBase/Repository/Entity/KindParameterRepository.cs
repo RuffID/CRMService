@@ -8,6 +8,7 @@ namespace CRMService.DataBase.Repository.Entity
     public class KindParameterRepository(IGetItemByIdRepository<KindsParameter, int> getItemById,
         IGetItemByPredicateRepository<KindsParameter> getItemByPredicate,
         ICreateItemRepository<KindsParameter> create,
+        IUpsertItemByPredicateRepository<KindsParameter> upsertByPredicate,
         IUpsertItemByIdRepository<KindsParameter, int> upsertById) : IKindParameterRepository
     {
         public Task<KindsParameter?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<KindsParameter, object>>[] includes)
@@ -23,6 +24,12 @@ namespace CRMService.DataBase.Repository.Entity
             => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
 
         public void Create(KindsParameter item) => create.Create(item);
+
+        public Task Upsert(KindsParameter item, Expression<Func<KindsParameter, bool>> predicate, CancellationToken ct = default)
+            => upsertByPredicate.Upsert(item, predicate, ct);
+
+        public Task Upsert(IEnumerable<KindsParameter> items, Func<KindsParameter, Expression<Func<KindsParameter, bool>>> predicateFactory, CancellationToken ct = default)
+            => upsertByPredicate.Upsert(items, predicateFactory, ct);
 
         public Task Upsert(KindsParameter item, CancellationToken ct = default) => upsertById.Upsert(item, ct);
 

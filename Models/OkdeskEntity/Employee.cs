@@ -27,7 +27,7 @@ namespace CRMService.Models.OkdeskEntity
         public string? Phone { get; set; }
 
         [NotMapped]
-        public ICollection<OkdeskRole>? Roles { get; set; } = new List<OkdeskRole>();
+        public ICollection<OkdeskRole> Roles { get; set; } = new List<OkdeskRole>();
 
         public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 

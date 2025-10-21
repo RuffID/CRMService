@@ -1,5 +1,4 @@
-﻿using CRMService.Interfaces.Entity;
-using CRMService.Models.OkdeskEntity;
+﻿using CRMService.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -25,9 +24,9 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
               .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Role)
-                  .WithMany(r => r.EmployeeRoles)
-                  .HasForeignKey(e => e.RoleId)
-                  .OnDelete(DeleteBehavior.Cascade);
+              .WithMany(r => r.EmployeeRoles)
+              .HasForeignKey(e => e.RoleId)
+              .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

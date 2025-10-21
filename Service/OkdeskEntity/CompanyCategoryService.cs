@@ -31,24 +31,19 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task CheckAnonymousCategory(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting check anonymous company category.", nameof(CheckAnonymousCategory));
-
             // Создание категории с нулевым id которой нет в базе окдеска, но по которой ищутся клиенты без категории
             // Это нужно для первого запуска сервера
             CompanyCategory no_category = new() { Id = 0, Name = "Без категории", Code = "no_category", Color = "#FFFFFF" };
-            if (await _unitOfWork.CompanyCategory.GetItemById(no_category.Id, false, ct) == null)
+            CompanyCategory? noCategoryFromDb = await _unitOfWork.CompanyCategory.GetItemById(no_category.Id, false, ct);
+            if (noCategoryFromDb == null)
             {
                 _unitOfWork.CompanyCategory.Create(no_category);
                 await _unitOfWork.SaveAsync(ct);
             }
-
-            _logger.LogInformation("[Method:{MethodName}] Check anonymous company category completed.", nameof(CheckAnonymousCategory));
         }
 
         public async Task UpdateCategoriesFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating company categories.", nameof(UpdateCategoriesFromCloudDb));
-
             List<CompanyCategory> categories = await GetCategoriesFromCloudDb();
 
             if (categories.Count == 0)
@@ -57,8 +52,6 @@ namespace CRMService.Service.OkdeskEntity
             await _unitOfWork.CompanyCategory.Upsert(categories, ct);
 
             await _unitOfWork.SaveAsync(ct);
-
-            _logger.LogInformation("[Method:{MethodName}] Company categories update completed.", nameof(UpdateCategoriesFromCloudDb));
         }
     }
 }

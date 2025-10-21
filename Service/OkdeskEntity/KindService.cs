@@ -39,8 +39,6 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateKindsFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating kinds.", nameof(UpdateKindsFromCloudApi));
-
             await foreach (List<Kind>? kinds in GetKindsFromCloudApi(startIndex, limit))
             {
                 if (kinds == null || kinds.Count == 0) return;
@@ -49,9 +47,6 @@ namespace CRMService.Service.OkdeskEntity
 
                 await unitOfWork.SaveAsync(ct);
             }
-
-            _logger.LogInformation("[Method:{MethodName}] Kinds update completed.", nameof(UpdateKindsFromCloudApi));
-
         }
 
         public async Task UpdateKindsFromCloudDb(CancellationToken ct)

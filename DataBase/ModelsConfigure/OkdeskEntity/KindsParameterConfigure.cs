@@ -8,11 +8,13 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<KindsParameter> builder)
         {
-            
-
             builder.ToTable("kinds_parameters");
 
-            builder.Property(e => e.Id).HasColumnName("id");
+            builder.HasKey(e => e.Id);
+
+            builder.Property(e => e.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
 
             builder.Property(e => e.Code)
                 .HasMaxLength(30)

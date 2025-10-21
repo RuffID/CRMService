@@ -39,16 +39,12 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateManufacturersFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating manufacturers.", nameof(UpdateManufacturersFromCloudApi));
-
             await foreach (List<Manufacturer> manufacturers in GetManufacturersFromCloudApi(startIndex, limit))
             {
                 await unitOfWork.Manufacturer.Upsert(manufacturers, ct);
 
                 await unitOfWork.SaveAsync(ct);
             }
-
-            _logger.LogInformation("[Method:{MethodName}] Manufacturers update completed.", nameof(UpdateManufacturersFromCloudApi));
         }
 
         public async Task UpdateManufacturersFromCloudDb(CancellationToken ct)

@@ -10,13 +10,14 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
         {
             builder.ToTable("employee");
 
-            
+            builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+                .HasColumnName("id")
+                .ValueGeneratedNever();
 
-            builder.Property(e => e.Active).HasColumnName("active");
+            builder.Property(e => e.Active)
+                .HasColumnName("active");
 
             builder.Property(e => e.Email)
                 .HasMaxLength(100)

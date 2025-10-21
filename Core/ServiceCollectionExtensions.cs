@@ -195,7 +195,7 @@ namespace CRMService.Core
             services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
             services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
             services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
-            services.AddScoped(typeof(IUpsertItemByCodeRepository<>), typeof(UpsertItemByCodeRepository<>));
+            //services.AddScoped(typeof(IUpsertItemByCodeRepository<>), typeof(UpsertItemByCodeRepository<>));
             services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
 
             services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();

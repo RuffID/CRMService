@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRMService.DataBase.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20250914070810_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251021152610_UpdateEmployeeEntities")]
+    partial class UpdateEmployeeEntities
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -171,7 +171,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("user_role", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Company", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Company", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -203,7 +203,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("company", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.CompanyCategory", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.CompanyCategory", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -232,7 +232,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("company_category", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Employee", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Employee", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -288,7 +288,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("employee", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.EmployeeGroup", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeGroup", b =>
                 {
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int")
@@ -305,7 +305,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("employee_groups", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.EmployeeRole", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeRole", b =>
                 {
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int")
@@ -322,7 +322,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("employee_roles", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Equipment", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Equipment", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -373,7 +373,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("equipment", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.EquipmentParameter", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.EquipmentParameter", b =>
                 {
                     b.Property<int>("EquipmentId")
                         .HasColumnType("int")
@@ -398,7 +398,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("equipment_parameter", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Group", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Group", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -424,7 +424,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("group", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Issue", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Issue", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -479,6 +479,7 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnName("statusId");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasMaxLength(3000)
                         .HasColumnType("nvarchar(3000)")
                         .HasColumnName("title");
@@ -504,7 +505,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("issue", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssuePriority", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssuePriority", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -535,7 +536,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("issue_priority", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueStatus", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueStatus", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -563,7 +564,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("issue_status", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueType", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueType", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -604,7 +605,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("issue_type", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueTypeGroup", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueTypeGroup", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -633,7 +634,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("issue_type_groups", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Kind", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Kind", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -665,7 +666,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("kind", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.KindParam", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.KindParam", b =>
                 {
                     b.Property<int>("KindId")
                         .HasColumnType("int")
@@ -684,14 +685,11 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("kindparams", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.KindsParameter", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.KindsParameter", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -714,7 +712,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("kinds_parameters", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.MaintenanceEntity", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.MaintenanceEntity", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -746,7 +744,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("maintenance_entity", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Manufacturer", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Manufacturer", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -778,7 +776,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("manufacturers", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Model", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Model", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -822,7 +820,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("model", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.OkdeskRole", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.OkdeskRole", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -839,7 +837,7 @@ namespace CRMService.DataBase.Migrations
                     b.ToTable("okdesk_role", (string)null);
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.TimeEntry", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.TimeEntry", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int")
@@ -919,9 +917,9 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Company", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Company", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.CompanyCategory", "Category")
+                    b.HasOne("CRMService.Models.OkdeskEntity.CompanyCategory", "Category")
                         .WithMany("Companies")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -930,22 +928,22 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Employee", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Employee", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Group", null)
+                    b.HasOne("CRMService.Models.OkdeskEntity.Group", null)
                         .WithMany("Employees")
                         .HasForeignKey("GroupId");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.EmployeeGroup", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeGroup", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Employee", "Employee")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Employee", "Employee")
                         .WithMany("EmployeeGroups")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CRMService.Models.Entity.Group", "Group")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Group", "Group")
                         .WithMany("EmployeeGroups")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -956,15 +954,15 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Group");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.EmployeeRole", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeRole", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Employee", "Employee")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Employee", "Employee")
                         .WithMany("EmployeeRoles")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CRMService.Models.Entity.OkdeskRole", "Role")
+                    b.HasOne("CRMService.Models.OkdeskEntity.OkdeskRole", "Role")
                         .WithMany("EmployeeRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -975,33 +973,33 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Equipment", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Equipment", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Company", "Company")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Company", "Company")
                         .WithMany("Equipment")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("equipmentCompanyId");
 
-                    b.HasOne("CRMService.Models.Entity.Kind", "Kind")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Kind", "Kind")
                         .WithMany("Equipment")
                         .HasForeignKey("KindId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("kindEquipId");
 
-                    b.HasOne("CRMService.Models.Entity.MaintenanceEntity", "MaintenanceEntities")
+                    b.HasOne("CRMService.Models.OkdeskEntity.MaintenanceEntity", "MaintenanceEntities")
                         .WithMany("Equipment")
                         .HasForeignKey("MaintenanceEntitiesId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("equipmentMaintenanceEntitiesId");
 
-                    b.HasOne("CRMService.Models.Entity.Manufacturer", "Manufacturer")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Manufacturer", "Manufacturer")
                         .WithMany("Equipment")
                         .HasForeignKey("ManufacturerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("manufacturerEquipId");
 
-                    b.HasOne("CRMService.Models.Entity.Model", "Model")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Model", "Model")
                         .WithMany("Equipment")
                         .HasForeignKey("ModelId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1017,15 +1015,15 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Model");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.EquipmentParameter", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.EquipmentParameter", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Equipment", "Equipment")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Equipment", "Equipment")
                         .WithMany("Parameters")
                         .HasForeignKey("EquipmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CRMService.Models.Entity.KindsParameter", "KindParameter")
+                    b.HasOne("CRMService.Models.OkdeskEntity.KindsParameter", "KindParameter")
                         .WithMany("Parameters")
                         .HasForeignKey("KindParameterId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1036,41 +1034,41 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("KindParameter");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Issue", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Issue", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Employee", "Assignee")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Employee", "Assignee")
                         .WithMany("Issues")
                         .HasForeignKey("AssigneeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("issue_assigneeId");
 
-                    b.HasOne("CRMService.Models.Entity.Company", "Company")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Company", "Company")
                         .WithMany("Issues")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("issue_companyId");
 
-                    b.HasOne("CRMService.Models.Entity.IssuePriority", "Priority")
+                    b.HasOne("CRMService.Models.OkdeskEntity.IssuePriority", "Priority")
                         .WithMany("Issues")
                         .HasForeignKey("PriorityId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("issue_priorityId");
 
-                    b.HasOne("CRMService.Models.Entity.MaintenanceEntity", "ServiceObject")
+                    b.HasOne("CRMService.Models.OkdeskEntity.MaintenanceEntity", "ServiceObject")
                         .WithMany("Issues")
                         .HasForeignKey("ServiceObjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("issue_service_objectId");
 
-                    b.HasOne("CRMService.Models.Entity.IssueStatus", "Status")
+                    b.HasOne("CRMService.Models.OkdeskEntity.IssueStatus", "Status")
                         .WithMany("Issues")
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("issue_statusId");
 
-                    b.HasOne("CRMService.Models.Entity.IssueType", "Type")
+                    b.HasOne("CRMService.Models.OkdeskEntity.IssueType", "Type")
                         .WithMany("Issues")
                         .HasForeignKey("TypeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1090,9 +1088,9 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Type");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueType", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueType", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.IssueTypeGroup", "Group")
+                    b.HasOne("CRMService.Models.OkdeskEntity.IssueTypeGroup", "Group")
                         .WithMany("Types")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade);
@@ -1100,9 +1098,9 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Group");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueTypeGroup", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueTypeGroup", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.IssueTypeGroup", "Parent")
+                    b.HasOne("CRMService.Models.OkdeskEntity.IssueTypeGroup", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentGroupId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1110,16 +1108,16 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.KindParam", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.KindParam", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Kind", "Kind")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Kind", "Kind")
                         .WithMany("KindParams")
                         .HasForeignKey("KindId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("kindPrm");
 
-                    b.HasOne("CRMService.Models.Entity.KindsParameter", "KindParameter")
+                    b.HasOne("CRMService.Models.OkdeskEntity.KindsParameter", "KindParameter")
                         .WithMany("KindParams")
                         .HasForeignKey("KindParameterId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1131,9 +1129,9 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("KindParameter");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.MaintenanceEntity", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.MaintenanceEntity", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Company", "Company")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Company", "Company")
                         .WithMany("MaintenanceEntities")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1143,16 +1141,16 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Company");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Model", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Model", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Kind", "Kind")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Kind", "Kind")
                         .WithMany("Models")
                         .HasForeignKey("KindId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("kindId");
 
-                    b.HasOne("CRMService.Models.Entity.Manufacturer", "Manufacturer")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Manufacturer", "Manufacturer")
                         .WithMany("Models")
                         .HasForeignKey("ManufacturerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1164,16 +1162,16 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Manufacturer");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.TimeEntry", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.TimeEntry", b =>
                 {
-                    b.HasOne("CRMService.Models.Entity.Employee", "Employee")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Employee", "Employee")
                         .WithMany("TimeEntries")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("employeeId");
 
-                    b.HasOne("CRMService.Models.Entity.Issue", "Issue")
+                    b.HasOne("CRMService.Models.OkdeskEntity.Issue", "Issue")
                         .WithMany("TimeEntries")
                         .HasForeignKey("IssueId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1199,7 +1197,7 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("UserRoles");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Company", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Company", b =>
                 {
                     b.Navigation("Equipment");
 
@@ -1208,12 +1206,12 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("MaintenanceEntities");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.CompanyCategory", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.CompanyCategory", b =>
                 {
                     b.Navigation("Companies");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Employee", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Employee", b =>
                 {
                     b.Navigation("EmployeeGroups");
 
@@ -1224,46 +1222,46 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("TimeEntries");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Equipment", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Equipment", b =>
                 {
                     b.Navigation("Parameters");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Group", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Group", b =>
                 {
                     b.Navigation("EmployeeGroups");
 
                     b.Navigation("Employees");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Issue", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Issue", b =>
                 {
                     b.Navigation("TimeEntries");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssuePriority", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssuePriority", b =>
                 {
                     b.Navigation("Issues");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueStatus", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueStatus", b =>
                 {
                     b.Navigation("Issues");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueType", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueType", b =>
                 {
                     b.Navigation("Issues");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.IssueTypeGroup", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueTypeGroup", b =>
                 {
                     b.Navigation("Children");
 
                     b.Navigation("Types");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Kind", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Kind", b =>
                 {
                     b.Navigation("Equipment");
 
@@ -1272,33 +1270,33 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Models");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.KindsParameter", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.KindsParameter", b =>
                 {
                     b.Navigation("KindParams");
 
                     b.Navigation("Parameters");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.MaintenanceEntity", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.MaintenanceEntity", b =>
                 {
                     b.Navigation("Equipment");
 
                     b.Navigation("Issues");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Manufacturer", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Manufacturer", b =>
                 {
                     b.Navigation("Equipment");
 
                     b.Navigation("Models");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.Model", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Model", b =>
                 {
                     b.Navigation("Equipment");
                 });
 
-            modelBuilder.Entity("CRMService.Models.Entity.OkdeskRole", b =>
+            modelBuilder.Entity("CRMService.Models.OkdeskEntity.OkdeskRole", b =>
                 {
                     b.Navigation("EmployeeRoles");
                 });

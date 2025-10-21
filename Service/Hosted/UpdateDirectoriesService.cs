@@ -18,8 +18,8 @@ namespace CRMService.Service.Hosted
         IssuePriorityService priority,
         IssueTypeService type,
         IssueStatusService status,
-        IssueService issue,
-        TimeEntryService time,
+        //IssueService issue,
+        //TimeEntryService time,
         EquipmentService equipment,
         ILoggerFactory logger)
     {
@@ -40,7 +40,7 @@ namespace CRMService.Service.Hosted
 
             await kindParameter.UpdateKindParametersFromCloudDb(ct);
 
-            await kindParam.UpdateConnectionsFromCloudDb(ct);
+            await kindParam.UpsertConnectionsFromCloudDb(ct);
 
             await manufacturer.UpdateManufacturersFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
@@ -56,19 +56,23 @@ namespace CRMService.Service.Hosted
 
             await role.UpdateRolesFromCloudApi(ct);
 
-            await employee.UpdateEmployeesFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
-
             await group.UpdateGroupsFromCloudApi(ct);
 
-            await priority.UpdateIssuePrioritiesFromCloudDb(ct);
+            await employee.UpdateEmployeesFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
-            await type.UpdateIssueTypesFromCloudDb(ct);
+            await group.UpsertEmployeeGroupConnectionsFromApi(ct);
 
-            await status.UpdateIssueStatusesFromCloudDb(ct);
+            await role.UpsertEmployeeRoleConnectionsFromApi(ct);
 
-            await issue.UpdateIssuesFromCloudApi(dateFrom.Value, dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
+            await priority.UpdateIssuePrioritiesFromCloudApi(ct);
 
-            await time.UpdateTimeEntriesFromCloudDb(dateFrom: dateFrom.Value, dateTo: dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
+            await type.UpdateIssueTypesFromCloudApi(ct);
+
+            await status.UpdateIssueStatusesFromCloudApi(ct);
+
+            //await issue.UpdateIssuesFromCloudApi(dateFrom.Value, dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
+
+            //await time.UpdateTimeEntriesFromCloudDb(dateFrom: dateFrom.Value, dateTo: dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
 
             // Пока нет нужны в оборудовании в БД
             //await equipment.UpdateEquipmentsFromCloudApi(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);

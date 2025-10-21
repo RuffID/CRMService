@@ -64,19 +64,12 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateMaintenanceEntitiesFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
-
             await foreach (List<MaintenanceEntity> me in GetMaintenanceEntitiesFromCloudApi(startIndex, limit))
             {
-                if (me.Count == 0)
-                    continue;
-
                 await unitOfWork.MaintenanceEntity.Upsert(me, ct);
 
                 await unitOfWork.SaveAsync(ct);
             }
-
-            _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudDb(long startIndex, long limit, CancellationToken ct)

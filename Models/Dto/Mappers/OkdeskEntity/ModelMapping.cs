@@ -20,5 +20,31 @@ namespace CRMService.Models.Dto.Mappers.OkdeskEntity
                 Code = model.Code
             };
         }
+
+        public static IEnumerable<Model> ToEntity(this IEnumerable<ModelDto> models)
+        {
+            foreach (ModelDto model in models)
+                yield return model.ToEntity();
+        }
+
+        public static Model ToEntity(this ModelDto dto)
+        {
+            Model entity = new()
+            {
+                Id = dto.Id,
+                Code = dto.Code ?? string.Empty,
+                Name = dto.Name ?? string.Empty,
+                Description = dto.Description,
+                Visible = dto.Visible
+            };
+
+            if (dto.Kind?.Id is int kId && kId > 0)
+                entity.KindId = kId;
+
+            if (dto.Manufacturer?.Id is int mId && mId > 0)
+                entity.ManufacturerId = mId;
+
+            return entity;
+        }
     }
 }

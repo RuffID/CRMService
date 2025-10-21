@@ -10,8 +10,6 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
         {
             builder.ToTable("kind");
 
-            
-
             builder.Property(e => e.Id)
                 .HasColumnName("id")
                 .ValueGeneratedNever();

@@ -36,12 +36,14 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
 
             builder.Property(e => e.Visible).HasColumnName("visible");
 
-            builder.HasOne(d => d.Kind).WithMany(p => p.Models)
+            builder.HasOne(d => d.Kind)
+                .WithMany(p => p.Models)
                 .HasForeignKey(d => d.KindId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("kindId");
 
-            builder.HasOne(d => d.Manufacturer).WithMany(p => p.Models)
+            builder.HasOne(d => d.Manufacturer)
+                .WithMany(p => p.Models)
                 .HasForeignKey(d => d.ManufacturerId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("manufacturerId");

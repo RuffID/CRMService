@@ -2,87 +2,73 @@
 using CRMService.Interfaces.Repository;
 using CRMService.Models.OkdeskEntity;
 using System.Data;
+using System.Linq;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class KindParamService(IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindParamService(IUnitOfWork unitOfWork, PGSelect pGSelect)
     {
-        private readonly ILogger<KindParamService> _logger = logger.CreateLogger<KindParamService>();
-
-        private async Task<List<(string? kindParameterCode, string? kindCode)>?> GetConnectionsFromCloudDb()
+        private async Task<List<KindParam>> GetConnectionsFromCloudDb()
         {
-            string sqlCommand = "SELECT equipment_kind_parameters.id, equipment_parameters.code AS kindParameterCode, equipment_kinds.code AS kindCode " +
-                    "FROM equipment_kinds " +
-                    "LEFT OUTER JOIN equipment_kind_parameters ON equipment_kinds.id = equipment_kind_parameters.equipment_kind_id " +
-                    "LEFT OUTER JOIN equipment_parameters ON equipment_kind_parameters.parameter_id = equipment_parameters.id " +
-                    "ORDER BY id;";
+            /* string sqlCommand = "SELECT equipment_kind_parameters.id, equipment_parameters.code AS kindParameterCode, equipment_kinds.code AS kindCode " +
+                     "FROM equipment_kinds " +
+                     "LEFT OUTER JOIN equipment_kind_parameters ON equipment_kinds.id = equipment_kind_parameters.equipment_kind_id " +
+                     "LEFT OUTER JOIN equipment_parameters ON equipment_kind_parameters.parameter_id = equipment_parameters.id " +
+                     "ORDER BY id;";*/
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            const string SQL = "SELECT equipment_kind_id, parameter_id FROM equipment_kind_parameters;";
+
+            DataSet ds = await pGSelect.Select(SQL);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
-                return null;
+                return new();
 
             return table.AsEnumerable().
-                Select(x => (x.Field<string?>("kindParameterCode"), x.Field<string?>("kindCode"))).ToList();
+                Select(group => new KindParam
+                {
+                    KindId = group.Field<int>("equipment_kind_id"),
+                    KindParameterId = group.Field<int>("parameter_id")
+                }).ToList();
         }
 
-        public async Task UpdateConnectionsFromCloudDb(CancellationToken ct)
+        public async Task UpsertConnectionsFromCloudDb(CancellationToken ct)
         {
-            //TODO проверить как отрабатывает. Для kindParam элементы были null(?), сделал не nullable
-            _logger.LogInformation("[Method:{MethodName}] Starting updating kind - parameter connections.", nameof(UpdateConnectionsFromCloudDb));
+            List<KindParam> connections = await GetConnectionsFromCloudDb();
 
-            List<(string? kindParameterCode, string? kindCode)>? connections = await GetConnectionsFromCloudDb();
-            List<KindParam> kindParams = [];
+            // Отфильтровать мусор
+            List<KindParam> desired = connections
+                .Where(c => c.KindId > 0 && c.KindParameterId > 0)
+                .Distinct(KindParam.Comparer) // убрать дубли по ключам
+                .ToList();
 
-            if (connections == null || connections.Count == 0)
+            if (desired.Count == 0)
                 return;
 
-            foreach (var (kindParameterCode, kindCode) in connections)
+            // Собрать Id всех Kind для ограничения области
+            HashSet<int> kindIds = new(desired.Select(c => c.KindId));
+
+            List<KindParam> existingLinks = await unitOfWork.KindParams.GetItemsByPredicate(kp => kindIds.Contains(kp.KindId), asNoTracking: true, ct: ct);
+
+            // Вычислить дельту через компаратор
+            List<KindParam> toAdd = desired.Except(existingLinks, KindParam.Comparer).ToList();
+            List<KindParam> toDelete = existingLinks.Except(desired, KindParam.Comparer).ToList();
+
+            if (toAdd.Count == 0 && toDelete.Count == 0)
+                return;
+
+            // Применить дельту одной транзакцией
+            await unitOfWork.ExecuteInTransaction(async () =>
             {
-                if (string.IsNullOrWhiteSpace(kindParameterCode) || string.IsNullOrEmpty(kindCode)) continue;
+                // Добавить недостающие связи
+                foreach (KindParam link in toAdd)
+                    unitOfWork.KindParams.Create(link); // Добавить связь kind-param
 
-                KindsParameter? parameter = await unitOfWork.KindParameter.GetItemByPredicate(kp => kp.Code == kindParameterCode, asNoTracking: true, ct);
-                Kind? kind = await unitOfWork.Kind.GetItemByPredicate(k => k.Code == kindCode, asNoTracking: true, ct);
+                // Удалить неактуальные связи
+                foreach (KindParam link in toDelete)
+                    unitOfWork.KindParams.Delete(link); // Удалить связь kind-param
 
-                if (parameter == null || kind == null) 
-                    continue;
-
-                KindParam connection = new() { KindParameterId = parameter.Id, KindId = kind.Id };
-
-                KindParam? connectionFromLocalDb = await unitOfWork.KindParams.GetItemByPredicate(predicate: kp => kp.KindParameterId == parameter.Id && kp.KindId == kind.Id, asNoTracking: true, ct: ct);
-
-                if (connectionFromLocalDb == null)
-                    unitOfWork.KindParams.Create(connection);
-
-                kindParams.Add(connection);
-            }
-
-            await unitOfWork.SaveAsync(ct);
-
-            await DeleteIrrelevantConnectionsBetweenKindAndKindParameterFromCloudDb(kindParams, ct);
-
-            _logger.LogInformation("[Method:{MethodName}] Kind - parameter connections update completed.", nameof(UpdateConnectionsFromCloudDb));
-        }
-
-        private async Task DeleteIrrelevantConnectionsBetweenKindAndKindParameterFromCloudDb(List<KindParam> kindParamsFromCloudDb, CancellationToken ct)
-        {
-            foreach (KindParam connectionFromCloudDb in kindParamsFromCloudDb)
-            {
-                List<KindParam> localConnections = await unitOfWork.KindParams.GetItemsByPredicate(predicate: kp => kp.KindParameterId == connectionFromCloudDb.KindParameterId && kp.KindId == connectionFromCloudDb.KindId, asNoTracking: true, ct: ct);
-
-                if (localConnections.Count == 0)
-                    continue;
-
-                foreach (KindParam connection in localConnections)
-                {
-                    // Если связи нет в облачном API, но она есть в локальной БД
-                    if (kindParamsFromCloudDb.FirstOrDefault(c => c.KindId == connection.KindId && c.KindParameterId == connection.KindParameterId) == null)
-                        // Удалить такую связь т.к. она больше неактуальна
-                        unitOfWork.KindParams.Delete(connection);
-                }
-            }
-
-            await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveAsync(ct); // Зафиксировать пакет изменений
+            }, ct);
         }
     }
 }

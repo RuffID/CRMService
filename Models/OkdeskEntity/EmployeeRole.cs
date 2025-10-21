@@ -1,4 +1,5 @@
-﻿using CRMService.Interfaces.Entity;
+﻿using CRMService.Core;
+using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.OkdeskEntity
 {
@@ -18,19 +19,6 @@ namespace CRMService.Models.OkdeskEntity
             RoleId = newItem.RoleId;
         }
 
-        public static IEqualityComparer<EmployeeRole> Comparer { get; } = new KeyComparer();
-
-        internal sealed class KeyComparer : IEqualityComparer<EmployeeRole>
-        {
-            public bool Equals(EmployeeRole? x, EmployeeRole? y)
-            {
-                if (ReferenceEquals(x, y)) return true;
-                if (x is null || y is null) return false;
-                return x.EmployeeId == y.EmployeeId && x.RoleId == y.RoleId;
-            }
-
-            public int GetHashCode(EmployeeRole obj)
-                => HashCode.Combine(obj.EmployeeId, obj.RoleId);
-        }
+        public static IEqualityComparer<EmployeeRole> Comparer { get; } = CompositeKeyComparer.For<EmployeeRole, int, int>(x => x.EmployeeId, x => x.RoleId);
     }
 }

@@ -42,7 +42,7 @@ namespace CRMService.Service.OkdeskEntity
             if (statuses.Count == 0)
                 return;
 
-            for (int i = 1; i < statuses.Count; i++)
+            for (int i = 1; i <= statuses.Count; i++)
                 statuses[i-1].Id = i;
 
             await unitOfWork.IssueStatus.Upsert(statuses, ct);

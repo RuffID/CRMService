@@ -26,7 +26,7 @@ namespace CRMService.Controllers.OkdeskEntity
         public async Task<IActionResult> UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
             await kindParameterService.UpdateKindParametersFromCloudApi(ct);
-            await kindParamService.UpdateConnectionsFromCloudDb(ct);
+            await kindParamService.UpsertConnectionsFromCloudDb(ct);
 
             return NoContent();
         }
@@ -39,12 +39,12 @@ namespace CRMService.Controllers.OkdeskEntity
             return NoContent();
         }
 
-        [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
+        /*[HttpPut("update_connections_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateConnectionsFromCloudApi(CancellationToken ct)
         {
-            await kindParamService.UpdateConnectionsFromCloudDb(ct);
+            await kindParamService.UpsertConnectionsFromCloudDb(ct);
 
             return NoContent();
-        }
+        }*/
     }
 }

@@ -14,14 +14,14 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task<List<KindsParameter>?> GetKindParametersFromCloudApi()
         {
-            string link = $"{endpoint.Value.OkdeskApi} /equipments/parameters?api_token= {okdeskSettings.Value.OkdeskApiToken}";
+            string link = $"{endpoint.Value.OkdeskApi}/equipments/parameters?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
             return await request.GetRangeOfItems<KindsParameter>(link);
         }
 
         private async Task<List<KindsParameter>?> GetKindParametersFromCloudDb()
         {
-            string sqlCommand = "SELECT sequential_id AS id, code, name FROM equipment_parameters ORDER BY id;";
+            string sqlCommand = "SELECT id, code, name, field_type FROM equipment_parameters ORDER BY id;";
 
             DataSet ds = await pGSelect.Select(sqlCommand);
             DataTable? table = ds.Tables["Table"];
@@ -31,64 +31,33 @@ namespace CRMService.Service.OkdeskEntity
             return table.AsEnumerable().
                 Select(priority => new KindsParameter
                 {
+                    Id = priority.Field<int>("id"),
                     Code = priority.Field<string>("code") ?? "",
-                    Name = priority.Field<string>("name")
+                    Name = priority.Field<string>("name"),
+                    FieldType = priority.Field<int>("field_type").ToString()
                 }).ToList();
         }
 
         public async Task UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
-            List<KindsParameter>? parameters = await GetKindParametersFromCloudApi();
+            await unitOfWork.ExecuteInTransaction(async () =>
+            {
+                List<KindsParameter>? parameters = await GetKindParametersFromCloudApi();
 
-            if (parameters == null || parameters.Count == 0) return;
+                if (parameters == null || parameters.Count == 0) return;
 
-            await unitOfWork.KindParameter.Upsert(parameters, ct);
-
-            await unitOfWork.SaveAsync(ct);
-
-            await UpdateConnectionsFromCloudApi(parameters, ct);
+                await unitOfWork.KindParameter.Upsert(parameters, p => x => x.Code == p.Code, ct);
+            }, ct);
         }
 
         public async Task UpdateKindParametersFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating kind parameters.", nameof(UpdateKindParametersFromCloudDb));
+            List<KindsParameter>? parameters = await GetKindParametersFromCloudDb();
 
-            List<KindsParameter>? kinds = await GetKindParametersFromCloudDb();
-
-            if (kinds == null || kinds.Count == 0)
+            if (parameters == null || parameters.Count == 0)
                 return;
 
-            await unitOfWork.KindParameter.Upsert(kinds, ct);
-
-            await unitOfWork.SaveAsync(ct);
-
-            _logger.LogInformation("[Method:{MethodName}] Kind parameters update completed.", nameof(UpdateKindParametersFromCloudDb));
-        }
-
-        public async Task UpdateConnectionsFromCloudApi(List<KindsParameter> parameters, CancellationToken ct)
-        {
-            foreach (KindsParameter parameter in parameters)
-            {
-                if (parameter.Equipment_kind_codes == null || parameter.Equipment_kind_codes.Length == 0)
-                    continue;
-
-                foreach (string code in parameter.Equipment_kind_codes)
-                {
-                    KindsParameter? paramFromLocalDb = await unitOfWork.KindParameter.GetItemByPredicate(p => p.Code == parameter.Code, true, ct);
-                    Kind? kindFromLocalDb = await unitOfWork.Kind.GetItemByPredicate(k => k.Code == code, asNoTracking: true, ct);
-
-                    if (paramFromLocalDb == null || kindFromLocalDb == null)
-                        continue;
-
-                    KindParam? connection = await unitOfWork.KindParams.GetItemByPredicate(predicate: kp => kp.KindParameterId == parameter.Id && kp.KindId == kindFromLocalDb.Id, asNoTracking: true, ct: ct);
-
-                    if (connection == null)
-                    {
-                        connection = new() { KindId = kindFromLocalDb.Id, KindParameterId = paramFromLocalDb.Id };
-                        unitOfWork.KindParams.Create(connection);
-                    }
-                }
-            }
+            await unitOfWork.KindParameter.Upsert(parameters, ct);
 
             await unitOfWork.SaveAsync(ct);
         }

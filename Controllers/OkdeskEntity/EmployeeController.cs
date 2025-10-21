@@ -4,7 +4,6 @@ using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
 using CRMService.Interfaces.Repository;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 
 namespace CRMService.Controllers.OkdeskEntity

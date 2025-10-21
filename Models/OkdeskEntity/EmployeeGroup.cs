@@ -1,4 +1,5 @@
-﻿using CRMService.Interfaces.Entity;
+﻿using CRMService.Core;
+using CRMService.Interfaces.Entity;
 
 namespace CRMService.Models.OkdeskEntity
 {
@@ -17,5 +18,8 @@ namespace CRMService.Models.OkdeskEntity
             EmployeeId = newItem.EmployeeId;
             GroupId = newItem.GroupId;
         }
+
+        public static IEqualityComparer<EmployeeGroup> Comparer { get; } =
+        CompositeKeyComparer.For<EmployeeGroup, int, int>(x => x.EmployeeId, x => x.GroupId);
     }
 }

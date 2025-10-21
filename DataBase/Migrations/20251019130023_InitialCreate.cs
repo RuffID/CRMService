@@ -38,6 +38,25 @@ namespace CRMService.DataBase.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "employee",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false),
+                    first_name = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
+                    last_name = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
+                    patronymic = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
+                    position = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
+                    active = table.Column<bool>(type: "bit", nullable: false),
+                    email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    login = table.Column<string>(type: "nvarchar(45)", maxLength: 45, nullable: false),
+                    phone = table.Column<string>(type: "nvarchar(35)", maxLength: 35, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_employee", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "group",
                 columns: table => new
                 {
@@ -119,8 +138,7 @@ namespace CRMService.DataBase.Migrations
                 name: "kinds_parameters",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    id = table.Column<int>(type: "int", nullable: false),
                     code = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     fieldType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
@@ -194,28 +212,27 @@ namespace CRMService.DataBase.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "employee",
+                name: "employee_groups",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "int", nullable: false),
-                    first_name = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
-                    last_name = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
-                    patronymic = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
-                    position = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: true),
-                    active = table.Column<bool>(type: "bit", nullable: false),
-                    email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    login = table.Column<string>(type: "nvarchar(45)", maxLength: 45, nullable: false),
-                    phone = table.Column<string>(type: "nvarchar(35)", maxLength: 35, nullable: true),
-                    GroupId = table.Column<int>(type: "int", nullable: true)
+                    employeeId = table.Column<int>(type: "int", nullable: false),
+                    groupId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_employee", x => x.id);
+                    table.PrimaryKey("PK_employee_groups", x => new { x.employeeId, x.groupId });
                     table.ForeignKey(
-                        name: "FK_employee_group_GroupId",
-                        column: x => x.GroupId,
+                        name: "FK_employee_groups_employee_employeeId",
+                        column: x => x.employeeId,
+                        principalTable: "employee",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_employee_groups_group_groupId",
+                        column: x => x.groupId,
                         principalTable: "group",
-                        principalColumn: "id");
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -292,6 +309,30 @@ namespace CRMService.DataBase.Migrations
                         principalTable: "manufacturers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "employee_roles",
+                columns: table => new
+                {
+                    employeeId = table.Column<int>(type: "int", nullable: false),
+                    roleId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_employee_roles", x => new { x.employeeId, x.roleId });
+                    table.ForeignKey(
+                        name: "FK_employee_roles_employee_employeeId",
+                        column: x => x.employeeId,
+                        principalTable: "employee",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_employee_roles_okdesk_role_roleId",
+                        column: x => x.roleId,
+                        principalTable: "okdesk_role",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -382,54 +423,6 @@ namespace CRMService.DataBase.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "employee_groups",
-                columns: table => new
-                {
-                    employeeId = table.Column<int>(type: "int", nullable: false),
-                    groupId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_employee_groups", x => new { x.employeeId, x.groupId });
-                    table.ForeignKey(
-                        name: "FK_employee_groups_employee_employeeId",
-                        column: x => x.employeeId,
-                        principalTable: "employee",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_employee_groups_group_groupId",
-                        column: x => x.groupId,
-                        principalTable: "group",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "employee_roles",
-                columns: table => new
-                {
-                    employeeId = table.Column<int>(type: "int", nullable: false),
-                    roleId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_employee_roles", x => new { x.employeeId, x.roleId });
-                    table.ForeignKey(
-                        name: "FK_employee_roles_employee_employeeId",
-                        column: x => x.employeeId,
-                        principalTable: "employee",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_employee_roles_okdesk_role_roleId",
-                        column: x => x.roleId,
-                        principalTable: "okdesk_role",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "equipment",
                 columns: table => new
                 {
@@ -484,7 +477,7 @@ namespace CRMService.DataBase.Migrations
                     id = table.Column<int>(type: "int", nullable: false),
                     assignee_id = table.Column<int>(type: "int", nullable: true),
                     author_id = table.Column<int>(type: "int", nullable: true),
-                    title = table.Column<string>(type: "nvarchar(3000)", maxLength: 3000, nullable: true),
+                    title = table.Column<string>(type: "nvarchar(3000)", maxLength: 3000, nullable: false),
                     employees_updated_at = table.Column<DateTime>(type: "datetime", nullable: false),
                     created_at = table.Column<DateTime>(type: "datetime", nullable: false),
                     completed_at = table.Column<DateTime>(type: "datetime", nullable: true),
@@ -601,11 +594,6 @@ namespace CRMService.DataBase.Migrations
                 name: "categoryId_idx",
                 table: "company",
                 column: "categoryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_employee_GroupId",
-                table: "employee",
-                column: "GroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_employee_groups_groupId",
@@ -772,6 +760,9 @@ namespace CRMService.DataBase.Migrations
                 name: "user_role");
 
             migrationBuilder.DropTable(
+                name: "group");
+
+            migrationBuilder.DropTable(
                 name: "okdesk_role");
 
             migrationBuilder.DropTable(
@@ -812,9 +803,6 @@ namespace CRMService.DataBase.Migrations
 
             migrationBuilder.DropTable(
                 name: "manufacturers");
-
-            migrationBuilder.DropTable(
-                name: "group");
 
             migrationBuilder.DropTable(
                 name: "company");

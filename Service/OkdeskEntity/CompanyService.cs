@@ -99,8 +99,6 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany, CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudApi));
-
             List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, ct: ct);
 
             if (categories.Count == 0)
@@ -108,15 +106,10 @@ namespace CRMService.Service.OkdeskEntity
 
             await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API))
             {
-                if (companies.Count == 0)
-                    continue;
-
                 await unitOfWork.Company.Upsert(companies, ct);
 
                 await unitOfWork.SaveAsync(ct);
             }
-
-            _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudApi));
         }
 
         public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany, CancellationToken ct)

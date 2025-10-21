@@ -4,6 +4,7 @@ using CRMService.DataBase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRMService.DataBase.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20251019130023_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -249,9 +252,6 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnType("nvarchar(70)")
                         .HasColumnName("first_name");
 
-                    b.Property<int?>("GroupId")
-                        .HasColumnType("int");
-
                     b.Property<string>("LastName")
                         .HasMaxLength(70)
                         .HasColumnType("nvarchar(70)")
@@ -279,8 +279,6 @@ namespace CRMService.DataBase.Migrations
                         .HasColumnName("position");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GroupId");
 
                     b.ToTable("employee", (string)null);
                 });
@@ -925,13 +923,6 @@ namespace CRMService.DataBase.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Employee", b =>
-                {
-                    b.HasOne("CRMService.Models.OkdeskEntity.Group", null)
-                        .WithMany("Employees")
-                        .HasForeignKey("GroupId");
-                });
-
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeGroup", b =>
                 {
                     b.HasOne("CRMService.Models.OkdeskEntity.Employee", "Employee")
@@ -1227,8 +1218,6 @@ namespace CRMService.DataBase.Migrations
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Group", b =>
                 {
                     b.Navigation("EmployeeGroups");
-
-                    b.Navigation("Employees");
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Issue", b =>

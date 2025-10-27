@@ -18,8 +18,6 @@ namespace CRMService.Service.Hosted
         IssuePriorityService priority,
         IssueTypeService type,
         IssueStatusService status,
-        //IssueService issue,
-        //TimeEntryService time,
         EquipmentService equipment,
         ILoggerFactory logger)
     {
@@ -70,12 +68,7 @@ namespace CRMService.Service.Hosted
 
             await status.UpdateIssueStatusesFromCloudApi(ct);
 
-            //await issue.UpdateIssuesFromCloudApi(dateFrom.Value, dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
-
-            //await time.UpdateTimeEntriesFromCloudDb(dateFrom: dateFrom.Value, dateTo: dateTo.Value, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
-
-            // Пока нет нужны в оборудовании в БД
-            //await equipment.UpdateEquipmentsFromCloudApi(startIndex: 0, limit: dbSettings.Value.LimitForRetrievingEntitiesFromDb);
+            await equipment.UpdateEquipmentsFromCloudDb(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct: ct);
 
             _logger.LogInformation("[Method:{MethodName}] Directories update completed...", nameof(RunUpdateDirectories));
         }

@@ -37,7 +37,7 @@ namespace CRMService.Models.OkdeskEntity
         [JsonProperty("equipment_model")]
         public virtual Model? Model { get; set; }
 
-        public virtual ICollection<EquipmentParameter> Parameters { get; set; } = new List<EquipmentParameter>();
+        public virtual List<EquipmentParameter> Parameters { get; set; } = new List<EquipmentParameter>();
 
         public void CopyData(Equipment newItem)
         {

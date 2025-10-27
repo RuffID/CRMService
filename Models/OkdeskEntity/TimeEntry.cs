@@ -19,9 +19,9 @@ namespace CRMService.Models.OkdeskEntity
 
         public DateTime CreatedAt { get; set; }
 
-        public virtual Employee Employee { get; set; } = null!;
+        public virtual Employee? Employee { get; set; }
 
-        public virtual Issue Issue { get; set; } = null!;
+        public virtual Issue? Issue { get; set; }
 
         public void CopyData(TimeEntry item)
         {

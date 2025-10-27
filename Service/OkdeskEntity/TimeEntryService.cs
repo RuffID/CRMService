@@ -24,19 +24,23 @@ namespace CRMService.Service.OkdeskEntity
             TimeEntries? timeEntry = await GetimeEntriesFromCloudApi(issueId);
 
             if (timeEntry == null || timeEntry.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
+            {
+                await unitOfWork.TimeEntry.DeleteAllByIssueId(issueId, ct); // удалить всё по IssueId если вдруг что то было в БД по этой заявке
+                await unitOfWork.SaveAsync(ct);
                 return;
+            }
 
             foreach (TimeEntry entry in timeEntry.Time_Entries)
             {
                 entry.IssueId = issueId;
-                entry.EmployeeId = entry.Employee.Id;
+                entry.EmployeeId = entry.Employee?.Id ?? throw new InvalidOperationException($"Employee id is not set in time entry: {entry.Id}");
             }
 
             await unitOfWork.TimeEntry.Upsert(timeEntry.Time_Entries, ct);
 
             await unitOfWork.SaveAsync(ct);
 
-            await DeleteMarkedAsDeketedTimeEntries(timeEntry.Time_Entries, ct);
+            await DeleteMarkedAsDeletedTimeEntries(timeEntry.Time_Entries, ct);
         }
 
         private async Task<List<TimeEntry>?> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long timeEntryId, long limit)
@@ -90,24 +94,30 @@ namespace CRMService.Service.OkdeskEntity
             _logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
         }
 
-        private async Task DeleteMarkedAsDeketedTimeEntries(TimeEntry[] entriesFromCloudApi, CancellationToken ct)
+        private async Task DeleteMarkedAsDeletedTimeEntries(TimeEntry[] entriesFromCloudApi, CancellationToken ct)
         {
-            foreach (TimeEntry entry in entriesFromCloudApi)
+            // сгруппировать облачные записи по IssueId
+            var groups = entriesFromCloudApi
+            .GroupBy(e => e.IssueId)
+            .Select(g => new
             {
-                // Получение всех записей сохранённых в локальной БД сервера
-                List<TimeEntry>? timeEntriesFromLocalDB = await unitOfWork.TimeEntry.GetEntriesByIssue(entry.IssueId, true, ct);
+                IssueId = g.Key,
+                CloudIds = g.Select(x => x.Id).Distinct().ToList()
+            })
+            .ToList();
 
-                if (timeEntriesFromLocalDB == null || timeEntriesFromLocalDB.Count == 0) continue;
+            // удалить отсутствующие в облаке по каждому IssueId
+            foreach (var group in groups)
+            {
+                // выбрать только Id к удалению, без трекинга сущностей
+                List<int> toDeleteIds = await unitOfWork.TimeEntry.GetItemIdsByCloudIdsFromIssueId(group.IssueId, group.CloudIds, ct);
 
-                // Проходит циклом по каждой записи из БД сервера для поиска удалённых 
-                foreach (TimeEntry entryFromLocalDB in timeEntriesFromLocalDB)
-                {
-                    // Если запись из локальной БД есть в записях полученных из API, значит она существует (не удалена) и проверяется следующая запись
-                    if (entriesFromCloudApi.Any(te => te.Id == entryFromLocalDB.Id)) continue;
+                if (toDeleteIds.Count == 0)
+                    continue;
 
-                    // Если запись отсутствует среди записей полученных с API окдеска, то значит она была удалена в окдеске и её нужно удалить и в локальной БД
-                    unitOfWork.TimeEntry.Delete(entryFromLocalDB);
-                }
+                IEnumerable<TimeEntry> stubs = toDeleteIds.Select(id => new TimeEntry { Id = id });
+
+                unitOfWork.TimeEntry.DeleteRange(stubs);
             }
 
             await unitOfWork.SaveAsync(ct);

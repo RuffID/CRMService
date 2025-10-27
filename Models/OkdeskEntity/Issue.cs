@@ -1,5 +1,6 @@
 ﻿using CRMService.Interfaces.Entity;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace CRMService.Models.OkdeskEntity
 {
@@ -48,11 +49,11 @@ namespace CRMService.Models.OkdeskEntity
         [JsonProperty("service_object")]
         public virtual MaintenanceEntity? ServiceObject { get; set; }
 
-        public virtual IssuePriority Priority { get; set; } = null!;
+        public virtual IssuePriority? Priority { get; set; }
 
-        public virtual IssueStatus Status { get; set; } = null!;
+        public virtual IssueStatus? Status { get; set; }
 
-        public virtual IssueType Type { get; set; } = null!;
+        public virtual IssueType? Type { get; set; }
 
         public virtual ICollection<TimeEntry>? TimeEntries { get; set; } = new List<TimeEntry>();
 

@@ -101,14 +101,12 @@ namespace CRMService.Service.OkdeskEntity
 
             await unitOfWork.ExecuteInTransaction(async () =>
             {
-                // Добавить новые связи
                 if (toAdd.Count > 0)
                 {
                     foreach (var item in toAdd)
                         unitOfWork.EmployeeGroup.Create(item);
                 }
 
-                // Удалить неактуальные
                 if (toDelete.Count > 0)
                 {
                     foreach (var item in toDelete)

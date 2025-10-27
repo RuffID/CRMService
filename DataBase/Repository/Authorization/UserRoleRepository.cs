@@ -18,5 +18,7 @@ namespace CRMService.DataBase.Repository.Authorization
         public void Create(UserRole item) => create.Create(item);
 
         public void Delete(UserRole item) => delete.Delete(item);
+
+        public void DeleteRange(IEnumerable<UserRole> entities) => delete.DeleteRange(entities);
     }
 }

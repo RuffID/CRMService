@@ -13,7 +13,7 @@ namespace CRMService.Controllers.Hosted
         [HttpPost]
         public async Task<IActionResult> RunUpdate()
         {
-            await sync.RunExclusive( async () => await service.RunUpdateDirectories());
+            await sync.RunExclusive(async () => await service.RunUpdateDirectories());
 
             return NoContent();
         }

@@ -18,5 +18,7 @@ namespace CRMService.DataBase.Repository.Entity
         public void Create(KindParam item) => create.Create(item);
 
         public void Delete(KindParam item) => delete.Delete(item);
+
+        public void DeleteRange(IEnumerable<KindParam> entities) => delete.DeleteRange(entities);
     }
 }

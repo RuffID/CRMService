@@ -1,5 +1,6 @@
 ﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.OkdeskEntity;
+using CRMService.Models.Authorization;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,8 @@ namespace CRMService.DataBase.Repository.Entity
 
         public void Create(EmployeeGroup item) => create.Create(item);
 
-        public void Delete(EmployeeGroup item) => delete.Delete(item);        
+        public void Delete(EmployeeGroup item) => delete.Delete(item);
+
+        public void DeleteRange(IEnumerable<EmployeeGroup> entities) => delete.DeleteRange(entities);
     }
 }

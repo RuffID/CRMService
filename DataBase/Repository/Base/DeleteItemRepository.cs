@@ -9,5 +9,10 @@ namespace CRMService.DataBase.Repository.Base
         {
             _context.Set<TEntity>().Remove(entity);
         }
+
+        public virtual void DeleteRange(IEnumerable<TEntity> entities)
+        {
+            _context.Set<TEntity>().RemoveRange(entities);
+        }
     }
 }

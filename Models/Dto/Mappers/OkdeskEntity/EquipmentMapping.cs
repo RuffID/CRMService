@@ -50,7 +50,7 @@ namespace CRMService.Models.Dto.Mappers.OkdeskEntity
                     AdditionalName = equipment.Company.AdditionalName,
                     Active = equipment.Company.Active
                 },
-                Parameters = equipment.Parameters?.Select(p => new EquipmentParameterDto { Value = p.Value }).ToList()
+                Parameters = equipment.Parameters?.Select(p => new EquipmentParameterDto { Value = p.Value?.ToString() }).ToList()
             };
         }
     }

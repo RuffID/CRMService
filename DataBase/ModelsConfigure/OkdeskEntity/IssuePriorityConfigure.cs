@@ -8,8 +8,6 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<IssuePriority> builder)
         {
-            
-
             builder.ToTable("issue_priority");
 
             builder.Property(e => e.Id)

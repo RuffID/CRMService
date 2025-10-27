@@ -24,6 +24,8 @@ namespace CRMService.DataBase.Repository.Entity
         public Task Upsert(IEnumerable<EmployeeRole> items, Func<EmployeeRole, Expression<Func<EmployeeRole, bool>>> predicateFactory, CancellationToken ct = default)
             => upsertItemByPredicate.Upsert(items, predicateFactory, ct);
 
-        public void Delete(EmployeeRole item) => delete.Delete(item);        
+        public void Delete(EmployeeRole item) => delete.Delete(item);
+
+        public void DeleteRange(IEnumerable<EmployeeRole> entities) => delete.DeleteRange(entities);
     }
 }

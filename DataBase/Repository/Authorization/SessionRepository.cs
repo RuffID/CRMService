@@ -31,5 +31,7 @@ namespace CRMService.DataBase.Repository.Authorization
         public Task Upsert(IEnumerable<Session> items, CancellationToken ct = default) => upsert.Upsert(items, ct);
 
         public void Delete(Session item) => delete.Delete(item);
+
+        public void DeleteRange(IEnumerable<Session> entities) => delete.DeleteRange(entities);
     }
 }

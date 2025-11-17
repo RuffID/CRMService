@@ -62,6 +62,7 @@ namespace CRMService.Core
             AddRepositories(services);
 
             services.AddTransient<ExceptionHandlingMiddleware>();
+            services.AddControllers();
             services.AddRazorPages(options =>
             {
                 // Делает все ссылки на страницы to lower case
@@ -86,7 +87,6 @@ namespace CRMService.Core
                 options.UseNpgsql(configuration.GetConnectionString("Postgresql"));
             });
 
-            services.AddControllers();
             services.AddLogging();
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
@@ -134,7 +134,7 @@ namespace CRMService.Core
             services.AddSingleton<ServerData>();
             services.AddSingleton<IJsonSerializer>(sp =>
             {
-                JsonSerializerSettings settings = new JsonSerializerSettings();
+                JsonSerializerSettings settings = new ();
                 configureNewtonsoft?.Invoke(settings);
                 return new NewtonsoftJsonSerializer(settings);
             });
@@ -195,8 +195,8 @@ namespace CRMService.Core
             services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
             services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
             services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
-            //services.AddScoped(typeof(IUpsertItemByCodeRepository<>), typeof(UpsertItemByCodeRepository<>));
             services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
+            //services.AddScoped(typeof(IUpsertItemByCodeRepository<>), typeof(UpsertItemByCodeRepository<>));
 
             services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();
             services.AddScoped<ICrmRoleRepository, CrmRoleRepository>();

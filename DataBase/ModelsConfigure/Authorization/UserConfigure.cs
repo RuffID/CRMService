@@ -8,9 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            builder.ToTable("user");
-
-            
+            builder.ToTable("user");            
 
             builder.HasIndex(e => e.Login, "login_UNIQUE").IsUnique();
 

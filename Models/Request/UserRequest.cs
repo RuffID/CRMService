@@ -8,7 +8,7 @@ namespace CRMService.Models.Request
         [MinLength(1, ErrorMessage = "Login must not be empty")]
         public string Login { get; set; } = null!;
 
-        [MinLength(1, ErrorMessage = "Login must not be empty")]
+        [MinLength(1, ErrorMessage = "Name must not be empty")]
         public string Name { get; set; } = null!;
 
         [MinLength(1, ErrorMessage = "Password must not be empty")]

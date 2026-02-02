@@ -8,7 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<KindParam> builder)
         {
-            builder.ToTable("kindparams");
+            builder.ToTable("KindParams");
 
             builder.HasKey(e => new { e.KindId, e.KindParameterId });
 
@@ -16,22 +16,14 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
 
             builder.HasIndex(e => e.KindParameterId, "kindParameters_idx");
 
-            builder.Property(e => e.KindId)
-                .HasColumnName("kindId");
-
-            builder.Property(e => e.KindParameterId)
-                .HasColumnName("kindParameterId");
-
             builder.HasOne(d => d.Kind)
                 .WithMany(p => p.KindParams)
                 .HasForeignKey(d => d.KindId)
-                .HasConstraintName("kindPrm")
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(d => d.KindParameter)
                 .WithMany(p => p.KindParams)
                 .HasForeignKey(d => d.KindParameterId)
-                .HasConstraintName("kindParameters")
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

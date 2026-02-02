@@ -8,28 +8,22 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            builder.ToTable("user");            
+            builder.ToTable("User");            
 
             builder.HasIndex(e => e.Login, "login_UNIQUE").IsUnique();
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("NEWID()");
+                .HasDefaultValueSql("NEWSEQUENTIALID()");
 
             builder.Property(e => e.Password)
-                .HasMaxLength(256)
-                .HasColumnName("password_hash");
+                .HasMaxLength(256);
 
             builder.Property(e => e.Login)
-                .HasMaxLength(45)
-                .HasColumnName("login");
+                .HasMaxLength(45);
 
             builder.Property(e => e.Name)
-                .HasMaxLength(100)
-                .HasColumnName("name");
-
-            builder.Property(e => e.Active).HasColumnName("active");
+                .HasMaxLength(100);
 
             builder
                 .HasMany(u => u.Roles)

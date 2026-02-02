@@ -17,7 +17,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetGroups([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<Group> groups = await unitOfWork.Group.GetItemsByPredicateAndSortById(predicate: g => g.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<Group> groups = await unitOfWork.Group.GetItemsByPredicateAsync(predicate: g => g.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(groups.ToDto());
         }

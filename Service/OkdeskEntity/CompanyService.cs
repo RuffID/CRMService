@@ -23,13 +23,16 @@ namespace CRMService.Service.OkdeskEntity
 
         private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudApiByCategory(IEnumerable<CompanyCategory> categories, long startIndex, long limit)
         {
-            foreach (var category in categories)
+            foreach (CompanyCategory category in categories)
             {
                 string link = $"{endpoint.Value.OkdeskApi}/companies/list?api_token={okdSettings.Value.OkdeskApiToken}&category_ids[]={category.Id}";
                 await foreach (List<Company> companies in _request.GetAllItems<Company>(link, startIndex, limit))
                 {
                     foreach (Company company in companies)
-                        company.Category = category;
+                    {
+                        company.CategoryId = category.Id;
+                        company.Category = null;
+                    }
 
                     yield return companies;
                 }
@@ -92,31 +95,43 @@ namespace CRMService.Service.OkdeskEntity
             if (!await CheckCompanyCategory(company, ct))
                 return;
 
-            await unitOfWork.Company.Upsert(company, ct);
+            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+
+            if (existingCompany == null)
+                unitOfWork.Company.Create(company);
+            else
+                existingCompany.CopyData(company);
 
             await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany, CancellationToken ct)
         {
-            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, ct: ct);
+            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
 
             if (categories.Count == 0)
                 return;
 
             await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API))
             {
-                await unitOfWork.Company.Upsert(companies, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (Company company in companies)
+                {
+                    Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+                    if (existingCompany == null)
+                        unitOfWork.Company.Create(company);
+                    else
+                        existingCompany.CopyData(company);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany, CancellationToken ct)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudDb));
 
-            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAndSortById(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
+            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
 
             if (categories == null || !categories.Any())
                 return;
@@ -126,10 +141,17 @@ namespace CRMService.Service.OkdeskEntity
                 if (companies.Count == 0)
                     continue;
 
-                await unitOfWork.Company.Upsert(companies, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (Company company in companies)
+                {
+                    Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+                    if (existingCompany == null)
+                        unitOfWork.Company.Create(company);
+                    else
+                        existingCompany.CopyData(company);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }
@@ -142,7 +164,7 @@ namespace CRMService.Service.OkdeskEntity
                 return true;
             }
 
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemById(company.Category.Id, true, ct);
+            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(company.Category.Id, ct: ct);
             if (category != null)
             {
                 company.CategoryId = category.Id;

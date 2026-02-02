@@ -8,7 +8,7 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<Equipment> builder)
         {
-            builder.ToTable("equipment");            
+            builder.ToTable("Equipment");            
 
             builder.HasIndex(e => e.CompanyId, "companyId_idx");
 
@@ -20,43 +20,37 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
 
             builder.HasIndex(e => e.ModelId, "modelEquipId_idx");
 
-            builder.Property(e => e.Id).ValueGeneratedNever().HasColumnName("id");
+            builder.Property(e => e.Id)
+                .ValueGeneratedNever();
 
-            builder.Property(e => e.CompanyId).HasColumnName("companyId");
+            builder.Property(e => e.InventoryNumber)
+                .HasMaxLength(300);
 
-            builder.Property(e => e.InventoryNumber).HasMaxLength(300).HasColumnName("inventory_number");
+            builder.Property(e => e.SerialNumber)
+                .HasMaxLength(300);
 
-            builder.Property(e => e.KindId).HasColumnName("kindId");
-
-            builder.Property(e => e.MaintenanceEntitiesId).HasColumnName("maintenanceEntitiesId");
-
-            builder.Property(e => e.ManufacturerId).HasColumnName("manufacturerId");
-
-            builder.Property(e => e.ModelId).HasColumnName("modelId");
-
-            builder.Property(e => e.SerialNumber).HasMaxLength(300).HasColumnName("serial_number");
-
-            builder.HasOne(d => d.Company).WithMany(p => p.Equipment)
+            builder.HasOne(d => d.Company)
+                .WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.CompanyId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("equipmentCompanyId");
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(d => d.Kind).WithMany(p => p.Equipment)
+            builder.HasOne(d => d.Kind)
+                .WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.KindId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("kindEquipId");
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(d => d.MaintenanceEntities).WithMany(p => p.Equipment)
+            builder.HasOne(d => d.MaintenanceEntities)
+                .WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.MaintenanceEntitiesId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("equipmentMaintenanceEntitiesId");
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(d => d.Manufacturer).WithMany(p => p.Equipment)
+            builder.HasOne(d => d.Manufacturer)
+                .WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.ManufacturerId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("manufacturerEquipId");
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(d => d.Model).WithMany(p => p.Equipment)
+            builder.HasOne(d => d.Model)
+                .WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.ModelId)
                 .OnDelete(DeleteBehavior.Restrict);
 

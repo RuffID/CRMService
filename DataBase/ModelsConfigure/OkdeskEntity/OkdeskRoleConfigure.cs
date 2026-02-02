@@ -8,17 +8,15 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<OkdeskRole> builder)
         {
-            builder.ToTable("okdesk_role");
+            builder.ToTable("OkdeskRole");
 
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedNever();
 
             builder.Property(e => e.Name)
-                .HasMaxLength(100)
-                .HasColumnName("name");
+                .HasMaxLength(100);
         }
     }
 }

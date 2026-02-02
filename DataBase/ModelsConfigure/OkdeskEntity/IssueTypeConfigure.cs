@@ -8,23 +8,16 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<IssueType> builder)
         {
-            builder.ToTable("issue_type");
+            builder.ToTable("IssueType");
 
-            builder.Property(e => e.Id).HasColumnName("id").ValueGeneratedNever();
+            builder.Property(e => e.Id)
+                .ValueGeneratedNever();
 
-            builder.Property(e => e.Name).HasMaxLength(100).HasColumnName("name");
-
-            builder.Property(e => e.GroupId).HasColumnName("groupId");
+            builder.Property(e => e.Name).HasMaxLength(100);
 
             builder.HasIndex(e => e.GroupId, "groupId_idx");
 
-            builder.Property(e => e.AvailableForClient).HasColumnName("available_for_client");
-
-            builder.Property(e => e.Code).HasMaxLength(60).HasColumnName("code");
-
-            builder.Property(e => e.IsDefault).HasColumnName("is_default");
-
-            builder.Property(e => e.IsInner).HasColumnName("is_inner");
+            builder.Property(e => e.Code).HasMaxLength(60);
 
             builder.HasOne(x => x.Group)
                 .WithMany(g => g.Types)

@@ -18,21 +18,13 @@ namespace CRMService.Service.Hosted
         IssuePriorityService priority,
         IssueTypeService type,
         IssueStatusService status,
-        EquipmentService equipment,
         ILoggerFactory logger)
     {
         private readonly ILogger<UpdateDirectoriesService> _logger = logger.CreateLogger<UpdateDirectoriesService>();
 
-        public async Task RunUpdateDirectories(DateTime? dateFrom = null, DateTime? dateTo = null, CancellationToken ct = default)
+        public async Task RunUpdateDirectories(CancellationToken ct = default)
         {
-            DateTime now = DateTime.Now;
-            if (!dateFrom.HasValue)
-                dateFrom = new(now.Year, now.Month, now.Day, hour: 0, minute: 0, second: 0);
-
-            if (!dateTo.HasValue)
-                dateTo = now;
-
-            _logger.LogInformation("[Method:{MethodName}] Starting updating directories. Date from: {DateFrom}, date to: {DateTo}", nameof(RunUpdateDirectories), dateFrom.ToString(), dateTo.ToString());
+            _logger.LogInformation("[Method:{MethodName}] Starting updating directories.", nameof(RunUpdateDirectories));
 
             await kind.UpdateKindsFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
 
@@ -68,9 +60,7 @@ namespace CRMService.Service.Hosted
 
             await status.UpdateIssueStatusesFromCloudApi(ct);
 
-            await equipment.UpdateEquipmentsFromCloudDb(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct: ct);
-
-            _logger.LogInformation("[Method:{MethodName}] Directories update completed...", nameof(RunUpdateDirectories));
+            _logger.LogInformation("[Method:{MethodName}] Directories update completed.", nameof(RunUpdateDirectories));
         }
     }
 }

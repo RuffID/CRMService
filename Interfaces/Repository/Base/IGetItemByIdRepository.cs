@@ -1,11 +1,9 @@
 ﻿using CRMService.Interfaces.Entity;
-using System.Linq.Expressions;
 
 namespace CRMService.Interfaces.Repository.Base
 {
     public interface IGetItemByIdRepository<TEntity, TId> where TEntity : class, IEntity<TId> where TId : notnull, IEquatable<TId>, IComparable<TId>
     {
-        Task<TEntity?> GetItemById(TId id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes);
-        Task<List<TEntity>> GetItemsByPredicateAndSortById(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes);
+        Task<TEntity?> GetItemByIdAsync(TId id, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default);
     }
 }

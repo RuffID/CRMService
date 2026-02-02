@@ -1,6 +1,5 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
@@ -18,7 +17,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetMaintenanceEntity([FromQuery] int id, CancellationToken ct)
         {
-            MaintenanceEntity? maintenanceEntity = await unitOfWork.MaintenanceEntity.GetItemById(id, true, ct);
+            MaintenanceEntity? maintenanceEntity = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(id, asNoTracking: true, ct: ct);
 
             if (maintenanceEntity == null)
                 return NotFound();
@@ -29,7 +28,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetMaintenanceEntities([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAndSortById(predicate: me => me.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(predicate: me => me.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(maintenanceEntities.ToDto());
         }
@@ -61,7 +60,7 @@ namespace CRMService.Controllers.OkdeskEntity
         {
             await sync.RunExclusive(async () =>
             {
-               await service.UpdateMaintenanceEntitiesFromCloudDb(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
+                await service.UpdateMaintenanceEntitiesFromCloudDb(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
             });
 
             return NoContent();

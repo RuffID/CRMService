@@ -7,25 +7,19 @@ namespace CRMService.DataBase.Repository.Entity
 {
     public class IssuePriorityRepository(IGetItemByIdRepository<IssuePriority, int> getItemById,
         IGetItemByPredicateRepository<IssuePriority> getItemByPredicate,
-        ICreateItemRepository<IssuePriority> createItem,
-        IUpsertItemByIdRepository<IssuePriority, int> upsertItemById) : IIssuePriorityRepository
+        ICreateItemRepository<IssuePriority> create) : IIssuePriorityRepository
     {
-        public Task<IssuePriority?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
-            => getItemById.GetItemById(id, asNoTracking, ct, includes);
+        public Task<IssuePriority?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<IssuePriority>, IQueryable<IssuePriority>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
 
-        public Task<List<IssuePriority>> GetItemsByPredicateAndSortById(Expression<Func<IssuePriority, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
-            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<IssuePriority?> GetItemByPredicateAsync(Expression<Func<IssuePriority, bool>> predicate, bool asNoTracking = false, Func<IQueryable<IssuePriority>, IQueryable<IssuePriority>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 
-        public Task<IssuePriority?> GetItemByPredicate(Expression<Func<IssuePriority, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
+        public Task<List<IssuePriority>> GetItemsByPredicateAsync(Expression<Func<IssuePriority, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<IssuePriority>, IQueryable<IssuePriority>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
-        public Task<List<IssuePriority>> GetItemsByPredicate(Expression<Func<IssuePriority, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<IssuePriority, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public void Create(IssuePriority item) => create.Create(item);
 
-        public void Create(IssuePriority item) => createItem.Create(item);
-
-        public Task Upsert(IssuePriority item, CancellationToken ct = default) => upsertItemById.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<IssuePriority> items, CancellationToken ct = default) => upsertItemById.Upsert(items, ct);
+        public void CreateRange(IEnumerable<IssuePriority> entities) => create.CreateRange(entities);
     }
 }

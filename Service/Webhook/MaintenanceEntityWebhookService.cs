@@ -1,6 +1,7 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.OkdeskEntity;
 using CRMService.Models.WebHook;
 
 namespace CRMService.Service.Webhook
@@ -15,10 +16,24 @@ namespace CRMService.Service.Webhook
             switch (@event.Event!.Event_type)
             {
                 case "new_service_aim":
-                    await unitOfWork.MaintenanceEntity.Upsert(@event.Service_aim.ToEntity(), ct);
+                    {
+                        MaintenanceEntity? existingMe = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(@event.Service_aim.Id, ct: ct);
+
+                        if (existingMe == null)
+                            unitOfWork.MaintenanceEntity.Create(@event.Service_aim.ToEntity());
+                        else
+                            existingMe.CopyData(@event.Service_aim.ToEntity());
+                    }
                     break;
                 case "change_service_aim":
-                    await unitOfWork.MaintenanceEntity.Upsert(@event.Service_aim.ToEntity(), ct);
+                    {
+                        MaintenanceEntity? existingMe = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(@event.Service_aim.Id, ct: ct);
+
+                        if (existingMe == null)
+                            unitOfWork.MaintenanceEntity.Create(@event.Service_aim.ToEntity());
+                        else
+                            existingMe.CopyData(@event.Service_aim.ToEntity());
+                    }
                     break;
                 default:
                     return false;

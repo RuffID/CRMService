@@ -1,29 +1,25 @@
-﻿using CRMService.Models.OkdeskEntity;
+﻿using CRMService.Interfaces.Repository.Base;
 using CRMService.Interfaces.Repository.OkdeskEntity;
-using CRMService.Interfaces.Repository.Base;
+using CRMService.Models.OkdeskEntity;
 using System.Linq.Expressions;
 
 namespace CRMService.DataBase.Repository.Entity
 {
     public class IssueRepository(IGetItemByIdRepository<Issue, int> getItemById,
-        ICreateItemRepository<Issue> create,
-        IUpsertItemByIdRepository<Issue, int> upsertItemById) : IIssueRepository
+        IGetItemByPredicateRepository<Issue> getItemByPredicate,
+        ICreateItemRepository<Issue> create) : IIssueRepository
     {
-        public Task<List<Issue>> GetIssuesBetweenUpdateDates(DateTime dateFrom, DateTime dateTo, int startIndex, CancellationToken ct)
-            => getItemById.GetItemsByPredicateAndSortById(predicate: i => i.Id >= startIndex && i.EmployeesUpdatedAt >= dateFrom && i.EmployeesUpdatedAt <= dateTo, asNoTracking: true, ct: ct);
+        public Task<Issue?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Issue>, IQueryable<Issue>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
 
-        public Task<Issue?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Issue, object>>[] includes)
-            => getItemById.GetItemById(id, asNoTracking, ct, includes);
+        public Task<Issue?> GetItemByPredicateAsync(Expression<Func<Issue, bool>> predicate, bool asNoTracking = false, Func<IQueryable<Issue>, IQueryable<Issue>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 
-        public Task<List<Issue>> GetItemsByPredicateAndSortById(Expression<Func<Issue, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Issue, object>>[] includes)
-            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
-
+        public Task<List<Issue>> GetItemsByPredicateAsync(Expression<Func<Issue, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Issue>, IQueryable<Issue>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
+        
         public void Create(Issue item) => create.Create(item);
 
-        public Task Upsert(Issue item, CancellationToken ct = default)
-            => upsertItemById.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<Issue> items, CancellationToken ct = default)
-            => upsertItemById.Upsert(items, ct);
+        public void CreateRange(IEnumerable<Issue> entities) => create.CreateRange(entities);
     }
 }

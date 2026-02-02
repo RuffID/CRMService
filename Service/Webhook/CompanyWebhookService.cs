@@ -1,5 +1,6 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
+using CRMService.Models.OkdeskEntity;
 using CRMService.Models.WebHook;
 using CRMService.Service.OkdeskEntity;
 
@@ -16,12 +17,24 @@ namespace CRMService.Service.Webhook
             {
                 case "new_company":
                     if (await companyService.CheckCompanyCategory(@event.Company, ct))
-                        await unitOfWork.Company.Upsert(@event.Company, ct);
+                    {
+                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(@event.Company.Id, ct: ct);
+                        if (existingCompany == null)
+                            unitOfWork.Company.Create(@event.Company);
+                        else
+                            existingCompany.CopyData(@event.Company);
+                    }
                     break;
 
                 case "change_company":
                     if (await companyService.CheckCompanyCategory(@event.Company, ct))
-                        await unitOfWork.Company.Upsert(@event.Company, ct);
+                    {
+                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(@event.Company.Id, ct: ct);
+                        if (existingCompany == null)
+                            unitOfWork.Company.Create(@event.Company);
+                        else
+                            existingCompany.CopyData(@event.Company);
+                    }
                     break;
                 default:
                     return false;

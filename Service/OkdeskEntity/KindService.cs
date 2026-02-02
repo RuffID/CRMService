@@ -12,7 +12,7 @@ namespace CRMService.Service.OkdeskEntity
     {
         private readonly ILogger<KindService> _logger = logger.CreateLogger<KindService>();
 
-        private async IAsyncEnumerable<List<Kind>?> GetKindsFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<Kind>> GetKindsFromCloudApi(long startIndex, long limit)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/kinds?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
@@ -39,14 +39,22 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateKindsFromCloudApi(long startIndex, long limit, CancellationToken ct)
         {
-            await foreach (List<Kind>? kinds in GetKindsFromCloudApi(startIndex, limit))
+            await foreach (List<Kind> kinds in GetKindsFromCloudApi(startIndex, limit))
             {
-                if (kinds == null || kinds.Count == 0) return;
+                if (kinds.Count == 0)
+                    return;
 
-                await unitOfWork.Kind.Upsert(kinds, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (Kind item in kinds)
+                {
+                    Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingKinds == null)
+                        unitOfWork.Kind.Create(item);
+                    else
+                        existingKinds.CopyData(item);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateKindsFromCloudDb(CancellationToken ct)
@@ -56,7 +64,14 @@ namespace CRMService.Service.OkdeskEntity
             if (kinds == null || kinds.Count == 0)
                 return;
 
-            await unitOfWork.Kind.Upsert(kinds, ct);
+            foreach (Kind item in kinds)
+            {
+                Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
+                if (existingKinds == null)
+                    unitOfWork.Kind.Create(item);
+                else
+                    existingKinds.CopyData(item);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }

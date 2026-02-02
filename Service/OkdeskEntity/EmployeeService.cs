@@ -14,7 +14,7 @@ namespace CRMService.Service.OkdeskEntity
         {
             string link = $"{endpoint.Value.OkdeskApi}/employees/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            await foreach (var employees in request.GetAllItems<Employee>(link, startIndex, limit))
+            await foreach (List<Employee> employees in request.GetAllItems<Employee>(link, startIndex, limit))
                 yield return employees;
         }
 
@@ -28,7 +28,7 @@ namespace CRMService.Service.OkdeskEntity
             DataSet ds = await pGSelect.Select(sqlCommand);
             DataTable? employeesTable = ds.Tables["Table"];
             if (employeesTable == null)
-                return new ();
+                return new();
 
             return employeesTable.AsEnumerable().
                 Select(employee => new Employee
@@ -48,10 +48,17 @@ namespace CRMService.Service.OkdeskEntity
         {
             await foreach (List<Employee> employees in GetEmployeesFromCloudApi(startIndex, limit))
             {
-                await unitOfWork.Employee.Upsert(employees, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (Employee employee in employees)
+                {
+                    Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
+                    if (existingEmployee == null)
+                        unitOfWork.Employee.Create(employee);
+                    else
+                        existingEmployee.CopyData(employee);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateEmployeesFromCloudDb(int startIndexEmployee, int limit, CancellationToken ct)
@@ -65,10 +72,17 @@ namespace CRMService.Service.OkdeskEntity
 
                 startIndexEmployee = employees.Last().Id;
 
-                await unitOfWork.Employee.Upsert(employees, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (Employee employee in employees)
+                {
+                    Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
+                    if (existingEmployee == null)
+                        unitOfWork.Employee.Create(employee);
+                    else
+                        existingEmployee.CopyData(employee);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

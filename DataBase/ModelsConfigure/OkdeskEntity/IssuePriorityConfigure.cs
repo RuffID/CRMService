@@ -8,25 +8,19 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<IssuePriority> builder)
         {
-            builder.ToTable("issue_priority");
+            builder.ToTable("IssuePriority");
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedNever();
 
             builder.Property(e => e.Code)
-                .HasMaxLength(45)
-                .HasColumnName("code");
+                .HasMaxLength(45);
 
             builder.Property(e => e.Color)
-                .HasMaxLength(45)
-                .HasColumnName("color");
+                .HasMaxLength(45);
 
             builder.Property(e => e.Name)
-                .HasMaxLength(45)
-                .HasColumnName("name");
-
-            builder.Property(e => e.Position).HasColumnName("position");
+                .HasMaxLength(45);
         }
     }
 }

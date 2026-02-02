@@ -1,5 +1,6 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Interfaces.Service;
+using CRMService.Models.OkdeskEntity;
 using CRMService.Models.WebHook;
 
 namespace CRMService.Service.Webhook
@@ -14,10 +15,22 @@ namespace CRMService.Service.Webhook
             switch (@event.Event!.Event_type)
             {
                 case "new_equipment":
-                    await unitOfWork.Equipment.Upsert(@event.Equipment, ct);
+                    {
+                        Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(@event.Equipment.Id, ct: ct);
+                        if (existingEquipment == null)
+                            unitOfWork.Equipment.Create(@event.Equipment);
+                        else
+                            existingEquipment.CopyData(@event.Equipment);
+                    }
                     break;
                 case "change_equipment":
-                    await unitOfWork.Equipment.Upsert(@event.Equipment, ct);
+                    {
+                        Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(@event.Equipment.Id, ct: ct);
+                        if (existingEquipment == null)
+                            unitOfWork.Equipment.Create(@event.Equipment);
+                        else
+                            existingEquipment.CopyData(@event.Equipment);
+                    }
                     break;
                 default:
                     return false;

@@ -8,30 +8,23 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<MaintenanceEntity> builder)
         {
-            builder.ToTable("maintenance_entity");
+            builder.ToTable("MaintenanceEntity");
 
             builder.HasIndex(e => e.CompanyId, "companyId_idx");
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
-
-            builder.Property(e => e.Active).HasColumnName("active");
+                .ValueGeneratedNever();
 
             builder.Property(e => e.Address)
-                .HasMaxLength(300)
-                .HasColumnName("address");
-
-            builder.Property(e => e.CompanyId).HasColumnName("companyId");
+                .HasMaxLength(300);
 
             builder.Property(e => e.Name)
-                .HasMaxLength(200)
-                .HasColumnName("name");
+                .HasMaxLength(200);
 
-            builder.HasOne(d => d.Company).WithMany(p => p.MaintenanceEntities)
+            builder.HasOne(d => d.Company)
+                .WithMany(p => p.MaintenanceEntities)
                 .HasForeignKey(d => d.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("companyId");
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -42,10 +42,17 @@ namespace CRMService.Service.OkdeskEntity
             if (statuses.Count == 0)
                 return;
 
-            for (int i = 1; i <= statuses.Count; i++)
-                statuses[i-1].Id = i;
+            for (int i = 0; i < statuses.Count; i++)
+                statuses[i].Id = i + 1;
 
-            await unitOfWork.IssueStatus.Upsert(statuses, ct);
+            foreach (IssueStatus item in statuses)
+            {
+                IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
+                if (existingStatus == null)
+                    unitOfWork.IssueStatus.Create(item);
+                else
+                    existingStatus.CopyData(item);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -57,7 +64,14 @@ namespace CRMService.Service.OkdeskEntity
             if (statuses.Count == 0)
                 return;
 
-            await unitOfWork.IssueStatus.Upsert(statuses, ct);
+            foreach (IssueStatus item in statuses)
+            {
+                IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
+                if (existingStatus == null)
+                    unitOfWork.IssueStatus.Create(item);
+                else
+                    existingStatus.CopyData(item);
+            }
 
             await unitOfWork.SaveAsync(ct);
 

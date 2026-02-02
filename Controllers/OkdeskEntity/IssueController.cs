@@ -13,13 +13,13 @@ namespace CRMService.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueController(EntitySyncService sync, 
+    public class IssueController(EntitySyncService sync,
         IUnitOfWork unitOfWork, IssueService service) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<Issue> issues = await unitOfWork.Issue.GetItemsByPredicateAndSortById(predicate: i => i.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<Issue> issues = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate: i => i.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(issues.ToDto());
         }
@@ -27,18 +27,18 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssue([FromQuery] int id, CancellationToken ct)
         {
-            Issue? issue = await unitOfWork.Issue.GetItemById(id, false, ct);
+            Issue? issue = await unitOfWork.Issue.GetItemByIdAsync(id: id, asNoTracking: true, ct: ct);
 
             if (issue == null)
                 return NotFound();
 
             return Ok(issue.ToDto());
-        }        
+        }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateIssuesFromCloudAPI([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
-            if(dateFrom > dateTo)
+            if (dateFrom > dateTo)
                 return BadRequest("Start date is later than end date.");
 
             if (dateTo.Hour == 0 && dateTo.Minute == 0 && dateTo.Second == 0)

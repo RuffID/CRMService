@@ -3,8 +3,7 @@ using CRMService.Models.OkdeskEntity;
 
 namespace CRMService.Interfaces.Repository.OkdeskEntity
 {
-    public interface IEmployeeGroupRepository : IGetItemByPredicateRepository<EmployeeGroup>, IUpsertItemByPredicateRepository<EmployeeGroup>, ICreateItemRepository<EmployeeGroup>, IDeleteItemRepository<EmployeeGroup>
+    public interface IEmployeeGroupRepository : IGetItemByPredicateRepository<EmployeeGroup>, ICreateItemRepository<EmployeeGroup>, IDeleteItemRepository<EmployeeGroup>
     {
-        Task<List<Employee>> GetEmployeesByGroup(int groupId, int employeeStartIndex, bool asNoTracking = false, CancellationToken ct = default);
     }
 }

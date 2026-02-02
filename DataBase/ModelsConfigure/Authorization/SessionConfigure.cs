@@ -8,32 +8,24 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<Session> builder)
         {
-            builder.ToTable("session");
-
-            
+            builder.ToTable("Session");
 
             builder.HasIndex(e => e.UserId, "user_session_id_idx");
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("NEWID()");
-
-            builder.Property(e => e.ExpirationRefreshToken)
-                .HasColumnType("datetime")
-                .HasColumnName("expiration_refresh_token");
+                .HasDefaultValueSql("NEWSEQUENTIALID()");
 
             builder.Property(e => e.RefreshToken)
-                .HasMaxLength(88)
-                .HasColumnName("refresh_token");
+                .HasMaxLength(88);
 
             builder.Property(e => e.UserId)
-                .HasMaxLength(36)
-                .HasColumnName("user_id");
+                .HasMaxLength(36);
 
-            builder.HasOne(d => d.User).WithMany(p => p.Sessions)
+            builder.HasOne(d => d.User)
+                .WithMany(p => p.Sessions)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("user_session_id");
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

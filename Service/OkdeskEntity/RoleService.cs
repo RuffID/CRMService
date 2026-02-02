@@ -4,7 +4,6 @@ using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using Mysqlx.Crud;
 
 namespace CRMService.Service.OkdeskEntity
 {
@@ -24,7 +23,15 @@ namespace CRMService.Service.OkdeskEntity
             if (roles.Count == 0)
                 return;
 
-            await unitOfWork.OkdeskRole.Upsert(roles, ct);
+            foreach (OkdeskRole role in roles)
+            {
+                OkdeskRole? existingRole = await unitOfWork.OkdeskRole.GetItemByIdAsync(role.Id, ct: ct);
+
+                if (existingRole == null)
+                    unitOfWork.OkdeskRole.Create(role);
+                else
+                    existingRole.CopyData(role);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -53,34 +60,21 @@ namespace CRMService.Service.OkdeskEntity
                 // Загрузить существующие связи по затронутым сотрудникам
                 // Берём все роли этих сотрудников, чтобы удалить лишнее относительно снапшота из API
                 List<EmployeeRole> existingLinks = await unitOfWork.EmployeeRole
-                    .GetItemsByPredicate(er => employeeIdsIncoming.Contains(er.EmployeeId), asNoTracking: true, ct: ct);
+                    .GetItemsByPredicateAsync(er => employeeIdsIncoming.Contains(er.EmployeeId), asNoTracking: true, ct: ct);
 
                 List<EmployeeRole> toAdd = desired.Except(existingLinks, EmployeeRole.Comparer).ToList();
                 List<EmployeeRole> toDelete = existingLinks.Except(desired, EmployeeRole.Comparer).ToList();
 
                 if (toAdd.Count == 0 && toDelete.Count == 0)
-                    return;
+                    continue;
 
-                // Применить изменения транзакционно: сначала сущности, затем связи
-                await unitOfWork.ExecuteInTransaction(async () =>
-                {
-                    // Добавить связи сотрудник-роль
-                    if (toAdd.Count > 0)
-                    {
-                        foreach (EmployeeRole link in toAdd)
-                            unitOfWork.EmployeeRole.Create(link);
-                    }
+                unitOfWork.EmployeeRole.CreateRange(toAdd);
 
-                    // Удалить неактуальные связи сотрудник-роль
-                    if (toDelete.Count > 0)
-                    {
-                        foreach (EmployeeRole link in toDelete)
-                            unitOfWork.EmployeeRole.Delete(link);
-                    }
+                unitOfWork.EmployeeRole.DeleteRange(toDelete);
 
-                    await Task.CompletedTask;
-                }, ct);
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

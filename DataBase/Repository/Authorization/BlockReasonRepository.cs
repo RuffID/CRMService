@@ -7,27 +7,19 @@ namespace CRMService.DataBase.Repository.Authorization
 {
     public class BlockReasonRepository(IGetItemByIdRepository<BlockReason, Guid> getItemById,
         IGetItemByPredicateRepository<BlockReason> getItemByPredicate,
-        ICreateItemRepository<BlockReason> create,
-        IUpsertItemByIdRepository<BlockReason, Guid> upsert) : IBlockReasonRepository
+        ICreateItemRepository<BlockReason> create) : IBlockReasonRepository
     {
-        public Task<BlockReason?> GetItemById(Guid id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
-            => getItemById.GetItemById(id, asNoTracking, ct, includes);
+        public Task<BlockReason?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<BlockReason>, IQueryable<BlockReason>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
 
-        public Task<List<BlockReason>> GetItemsByPredicateAndSortById(Expression<Func<BlockReason, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
-            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<BlockReason?> GetItemByPredicateAsync(Expression<Func<BlockReason, bool>> predicate, bool asNoTracking = false, Func<IQueryable<BlockReason>, IQueryable<BlockReason>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 
-        public Task<BlockReason?> GetItemByPredicate(Expression<Func<BlockReason, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
-
-        public Task<List<BlockReason>> GetItemsByPredicate(Expression<Func<BlockReason, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<BlockReason, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<BlockReason>> GetItemsByPredicateAsync(Expression<Func<BlockReason, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<BlockReason>, IQueryable<BlockReason>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(BlockReason item) => create.Create(item);
 
-        public Task Upsert(BlockReason item, CancellationToken ct = default)
-            => upsert.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<BlockReason> items, CancellationToken ct = default)
-            => upsert.Upsert(items, ct);
+        public void CreateRange(IEnumerable<BlockReason> entities) => create.CreateRange(entities);
     }
 }

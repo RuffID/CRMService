@@ -27,39 +27,33 @@ namespace CRMService.DataBase.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
 
                     b.Property<DateTime>("BlockingDate")
-                        .HasColumnType("datetime")
-                        .HasColumnName("blocking_date");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ReasonBlock")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("reason_block");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<DateTime?>("UnblockingDate")
-                        .HasColumnType("datetime")
-                        .HasColumnName("unblocking_date");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UnblockingReason")
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("reason_unblock");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<Guid>("UserId")
                         .HasMaxLength(36)
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("block_reason", (string)null);
+                    b.ToTable("BlockReason", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.Authorization.CrmRole", b =>
@@ -67,18 +61,16 @@ namespace CRMService.DataBase.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(45)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("crm_role", (string)null);
+                    b.ToTable("CrmRole", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.Authorization.Session", b =>
@@ -86,29 +78,25 @@ namespace CRMService.DataBase.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
 
                     b.Property<DateTime>("ExpirationRefreshToken")
-                        .HasColumnType("datetime")
-                        .HasColumnName("expiration_refresh_token");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()
                         .HasMaxLength(88)
-                        .HasColumnType("nvarchar(88)")
-                        .HasColumnName("refresh_token");
+                        .HasColumnType("nvarchar(88)");
 
                     b.Property<Guid>("UserId")
                         .HasMaxLength(36)
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex(new[] { "UserId" }, "user_session_id_idx");
 
-                    b.ToTable("session", (string)null);
+                    b.ToTable("Session", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.Authorization.User", b =>
@@ -116,244 +104,202 @@ namespace CRMService.DataBase.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit")
-                        .HasColumnName("active");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Login")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("login");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
-                        .HasColumnName("password_hash");
+                        .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
 
                     b.HasIndex(new[] { "Login" }, "login_UNIQUE")
                         .IsUnique();
 
-                    b.ToTable("user", (string)null);
+                    b.ToTable("User", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.Authorization.UserRole", b =>
                 {
                     b.Property<Guid>("RoleId")
                         .HasMaxLength(36)
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("role_id");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("UserId")
                         .HasMaxLength(36)
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("RoleId", "UserId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("user_role", (string)null);
+                    b.ToTable("UserRole", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Company", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit")
-                        .HasColumnName("active");
+                        .HasColumnType("bit");
 
                     b.Property<string>("AdditionalName")
                         .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)")
-                        .HasColumnName("additional_name");
+                        .HasColumnType("nvarchar(400)");
 
                     b.Property<int>("CategoryId")
-                        .HasColumnType("int")
-                        .HasColumnName("categoryId");
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
                     b.HasIndex(new[] { "CategoryId" }, "categoryId_idx");
 
-                    b.ToTable("company", (string)null);
+                    b.ToTable("Company", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.CompanyCategory", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Color")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("color");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("company_category", (string)null);
+                    b.ToTable("CompanyCategory", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Employee", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit")
-                        .HasColumnName("active");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Email")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("email");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("FirstName")
                         .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .HasColumnName("first_name");
-
-                    b.Property<int?>("GroupId")
-                        .HasColumnType("int");
+                        .HasColumnType("nvarchar(70)");
 
                     b.Property<string>("LastName")
                         .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .HasColumnName("last_name");
+                        .HasColumnType("nvarchar(70)");
 
                     b.Property<string>("Login")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("login");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Patronymic")
                         .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .HasColumnName("patronymic");
+                        .HasColumnType("nvarchar(70)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(35)
-                        .HasColumnType("nvarchar(35)")
-                        .HasColumnName("phone");
+                        .HasColumnType("nvarchar(35)");
 
                     b.Property<string>("Position")
                         .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .HasColumnName("position");
+                        .HasColumnType("nvarchar(70)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupId");
-
-                    b.ToTable("employee", (string)null);
+                    b.ToTable("Employee", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeGroup", b =>
                 {
                     b.Property<int>("EmployeeId")
-                        .HasColumnType("int")
-                        .HasColumnName("employeeId");
+                        .HasColumnType("int");
 
                     b.Property<int>("GroupId")
-                        .HasColumnType("int")
-                        .HasColumnName("groupId");
+                        .HasColumnType("int");
 
                     b.HasKey("EmployeeId", "GroupId");
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("employee_groups", (string)null);
+                    b.ToTable("EmployeeGroups", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeRole", b =>
                 {
                     b.Property<int>("EmployeeId")
-                        .HasColumnType("int")
-                        .HasColumnName("employeeId");
+                        .HasColumnType("int");
 
                     b.Property<int>("RoleId")
-                        .HasColumnType("int")
-                        .HasColumnName("roleId");
+                        .HasColumnType("int");
 
                     b.HasKey("EmployeeId", "RoleId");
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("employee_roles", (string)null);
+                    b.ToTable("EmployeeRoles", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Equipment", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<int?>("CompanyId")
-                        .HasColumnType("int")
-                        .HasColumnName("companyId");
+                        .HasColumnType("int");
 
                     b.Property<string>("InventoryNumber")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)")
-                        .HasColumnName("inventory_number");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int?>("KindId")
-                        .HasColumnType("int")
-                        .HasColumnName("kindId");
+                        .HasColumnType("int");
 
                     b.Property<int?>("MaintenanceEntitiesId")
-                        .HasColumnType("int")
-                        .HasColumnName("maintenanceEntitiesId");
+                        .HasColumnType("int");
 
                     b.Property<int?>("ManufacturerId")
-                        .HasColumnType("int")
-                        .HasColumnName("manufacturerId");
+                        .HasColumnType("int");
 
                     b.Property<int?>("ModelId")
-                        .HasColumnType("int")
-                        .HasColumnName("modelId");
+                        .HasColumnType("int");
 
                     b.Property<string>("SerialNumber")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)")
-                        .HasColumnName("serial_number");
+                        .HasColumnType("nvarchar(300)");
 
                     b.HasKey("Id");
 
@@ -367,22 +313,19 @@ namespace CRMService.DataBase.Migrations
 
                     b.HasIndex(new[] { "ModelId" }, "modelEquipId_idx");
 
-                    b.ToTable("equipment", (string)null);
+                    b.ToTable("Equipment", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.EquipmentParameter", b =>
                 {
                     b.Property<int>("EquipmentId")
-                        .HasColumnType("int")
-                        .HasColumnName("equipmentId");
+                        .HasColumnType("int");
 
                     b.Property<int>("KindParameterId")
-                        .HasColumnType("int")
-                        .HasColumnName("kindParameterId");
+                        .HasColumnType("int");
 
                     b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("value");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("EquipmentId", "KindParameterId");
 
@@ -390,98 +333,79 @@ namespace CRMService.DataBase.Migrations
 
                     b.HasIndex(new[] { "KindParameterId" }, "kindParameterId_idx");
 
-                    b.ToTable("equipment_parameter", (string)null);
+                    b.ToTable("EquipmentParameter", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Group", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit")
-                        .HasColumnName("active");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("description");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("group", (string)null);
+                    b.ToTable("Group", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Issue", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<int?>("AssigneeId")
-                        .HasColumnType("int")
-                        .HasColumnName("assignee_id");
+                        .HasColumnType("int");
 
                     b.Property<int?>("AuthorId")
-                        .HasColumnType("int")
-                        .HasColumnName("author_id");
+                        .HasColumnType("int");
 
                     b.Property<int?>("CompanyId")
-                        .HasColumnType("int")
-                        .HasColumnName("companyId");
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("completed_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeadlineAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("deadline_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DelayTo")
-                        .HasColumnType("datetime")
-                        .HasColumnName("delay_to");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("deleted_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("EmployeesUpdatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("employees_updated_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("PriorityId")
-                        .HasColumnType("int")
-                        .HasColumnName("priorityId");
+                        .HasColumnType("int");
 
                     b.Property<int?>("ServiceObjectId")
-                        .HasColumnType("int")
-                        .HasColumnName("service_objectId");
+                        .HasColumnType("int");
 
                     b.Property<int>("StatusId")
-                        .HasColumnType("int")
-                        .HasColumnName("statusId");
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(3000)
-                        .HasColumnType("nvarchar(3000)")
-                        .HasColumnName("title");
+                        .HasColumnType("nvarchar(3000)");
 
                     b.Property<int>("TypeId")
-                        .HasColumnType("int")
-                        .HasColumnName("typeId");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -497,179 +421,152 @@ namespace CRMService.DataBase.Migrations
 
                     b.HasIndex(new[] { "TypeId" }, "issue_typeId_idx");
 
-                    b.ToTable("issue", (string)null);
+                    b.ToTable("Issue", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssuePriority", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Color")
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("color");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<int?>("Position")
-                        .HasColumnType("int")
-                        .HasColumnName("position");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.ToTable("issue_priority", (string)null);
+                    b.ToTable("IssuePriority", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueStatus", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Color")
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("color");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(45)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("issue_status", (string)null);
+                    b.ToTable("IssueStatus", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueType", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<bool>("AvailableForClient")
-                        .HasColumnType("bit")
-                        .HasColumnName("available_for_client");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<int?>("GroupId")
-                        .HasColumnType("int")
-                        .HasColumnName("groupId");
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_default");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsInner")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_inner");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
                     b.HasIndex(new[] { "GroupId" }, "groupId_idx");
 
-                    b.ToTable("issue_type", (string)null);
+                    b.ToTable("IssueType", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.IssueTypeGroup", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int?>("ParentGroupId")
-                        .HasColumnType("int")
-                        .HasColumnName("parent_group_id");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ParentGroupId");
 
-                    b.ToTable("issue_type_groups", (string)null);
+                    b.ToTable("IssueTypeGroups", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Kind", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("description");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool?>("Visible")
-                        .HasColumnType("bit")
-                        .HasColumnName("visible");
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
-                    b.ToTable("kind", (string)null);
+                    b.ToTable("Kind", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.KindParam", b =>
                 {
                     b.Property<int>("KindId")
-                        .HasColumnType("int")
-                        .HasColumnName("kindId");
+                        .HasColumnType("int");
 
                     b.Property<int>("KindParameterId")
-                        .HasColumnType("int")
-                        .HasColumnName("kindParameterId");
+                        .HasColumnType("int");
 
                     b.HasKey("KindId", "KindParameterId");
 
@@ -677,134 +574,113 @@ namespace CRMService.DataBase.Migrations
 
                     b.HasIndex(new[] { "KindParameterId" }, "kindParameters_idx");
 
-                    b.ToTable("kindparams", (string)null);
+                    b.ToTable("KindParams", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.KindsParameter", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("FieldType")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("fieldType");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("kinds_parameters", (string)null);
+                    b.ToTable("KindsParameters", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.MaintenanceEntity", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit")
-                        .HasColumnName("active");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Address")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)")
-                        .HasColumnName("address");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("CompanyId")
-                        .HasColumnType("int")
-                        .HasColumnName("companyId");
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
                     b.HasIndex(new[] { "CompanyId" }, "companyId_idx");
 
-                    b.ToTable("maintenance_entity", (string)null);
+                    b.ToTable("MaintenanceEntity", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Manufacturer", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("description");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<bool>("Visible")
-                        .HasColumnType("bit")
-                        .HasColumnName("visible");
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
-                    b.ToTable("manufacturers", (string)null);
+                    b.ToTable("Manufacturers", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Model", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("code");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("description");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("KindId")
-                        .HasColumnType("int")
-                        .HasColumnName("kindId");
+                        .HasColumnType("int");
 
                     b.Property<int>("ManufacturerId")
-                        .HasColumnType("int")
-                        .HasColumnName("manufacturerId");
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("Visible")
-                        .HasColumnType("bit")
-                        .HasColumnName("visible");
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -812,51 +688,43 @@ namespace CRMService.DataBase.Migrations
 
                     b.HasIndex(new[] { "ManufacturerId" }, "manufacturerId_idx");
 
-                    b.ToTable("model", (string)null);
+                    b.ToTable("Model", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.OkdeskRole", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("okdesk_role", (string)null);
+                    b.ToTable("OkdeskRole", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.TimeEntry", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int")
-                        .HasColumnName("id");
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("EmployeeId")
-                        .HasColumnType("int")
-                        .HasColumnName("employeeId");
+                        .HasColumnType("int");
 
                     b.Property<int>("IssueId")
-                        .HasColumnType("int")
-                        .HasColumnName("issueId");
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("LoggedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("logged_at");
+                        .HasColumnType("datetime2");
 
                     b.Property<double>("SpentTime")
-                        .HasColumnType("float")
-                        .HasColumnName("spentTime");
+                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -864,7 +732,7 @@ namespace CRMService.DataBase.Migrations
 
                     b.HasIndex(new[] { "IssueId" }, "issueId_idx");
 
-                    b.ToTable("time_entry", (string)null);
+                    b.ToTable("TimeEntry", (string)null);
                 });
 
             modelBuilder.Entity("CRMService.Models.Authorization.BlockReason", b =>
@@ -873,8 +741,7 @@ namespace CRMService.DataBase.Migrations
                         .WithOne("BlockReason")
                         .HasForeignKey("CRMService.Models.Authorization.BlockReason", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("user_block_id");
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -885,8 +752,7 @@ namespace CRMService.DataBase.Migrations
                         .WithMany("Sessions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("user_session_id");
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -897,15 +763,13 @@ namespace CRMService.DataBase.Migrations
                         .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("role_id");
+                        .IsRequired();
 
                     b.HasOne("CRMService.Models.Authorization.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("user_id");
+                        .IsRequired();
 
                     b.Navigation("Role");
 
@@ -921,13 +785,6 @@ namespace CRMService.DataBase.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("CRMService.Models.OkdeskEntity.Employee", b =>
-                {
-                    b.HasOne("CRMService.Models.OkdeskEntity.Group", null)
-                        .WithMany("Employees")
-                        .HasForeignKey("GroupId");
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.EmployeeGroup", b =>
@@ -973,26 +830,22 @@ namespace CRMService.DataBase.Migrations
                     b.HasOne("CRMService.Models.OkdeskEntity.Company", "Company")
                         .WithMany("Equipment")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("equipmentCompanyId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.Kind", "Kind")
                         .WithMany("Equipment")
                         .HasForeignKey("KindId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("kindEquipId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.MaintenanceEntity", "MaintenanceEntities")
                         .WithMany("Equipment")
                         .HasForeignKey("MaintenanceEntitiesId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("equipmentMaintenanceEntitiesId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.Manufacturer", "Manufacturer")
                         .WithMany("Equipment")
                         .HasForeignKey("ManufacturerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("manufacturerEquipId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.Model", "Model")
                         .WithMany("Equipment")
@@ -1034,41 +887,35 @@ namespace CRMService.DataBase.Migrations
                     b.HasOne("CRMService.Models.OkdeskEntity.Employee", "Assignee")
                         .WithMany("Issues")
                         .HasForeignKey("AssigneeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("issue_assigneeId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.Company", "Company")
                         .WithMany("Issues")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("issue_companyId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.IssuePriority", "Priority")
                         .WithMany("Issues")
                         .HasForeignKey("PriorityId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("issue_priorityId");
+                        .IsRequired();
 
                     b.HasOne("CRMService.Models.OkdeskEntity.MaintenanceEntity", "ServiceObject")
                         .WithMany("Issues")
                         .HasForeignKey("ServiceObjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("issue_service_objectId");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.IssueStatus", "Status")
                         .WithMany("Issues")
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("issue_statusId");
+                        .IsRequired();
 
                     b.HasOne("CRMService.Models.OkdeskEntity.IssueType", "Type")
                         .WithMany("Issues")
                         .HasForeignKey("TypeId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("issue_typeId");
+                        .IsRequired();
 
                     b.Navigation("Assignee");
 
@@ -1109,15 +956,13 @@ namespace CRMService.DataBase.Migrations
                         .WithMany("KindParams")
                         .HasForeignKey("KindId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("kindPrm");
+                        .IsRequired();
 
                     b.HasOne("CRMService.Models.OkdeskEntity.KindsParameter", "KindParameter")
                         .WithMany("KindParams")
                         .HasForeignKey("KindParameterId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("kindParameters");
+                        .IsRequired();
 
                     b.Navigation("Kind");
 
@@ -1130,8 +975,7 @@ namespace CRMService.DataBase.Migrations
                         .WithMany("MaintenanceEntities")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("companyId");
+                        .IsRequired();
 
                     b.Navigation("Company");
                 });
@@ -1142,15 +986,13 @@ namespace CRMService.DataBase.Migrations
                         .WithMany("Models")
                         .HasForeignKey("KindId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("kindId");
+                        .IsRequired();
 
                     b.HasOne("CRMService.Models.OkdeskEntity.Manufacturer", "Manufacturer")
                         .WithMany("Models")
                         .HasForeignKey("ManufacturerId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("manufacturerId");
+                        .IsRequired();
 
                     b.Navigation("Kind");
 
@@ -1163,15 +1005,13 @@ namespace CRMService.DataBase.Migrations
                         .WithMany("TimeEntries")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("employeeId");
+                        .IsRequired();
 
                     b.HasOne("CRMService.Models.OkdeskEntity.Issue", "Issue")
                         .WithMany("TimeEntries")
                         .HasForeignKey("IssueId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("issueId");
+                        .IsRequired();
 
                     b.Navigation("Employee");
 
@@ -1225,8 +1065,6 @@ namespace CRMService.DataBase.Migrations
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Group", b =>
                 {
                     b.Navigation("EmployeeGroups");
-
-                    b.Navigation("Employees");
                 });
 
             modelBuilder.Entity("CRMService.Models.OkdeskEntity.Issue", b =>

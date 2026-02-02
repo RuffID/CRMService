@@ -7,7 +7,12 @@ namespace CRMService.DataBase.Repository.Base
     {
         public virtual void Create(TEntity entity)
         {
-            _context.Set<TEntity>().Add(entity);
+            _context.Set<TEntity>().Add(entity);            
+        }
+
+        public virtual void CreateRange(IEnumerable<TEntity> entities)
+        {
+            _context.Set<TEntity>().AddRange(entities);
         }
     }
 }

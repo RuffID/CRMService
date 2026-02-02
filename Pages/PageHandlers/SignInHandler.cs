@@ -9,43 +9,10 @@ using System.Security.Claims;
 
 namespace CRMService.Pages.PageHandlers
 {
-    public class SignInHandler(IUnitOfWork unitOfWork, IHttpContextAccessor context)
+    public class SignInHandler
     {
         private readonly Hasher hash = new();
 
-        public async Task<bool> SignIn(UserPage userPage, ModelStateDictionary modelState, CancellationToken ct)
-        {
-            User? user = await unitOfWork.User.GetItemByPredicate(u => u.Login == userPage.Login, asNoTracking: true, ct);
-
-            if (user is null || !user.Active || !hash.Verify(hash.Hash(userPage.Password), user.Password))
-            {
-                modelState.AddModelError("", "Wrong login or password.");
-                return false;
-            }
-
-            List<Claim> claims =
-            [
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.Name)
-            ];
-
-            if (user.Roles.Count > 0)
-            {
-                foreach (var role in user.Roles)
-                    claims.Add(new Claim(ClaimTypes.Role, role.Name));
-            }
-
-            ClaimsIdentity claimsIdentity = new (claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            ClaimsPrincipal claimsPrincipal = new (claimsIdentity);
-
-            HttpContext? httpContext = context.HttpContext;
-
-            if (httpContext == null)
-                return false;
-
-            await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal);            
-
-            return true;
-        }
+        
     }
 }

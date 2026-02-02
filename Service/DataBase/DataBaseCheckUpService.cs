@@ -15,7 +15,7 @@ namespace CRMService.Service.DataBase
                 throw new Exception();
             }
 
-            _logger.LogInformation($"[Method:{nameof(CheckOrUpdateDB)}] Connection to the database was successful.");
+            _logger.LogInformation("[Method:{MethodName}] Connection to the database was successful.", nameof(CheckOrUpdateDB));
 
             List<string> pendingMigrations = dbContext.Database.GetPendingMigrations().ToList();
 

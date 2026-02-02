@@ -13,7 +13,7 @@ namespace CRMService.API
             {
                 ct.ThrowIfCancellationRequested();
 
-                List<T>? collection = await GetRangeOfItems<T>(link, startIndex, limit, pageNubmer, ct);
+                List<T> collection = await GetRangeOfItems<T>(link, startIndex, limit, pageNubmer, ct);
 
                 if (collection == null || collection.Count == 0)
                     yield break;

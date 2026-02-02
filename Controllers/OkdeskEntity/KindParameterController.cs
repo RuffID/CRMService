@@ -1,6 +1,5 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
@@ -17,7 +16,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetKindParameters([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<KindsParameter> kindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAndSortById(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<KindsParameter> kindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAsync(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(kindParameters.ToDto());
         }
@@ -39,12 +38,12 @@ namespace CRMService.Controllers.OkdeskEntity
             return NoContent();
         }
 
-        /*[HttpPut("update_connections_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
+        [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateConnectionsFromCloudApi(CancellationToken ct)
         {
             await kindParamService.UpsertConnectionsFromCloudDb(ct);
 
             return NoContent();
-        }*/
+        }
     }
 }

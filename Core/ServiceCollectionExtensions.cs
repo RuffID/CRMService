@@ -17,30 +17,34 @@ using CRMService.Interfaces.Repository.OkdeskEntity;
 using CRMService.Interfaces.Repository.Report;
 using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.Server;
+using CRMService.Service.Authorization;
 using CRMService.Service.DataBase;
-using CRMService.Service.OkdeskEntity;
 using CRMService.Service.Hosted;
 using CRMService.Service.HostedServices;
+using CRMService.Service.OkdeskEntity;
 using CRMService.Service.Report;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
-using CRMService.Models.Constants;
 
 namespace CRMService.Core
 {
     public static class ServiceCollectionExtensions
     {
-        private static IServiceCollection AddConfig(
-             this IServiceCollection services, IConfiguration conf)
+        private static IServiceCollection AddConfig(this IServiceCollection services, IConfiguration conf)
         {
             services.Configure<ApiEndpointOptions>(
                 conf.GetSection(ApiEndpointOptions.SectionName));
@@ -54,15 +58,29 @@ namespace CRMService.Core
             return services;
         }
 
-        public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration, 
+        public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder,
             Action<JsonSerializerSettings>? configureNewtonsoft = null, 
             Action<HttpClient>? configureHttpClient = null)
         {
-            AddConfig(services, configuration);
+            AddConfig(services, builder.Configuration);
             AddRepositories(services);
 
             services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddControllers();
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.Cookie.Name = ".CRMService.Cookies";
+                options.LoginPath = "/Login";
+                options.SlidingExpiration = true;
+                options.ExpireTimeSpan = TimeSpan.FromDays(14);
+            });
+
+            services.AddAntiforgery(options =>
+            {
+                options.Cookie.Name = ".CRMService.Antiforgery";
+            });
+
             services.AddRazorPages(options =>
             {
                 // Делает все ссылки на страницы to lower case
@@ -77,15 +95,25 @@ namespace CRMService.Core
                 });
             });
 
-            services.AddDbContext<ApplicationContext>(options =>
-            {
-                options.UseSqlServer(configuration.GetConnectionString("MSSql"));
-            });
+            // Определяет путь в зависимости от ОС для папки, где будут храниться ключи для Data Protection
+            string keyPath;
+            string projectName = Assembly.GetEntryAssembly()?.GetName().Name ?? "DefaultAppName";
 
-            services.AddDbContext<OkdeskContext>(options =>
-            {
-                options.UseNpgsql(configuration.GetConnectionString("Postgresql"));
-            });
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-windows");
+            else
+                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-linux");
+
+            // Убедиться, что папка существует
+            Directory.CreateDirectory(keyPath);
+
+            // Настроить Data Protection
+            services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
+                .SetApplicationName(projectName);
+
+            services.AddDbContext<ApplicationContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql"));});
+            services.AddDbContext<OkdeskContext>(options => { options.UseNpgsql(builder.Configuration.GetConnectionString("Postgresql"));});
 
             services.AddLogging();
 
@@ -126,10 +154,10 @@ namespace CRMService.Core
 
                     options.RequireHttpsMetadata = false;
                 });
-            services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
 
+            services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
             services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
-            services.AddSingleton(new PGConfig(configuration.GetConnectionString("Postgresql")!));
+            services.AddSingleton(new PGConfig(builder.Configuration.GetConnectionString("Postgresql")!));
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
             services.AddSingleton<IJsonSerializer>(sp =>
@@ -144,7 +172,7 @@ namespace CRMService.Core
             services.AddScoped<BackupService<ApplicationContext>>(sp =>
             {
                 ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                string connectionString = configuration.GetConnectionString("MSSql")!;
+                string connectionString = builder.Configuration.GetConnectionString("MSSql")!;
                 string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
                 return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory);
             });
@@ -171,6 +199,7 @@ namespace CRMService.Core
 
             services.AddScoped<GetOkdeskEntityService>();
             services.AddScoped<UpdateDirectoriesService>();
+            services.AddScoped<Hasher>();
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();
@@ -194,9 +223,6 @@ namespace CRMService.Core
             services.AddScoped(typeof(IGetItemByIdRepository<,>), typeof(GetItemByIdRepository<,>));
             services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
             services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-            services.AddScoped(typeof(IUpsertItemByIdRepository<,>), typeof(UpsertItemByIdRepository<,>));
-            services.AddScoped(typeof(IUpsertItemByPredicateRepository<>), typeof(UpsertItemByPredicateRepository<>));
-            //services.AddScoped(typeof(IUpsertItemByCodeRepository<>), typeof(UpsertItemByCodeRepository<>));
 
             services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();
             services.AddScoped<ICrmRoleRepository, CrmRoleRepository>();

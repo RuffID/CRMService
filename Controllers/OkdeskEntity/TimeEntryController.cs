@@ -16,7 +16,7 @@ namespace CRMService.Controllers.OkdeskEntity
             if (dateFrom > dateTo)
                 return BadRequest("Start date is later than end date.");
 
-            if (dateTo.Hour == 0 || dateTo.Minute == 0 || dateTo.Second == 0) 
+            if (dateTo.Hour == 0 || dateTo.Minute == 0 || dateTo.Second == 0)
                 dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
 
             await service.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);

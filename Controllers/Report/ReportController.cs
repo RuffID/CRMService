@@ -17,9 +17,9 @@ namespace CRMService.Controllers.Report
                 return BadRequest("The start date of the period cannot be greater than the end date.");
 
             if (dateTo.Hour == 0 && dateTo.Minute == 0 && dateTo.Second == 0)
-                dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);            
+                dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
 
-            List<ReportInfo>? reportInfo = await service.GetFullReportOnEmployees(dateFrom, dateTo, HttpContext.RequestAborted);            
+            List<ReportInfo>? reportInfo = await service.GetFullReportOnEmployees(dateFrom, dateTo, HttpContext.RequestAborted);
 
             if (reportInfo == null || reportInfo.Count == 0)
             {

@@ -39,17 +39,28 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
         {
+            _logger.LogInformation("[Method:{MethodName}] Starting updating issue priorities.", nameof(UpdateIssuePrioritiesFromCloudApi));
+
             List<IssuePriority> priorities = await GetIssuePrioritiesFromCloudApi();
 
-            if (priorities.Count == 0)
-                return;
+            if (priorities.Count != 0)
+            {
+                for (int i = 0; i < priorities.Count; i++)
+                    priorities[i].Id = i + 1;
 
-            for (int i = 1; i < priorities.Count; i++)
-                priorities[i - 1].Id = i;
+                foreach (IssuePriority priority in priorities)
+                {
+                    IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
+                    if (existingPriority == null)
+                        unitOfWork.IssuePriority.Create(priority);
+                    else
+                        existingPriority.CopyData(priority);
+                }
 
-            await unitOfWork.IssuePriority.Upsert(priorities, ct);
+                await unitOfWork.SaveAsync(ct);
+            }
 
-            await unitOfWork.SaveAsync(ct);
+            _logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudApi));
         }
 
         public async Task UpdateIssuePrioritiesFromCloudDb(CancellationToken ct)
@@ -60,7 +71,14 @@ namespace CRMService.Service.OkdeskEntity
 
             if (priorities.Count != 0)
             {
-                await unitOfWork.IssuePriority.Upsert(priorities, ct);
+                foreach (IssuePriority priority in priorities)
+                {
+                    IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
+                    if (existingPriority == null)
+                        unitOfWork.IssuePriority.Create(priority);
+                    else
+                        existingPriority.CopyData(priority);
+                }
 
                 await unitOfWork.SaveAsync(ct);
             }

@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint, 
+    public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
         IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
     {
         private readonly ILogger<MaintenanceEntityService> _logger = logger.CreateLogger<MaintenanceEntityService>();
@@ -57,7 +57,11 @@ namespace CRMService.Service.OkdeskEntity
             if (newMaintenanceEntity == null)
                 return;
 
-            await unitOfWork.MaintenanceEntity.Upsert(newMaintenanceEntity, ct);
+            MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
+            if (existingMaintenance == null)
+                unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
+            else
+                existingMaintenance.CopyData(newMaintenanceEntity);
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -66,10 +70,17 @@ namespace CRMService.Service.OkdeskEntity
         {
             await foreach (List<MaintenanceEntity> me in GetMaintenanceEntitiesFromCloudApi(startIndex, limit))
             {
-                await unitOfWork.MaintenanceEntity.Upsert(me, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (MaintenanceEntity newMaintenanceEntity in me)
+                {
+                    MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
+                    if (existingMaintenance == null)
+                        unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
+                    else
+                        existingMaintenance.CopyData(newMaintenanceEntity);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudDb(long startIndex, long limit, CancellationToken ct)
@@ -85,10 +96,17 @@ namespace CRMService.Service.OkdeskEntity
 
                 startIndex = me.Last().Id;
 
-                await unitOfWork.MaintenanceEntity.Upsert(me, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (MaintenanceEntity newMaintenanceEntity in me)
+                {
+                    MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
+                    if (existingMaintenance == null)
+                        unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
+                    else
+                        existingMaintenance.CopyData(newMaintenanceEntity);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
         }

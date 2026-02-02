@@ -4,7 +4,7 @@ using CRMService.Models.OkdeskEntity;
 
 namespace CRMService.Interfaces.Repository.OkdeskEntity
 {
-    public interface IParameterRepository : IGetItemByPredicateRepository<EquipmentParameter>, IUpsertItemByPredicateRepository<EquipmentParameter>, ICreateItemRepository<EquipmentParameter>
+    public interface IParameterRepository : IGetItemByPredicateRepository<EquipmentParameter>, ICreateItemRepository<EquipmentParameter>
     {
     }
 }

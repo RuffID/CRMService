@@ -74,10 +74,17 @@ namespace CRMService.Service.OkdeskEntity
 
             Equipment? equipment = equipments.First();
 
-            await unitOfWork.Equipment.Upsert(equipment, ct);
+            await CheckInformationOnEquipment(equipment, ct);
 
-            if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                await unitOfWork.Parameter.Upsert(equipment.Parameters, p => i => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
+            foreach (EquipmentParameter parameter in equipment.Parameters)
+            {
+                EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
+
+                if (existingParameter == null)
+                    unitOfWork.Parameter.Create(parameter);
+                else
+                    existingParameter.CopyData(parameter);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -92,14 +99,18 @@ namespace CRMService.Service.OkdeskEntity
                     return;
 
                 foreach (Equipment equipment in equipments)
+                {
                     await CheckInformationOnEquipment(equipment, ct);
 
-                await unitOfWork.Equipment.Upsert(equipments, ct);
+                    foreach (EquipmentParameter parameter in equipment.Parameters)
+                    {
+                        EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
 
-                foreach (Equipment equipment in equipments)
-                {
-                    if (equipment.Parameters.Count > 0)
-                        await unitOfWork.Parameter.Upsert(equipment.Parameters, p => (EquipmentParameter i) => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
+                        if (existingParameter == null)
+                            unitOfWork.Parameter.Create(parameter);
+                        else
+                            existingParameter.CopyData(parameter);
+                    }
                 }
 
                 await unitOfWork.SaveAsync(ct);
@@ -122,14 +133,18 @@ namespace CRMService.Service.OkdeskEntity
                 startIndex = equipments.Last().Id;
 
                 foreach (Equipment equipment in equipments)
+                {
                     await CheckInformationOnEquipment(equipment, ct);
 
-                await unitOfWork.Equipment.Upsert(equipments, ct);
+                    foreach (EquipmentParameter parameter in equipment.Parameters)
+                    {
+                        EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
 
-                foreach (Equipment equipment in equipments)
-                {
-                    if (equipment.Parameters != null && equipment.Parameters.Count > 0)
-                        await unitOfWork.Parameter.Upsert(equipment.Parameters, p => (EquipmentParameter i) => i.KindParameterId == p.KindParameterId && i.EquipmentId == p.EquipmentId, ct);
+                        if (existingParameter == null)
+                            unitOfWork.Parameter.Create(parameter);
+                        else
+                            existingParameter.CopyData(parameter);
+                    }
                 }
 
                 await unitOfWork.SaveAsync(ct);
@@ -144,23 +159,23 @@ namespace CRMService.Service.OkdeskEntity
         public async Task CheckInformationOnEquipment(Equipment equipment, CancellationToken ct)
         {
             if (equipment.Company != null)
-                equipment.CompanyId = (await unitOfWork.Company.GetItemById(equipment.Company.Id, true, ct))?.Id;
+                equipment.CompanyId = (await unitOfWork.Company.GetItemByIdAsync(equipment.Company.Id, true, ct: ct))?.Id;
             else if (equipment.CompanyId != null)
-                equipment.CompanyId = (await unitOfWork.Company.GetItemById(equipment.CompanyId.Value, true))?.Id;
+                equipment.CompanyId = (await unitOfWork.Company.GetItemByIdAsync(equipment.CompanyId.Value, true))?.Id;
 
             if (equipment.MaintenanceEntities != null)
-                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItemById(equipment.MaintenanceEntities.Id, true, ct))?.Id;
+                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItemByIdAsync(equipment.MaintenanceEntities.Id, true, ct: ct))?.Id;
             else if (equipment.MaintenanceEntitiesId != null)
-                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItemById(equipment.MaintenanceEntitiesId.Value, true, ct))?.Id;
+                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItemByIdAsync(equipment.MaintenanceEntitiesId.Value, true, ct: ct))?.Id;
 
             if (equipment.Manufacturer != null)
-                equipment.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicate(m => m.Code == equipment.Manufacturer.Code, true, ct))?.Id;
+                equipment.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == equipment.Manufacturer.Code, true, ct: ct))?.Id;
 
             if (equipment.Kind != null)
-                equipment.KindId = (await unitOfWork.Kind.GetItemByPredicate(k => k.Code == equipment.Kind.Code, true, ct))?.Id;
+                equipment.KindId = (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == equipment.Kind.Code, true, ct: ct))?.Id;
 
             if (equipment.Model != null)
-                equipment.ModelId = (await unitOfWork.Model.GetItemByPredicate(m => m.Code == equipment.Model.Code, true, ct))?.Id;
+                equipment.ModelId = (await unitOfWork.Model.GetItemByPredicateAsync(m => m.Code == equipment.Model.Code, true, ct: ct))?.Id;
 
             if (equipment.Parameters != null && equipment.Parameters.Count != 0)
             {
@@ -169,7 +184,7 @@ namespace CRMService.Service.OkdeskEntity
                 foreach (EquipmentParameter parameter in equipment.Parameters)
                 {
                     parameter.EquipmentId = equipment.Id;
-                    parameter.KindParameterId = (await unitOfWork.KindParameter.GetItemByPredicate(predicate: kp => kp.Code == parameter.Code, true, ct))?.Id
+                    parameter.KindParameterId = (await unitOfWork.KindParameter.GetItemByPredicateAsync(predicate: kp => kp.Code == parameter.Code, true, ct: ct))?.Id
                         ?? throw new InvalidOperationException($"Equipment parameter: {parameter.Code} - not found.");
                 }
 

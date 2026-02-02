@@ -1,6 +1,5 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
@@ -17,11 +16,11 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetManufacturers([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {
-            List<Manufacturer> manufacturers = await unitOfWork.Manufacturer.GetItemsByPredicateAndSortById(predicate: m => m.Id >= startIndex, asNoTracking: true, ct: ct);
+            List<Manufacturer> manufacturers = await unitOfWork.Manufacturer.GetItemsByPredicateAsync(predicate: m => m.Id >= startIndex, asNoTracking: true, ct: ct);
 
             return Ok(manufacturers.ToDto());
         }
-                
+
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateManufacturersFromCloudApi([FromQuery] long startIndex = 0, CancellationToken ct = default)
         {

@@ -20,13 +20,13 @@ namespace CRMService.Service.OkdeskEntity
             List<IssueTypeResponse> root = await request.GetRangeOfItems<IssueTypeResponse>(link);
             List<IssueType> types = new List<IssueType>();
             List<IssueTypeGroup> groups = new List<IssueTypeGroup>();
-            
+
             foreach (IssueTypeResponse type in root)
                 TypeHandler(type, null, groups, types);
 
             return (types, groups);
         }
-        
+
         public async Task<List<IssueType>> GetIssueTypesFromCloudDb()
         {
             string sqlCommand = "SELECT * FROM issue_work_types ORDER BY id;";
@@ -53,12 +53,25 @@ namespace CRMService.Service.OkdeskEntity
             if (Types.Count == 0 && Groups.Count == 0)
                 return;
 
-            await unitOfWork.ExecuteInTransaction(async () =>
+            foreach (IssueType item in Types)
             {
-                await unitOfWork.IssueTypeGroup.Upsert(Groups, ct);
+                IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
+                if (existingTypes == null)
+                    unitOfWork.IssueType.Create(item);
+                else
+                    existingTypes.CopyData(item);
+            }
 
-                await unitOfWork.IssueType.Upsert(Types, ct);
-            }, ct);
+            foreach (IssueTypeGroup item in Groups)
+            {
+                IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdAsync(item.Id, ct: ct);
+                if (existingTypes == null)
+                    unitOfWork.IssueTypeGroup.Create(item);
+                else
+                    existingTypes.CopyData(item);
+            }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateIssueTypesFromCloudDb(CancellationToken ct)
@@ -69,7 +82,14 @@ namespace CRMService.Service.OkdeskEntity
 
             if (types.Count != 0)
             {
-                await unitOfWork.IssueType.Upsert(types, ct);
+                foreach (IssueType item in types)
+                {
+                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingTypes == null)
+                        unitOfWork.IssueType.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+                }
 
                 await unitOfWork.SaveAsync(ct);
             }
@@ -100,7 +120,7 @@ namespace CRMService.Service.OkdeskEntity
             }
             else
             {
-                IssueType type = new IssueType
+                IssueType type = new ()
                 {
                     Id = node.Id,
                     Code = node.Code,

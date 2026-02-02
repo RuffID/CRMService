@@ -7,27 +7,19 @@ namespace CRMService.DataBase.Repository.Entity
 {
     public class OkdeskRoleRepository(IGetItemByIdRepository<OkdeskRole, int> getItemByid,
         IGetItemByPredicateRepository<OkdeskRole> getItemByPredicate,
-        ICreateItemRepository<OkdeskRole> create,
-        IUpsertItemByIdRepository<OkdeskRole, int> upsert) : IOkdeskRoleRepository
+        ICreateItemRepository<OkdeskRole> create) : IOkdeskRoleRepository
     {
-        public Task<OkdeskRole?> GetItemById(int id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<OkdeskRole, object>>[] includes)
-            => getItemByid.GetItemById(id, asNoTracking, ct, includes);
+        public Task<OkdeskRole?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<OkdeskRole>, IQueryable<OkdeskRole>>? include = null, CancellationToken ct = default)
+            => getItemByid.GetItemByIdAsync(id, asNoTracking, include, ct);
 
-        public Task<OkdeskRole?> GetItemByPredicate(Expression<Func<OkdeskRole, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<OkdeskRole, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
+        public Task<OkdeskRole?> GetItemByPredicateAsync(Expression<Func<OkdeskRole, bool>> predicate, bool asNoTracking = false, Func<IQueryable<OkdeskRole>, IQueryable<OkdeskRole>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 
-        public Task<List<OkdeskRole>> GetItemsByPredicate(Expression<Func<OkdeskRole, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<OkdeskRole, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
-
-        public Task<List<OkdeskRole>> GetItemsByPredicateAndSortById(Expression<Func<OkdeskRole, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<OkdeskRole, object>>[] includes)
-            => getItemByid.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<OkdeskRole>> GetItemsByPredicateAsync(Expression<Func<OkdeskRole, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<OkdeskRole>, IQueryable<OkdeskRole>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(OkdeskRole item) => create.Create(item);
 
-        public Task Upsert(OkdeskRole item, CancellationToken ct = default)
-            => upsert.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<OkdeskRole> items, CancellationToken ct = default)
-            => upsert.Upsert(items, ct);
+        public void CreateRange(IEnumerable<OkdeskRole> entities) => create.CreateRange(entities);
     }
 }

@@ -5,8 +5,8 @@ using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Controllers.OkdeskEntity
 {
@@ -18,10 +18,10 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetEquipment([FromQuery] int id, CancellationToken ct)
         {
-            Equipment? equipment = await unitOfWork.Equipment.GetItemById(id, asNoTracking: true, ct, e => e.Parameters);
+            Equipment? equipment = await unitOfWork.Equipment.GetItemByIdAsync(id, asNoTracking: true, include: e => e.Include(e => e.Parameters), ct: ct);
 
             if (equipment == null)
-                return NotFound($"Equipment by id {id} - not found.");
+                return NotFound();
 
             return Ok(equipment.ToDto());
         }
@@ -29,7 +29,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("by_maintenance_entity")]
         public async Task<IActionResult> GetEquipmentsByMaintenanceEntity([FromQuery] int maintenanceEntityId, CancellationToken ct)
         {
-            List<Equipment> equipments = await unitOfWork.Equipment.GetItemsByPredicateAndSortById(predicate: e => e.MaintenanceEntitiesId == maintenanceEntityId, asNoTracking: true, ct: ct, includes: e => e.Parameters);
+            List<Equipment> equipments = await unitOfWork.Equipment.GetItemsByPredicateAsync(predicate: e => e.MaintenanceEntitiesId == maintenanceEntityId, asNoTracking: true, include: me => me.Include(me => me.Parameters), ct: ct);
 
             return Ok(equipments.ToDto());
         }
@@ -37,7 +37,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("by_company")]
         public async Task<IActionResult> GetEquipmentsByCompany([FromQuery] int companyId, CancellationToken ct)
         {
-            List<Equipment> equipments = await unitOfWork.Equipment.GetItemsByPredicateAndSortById(predicate: e => e.CompanyId == companyId, asNoTracking: true, ct: ct, includes: e => e.Parameters);
+            List<Equipment> equipments = await unitOfWork.Equipment.GetItemsByPredicateAsync(predicate: e => e.CompanyId == companyId, asNoTracking: true, include: e => e.Include(e => e.Parameters), ct: ct);
 
             return Ok(equipments.ToDto());
         }

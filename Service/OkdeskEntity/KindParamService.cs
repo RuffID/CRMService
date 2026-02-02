@@ -2,7 +2,6 @@
 using CRMService.Interfaces.Repository;
 using CRMService.Models.OkdeskEntity;
 using System.Data;
-using System.Linq;
 
 namespace CRMService.Service.OkdeskEntity
 {
@@ -35,40 +34,24 @@ namespace CRMService.Service.OkdeskEntity
         {
             List<KindParam> connections = await GetConnectionsFromCloudDb();
 
-            // Отфильтровать мусор
-            List<KindParam> desired = connections
-                .Where(c => c.KindId > 0 && c.KindParameterId > 0)
-                .Distinct(KindParam.Comparer) // убрать дубли по ключам
-                .ToList();
-
-            if (desired.Count == 0)
+            if (connections.Count == 0)
                 return;
 
-            // Собрать Id всех Kind для ограничения области
-            HashSet<int> kindIds = new(desired.Select(c => c.KindId));
+            HashSet<int> kindIds = new (connections.Select(c => c.KindId));
 
-            List<KindParam> existingLinks = await unitOfWork.KindParams.GetItemsByPredicate(kp => kindIds.Contains(kp.KindId), asNoTracking: true, ct: ct);
+            List<KindParam> existingLinks = await unitOfWork.KindParams.GetItemsByPredicateAsync(kp => kindIds.Contains(kp.KindId), asNoTracking: true, ct: ct);
 
-            // Вычислить дельту через компаратор
-            List<KindParam> toAdd = desired.Except(existingLinks, KindParam.Comparer).ToList();
-            List<KindParam> toDelete = existingLinks.Except(desired, KindParam.Comparer).ToList();
+            List<KindParam> toAdd = connections.Except(existingLinks, KindParam.Comparer).ToList();
+            List<KindParam> toDelete = existingLinks.Except(connections, KindParam.Comparer).ToList();
 
             if (toAdd.Count == 0 && toDelete.Count == 0)
                 return;
 
-            // Применить дельту одной транзакцией
-            await unitOfWork.ExecuteInTransaction(async () =>
-            {
-                // Добавить недостающие связи
-                foreach (KindParam link in toAdd)
-                    unitOfWork.KindParams.Create(link); // Добавить связь kind-param
+            unitOfWork.KindParams.CreateRange(toAdd);
 
-                // Удалить неактуальные связи
-                foreach (KindParam link in toDelete)
-                    unitOfWork.KindParams.Delete(link); // Удалить связь kind-param
+            unitOfWork.KindParams.DeleteRange(toDelete);
 
-                await unitOfWork.SaveAsync(ct); // Зафиксировать пакет изменений
-            }, ct);
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

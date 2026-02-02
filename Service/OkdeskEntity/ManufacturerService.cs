@@ -41,17 +41,31 @@ namespace CRMService.Service.OkdeskEntity
         {
             await foreach (List<Manufacturer> manufacturers in GetManufacturersFromCloudApi(startIndex, limit))
             {
-                await unitOfWork.Manufacturer.Upsert(manufacturers, ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (Manufacturer newManufacturer in manufacturers)
+                {
+                    Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
+                    if (existingManufacturer == null)
+                        unitOfWork.Manufacturer.Create(newManufacturer);
+                    else
+                        existingManufacturer.CopyData(newManufacturer);
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateManufacturersFromCloudDb(CancellationToken ct)
         {
             List<Manufacturer> manufacturers = await GetManufacturersFromCloudDb();
 
-            await unitOfWork.Manufacturer.Upsert(manufacturers, ct);
+            foreach (Manufacturer newManufacturer in manufacturers)
+            {
+                Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
+                if (existingManufacturer == null)
+                    unitOfWork.Manufacturer.Create(newManufacturer);
+                else
+                    existingManufacturer.CopyData(newManufacturer);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }

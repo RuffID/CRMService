@@ -37,16 +37,16 @@ namespace CRMService.Models.OkdeskEntity
 
         public virtual ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
 
-        public void CopyData(Employee newItem)
+        public void CopyData(Employee employee)
         {
-            FirstName = newItem.FirstName;
-            LastName = newItem.LastName;
-            Patronymic = newItem.Patronymic;
-            Position = newItem.Position;
-            Active = newItem.Active;
-            Email = newItem.Email;
-            Login = newItem.Login;
-            Phone = newItem.Phone;
+            FirstName = employee.FirstName;
+            LastName = employee.LastName;
+            Patronymic = employee.Patronymic;
+            Position = employee.Position;
+            Active = employee.Active;
+            Email = employee.Email;
+            Login = employee.Login;
+            Phone = employee.Phone;
         }
     }
 }

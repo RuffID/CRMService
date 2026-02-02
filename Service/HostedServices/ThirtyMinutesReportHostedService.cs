@@ -31,7 +31,7 @@ namespace CRMService.Service.HostedServices
                     await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(ThirtyMinutesReportHostedService));
 
                     // Получение из БД заявок, которые были обновлены за определённый промежуток времени
-                    List<Issue>? issuesFromLocalDb = (await unitOfWork.Issue.GetIssuesBetweenUpdateDates(dateFrom, dateTo, startIndex: 0, stoppingToken))?.ToList();
+                    List<Issue>? issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate: i => i.Id >= 0 && i.EmployeesUpdatedAt >= dateFrom && i.EmployeesUpdatedAt <= dateTo, asNoTracking: true, ct: stoppingToken);
 
                     // Обновление списанного времени по каждой заявке, которая была обновлена в течении определённого промежутка времени
                     if (issuesFromLocalDb != null && issuesFromLocalDb.Count > 0)

@@ -1,6 +1,5 @@
 ﻿using CRMService.Interfaces.Repository;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
@@ -17,7 +16,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueStatuses([FromQuery] int startIndex, CancellationToken ct)
         {
-            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsByPredicateAndSortById(predicate: s => s.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsByPredicateAsync(predicate: s => s.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(statuses.ToDto());
         }
@@ -25,7 +24,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssueStatus([FromQuery] string code, CancellationToken ct)
         {
-            IssueStatus? status = await unitOfWork.IssueStatus.GetItemByPredicate(ip => ip.Code == code, true, ct);
+            IssueStatus? status = await unitOfWork.IssueStatus.GetItemByPredicateAsync(ip => ip.Code == code, asNoTracking: true, ct: ct);
 
             if (status == null)
                 return NotFound();

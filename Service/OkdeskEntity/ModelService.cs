@@ -36,7 +36,7 @@ namespace CRMService.Service.OkdeskEntity
 
             return table.AsEnumerable().
                 Select(model => new Model
-                {                    
+                {
                     Code = model.Field<string>("code") ?? "",
                     Name = model.Field<string>("name") ?? string.Empty,
                     Kind = new() { Code = model.Field<string>("kindCode") ?? "" },
@@ -48,10 +48,17 @@ namespace CRMService.Service.OkdeskEntity
         {
             await foreach (List<ModelDto> models in GetModelsFromCloudApi(startIndex, limit))
             {
-                await unitOfWork.Model.Upsert(models.ToEntity(), ct);
-
-                await unitOfWork.SaveAsync(ct);
+                foreach (ModelDto model in models)
+                {
+                    Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
+                    if (existingModel == null)
+                        unitOfWork.Model.Create(model.ToEntity());
+                    else
+                        existingModel.CopyData(model.ToEntity());
+                }
             }
+
+            await unitOfWork.SaveAsync(ct);
         }
 
         public async Task UpdateModelsFromCloudDb(CancellationToken ct)
@@ -62,9 +69,15 @@ namespace CRMService.Service.OkdeskEntity
                 return;
 
             foreach (Model model in models)
+            {
                 await CheckModel(model, ct);
 
-            await unitOfWork.Model.Upsert(models, ct);
+                Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
+                if (existingModel == null)
+                    unitOfWork.Model.Create(model);
+                else
+                    existingModel.CopyData(model);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -72,9 +85,9 @@ namespace CRMService.Service.OkdeskEntity
         private async Task CheckModel(Model model, CancellationToken ct)
         {
             if (model.Manufacturer != null)
-                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicate(m => m.Code == model.Manufacturer.Code, asNoTracking: true, ct))?.Id ?? 0;
+                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == model.Manufacturer.Code, asNoTracking: true, ct: ct))?.Id ?? 0;
             if (model.Kind != null)
-                model.KindId = (await unitOfWork.Kind.GetItemByPredicate(k => k.Code == model.Kind.Code, asNoTracking: true, ct))?.Id ?? 0;
+                model.KindId = (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == model.Kind.Code, asNoTracking: true, ct: ct))?.Id ?? 0;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using CRMService.Interfaces.Entity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.OkdeskEntity
 {
@@ -12,6 +13,7 @@ namespace CRMService.Models.OkdeskEntity
 
         public string? Description { get; set; }
 
+        [NotMapped]
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
         public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();

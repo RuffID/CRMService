@@ -34,7 +34,7 @@ namespace CRMService.Service.OkdeskEntity
             // Создание категории с нулевым id которой нет в базе окдеска, но по которой ищутся клиенты без категории
             // Это нужно для первого запуска сервера
             CompanyCategory no_category = new() { Id = 0, Name = "Без категории", Code = "no_category", Color = "#FFFFFF" };
-            CompanyCategory? noCategoryFromDb = await _unitOfWork.CompanyCategory.GetItemById(no_category.Id, false, ct);
+            CompanyCategory? noCategoryFromDb = await _unitOfWork.CompanyCategory.GetItemByIdAsync(no_category.Id, true, ct: ct);
             if (noCategoryFromDb == null)
             {
                 _unitOfWork.CompanyCategory.Create(no_category);
@@ -49,7 +49,15 @@ namespace CRMService.Service.OkdeskEntity
             if (categories.Count == 0)
                 return;
 
-            await _unitOfWork.CompanyCategory.Upsert(categories, ct);
+            foreach (CompanyCategory category in categories)
+            {
+                CompanyCategory? existingCategory = await _unitOfWork.CompanyCategory.GetItemByIdAsync(category.Id, ct: ct);
+
+                if (existingCategory == null)
+                    _unitOfWork.CompanyCategory.Create(category);
+                else
+                    existingCategory.CopyData(category);
+            }
 
             await _unitOfWork.SaveAsync(ct);
         }

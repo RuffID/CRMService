@@ -1,14 +1,14 @@
 using CRMService.Core;
 using Serilog;
 using CRMService.Service.DataBase;
-using CRMService.DataBase;
 using CRMService.Core.Middleware;
+using CRMService.DataBase;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
     .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Config"))
-    .AddJsonFile("appsettings.json");
+    .AddJsonFile("config.json");
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.With(new SimpleClassNameEnricher())
@@ -16,7 +16,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
-builder.Services.ConfigureServices(builder.Configuration);
+builder.Services.ConfigureServices(builder);
 
 WebApplication app = builder.Build();
 
@@ -27,16 +27,6 @@ using (IServiceScope scope = app.Services.CreateScope())
     DataBaseCheckUpService<ApplicationContext> dbCheckUp = scope.ServiceProvider.GetRequiredService<DataBaseCheckUpService<ApplicationContext>>();
     dbCheckUp.CheckOrUpdateDB();
 }
-
-/*app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    KnownProxies =
-        {
-            IPAddress.Parse("127.0.0.1"), // запуск вне docker
-            IPAddress.Parse("172.18.0.1") // если nginx с точки зрения контейнера
-        },
-});*/
 
 if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");

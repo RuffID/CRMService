@@ -6,21 +6,16 @@ using CRMService.Interfaces.Repository.Base;
 namespace CRMService.DataBase.Repository.Entity
 {
     public class ParameterRepository(IGetItemByPredicateRepository<EquipmentParameter> getItemByPredicate,
-        ICreateItemRepository<EquipmentParameter> create,
-        IUpsertItemByPredicateRepository<EquipmentParameter> upsert) : IParameterRepository
+        ICreateItemRepository<EquipmentParameter> create) : IParameterRepository
     {
-        public Task<EquipmentParameter?> GetItemByPredicate(Expression<Func<EquipmentParameter, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<EquipmentParameter, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
+        public Task<EquipmentParameter?> GetItemByPredicateAsync(Expression<Func<EquipmentParameter, bool>> predicate, bool asNoTracking = false, Func<IQueryable<EquipmentParameter>, IQueryable<EquipmentParameter>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 
-        public Task<List<EquipmentParameter>> GetItemsByPredicate(Expression<Func<EquipmentParameter, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<EquipmentParameter, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<EquipmentParameter>> GetItemsByPredicateAsync(Expression<Func<EquipmentParameter, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<EquipmentParameter>, IQueryable<EquipmentParameter>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(EquipmentParameter item) => create.Create(item);
 
-        public Task Upsert(EquipmentParameter item, Expression<Func<EquipmentParameter, bool>> predicate, CancellationToken ct = default)
-            => upsert.Upsert(item, predicate, ct);
-
-        public Task Upsert(IEnumerable<EquipmentParameter> items, Func<EquipmentParameter, Expression<Func<EquipmentParameter, bool>>> predicateFactory, CancellationToken ct = default)
-            => upsert.Upsert(items, predicateFactory, ct);
+        public void CreateRange(IEnumerable<EquipmentParameter> entities) => create.CreateRange(entities);
     }
 }

@@ -11,23 +11,13 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<EquipmentParameter> builder)
         {
-            builder.ToTable("equipment_parameter");
+            builder.ToTable("EquipmentParameter");
 
             builder.HasKey(e => new { e.EquipmentId, e.KindParameterId });
 
             builder.HasIndex(e => e.EquipmentId, "equipmentId_idx");
 
             builder.HasIndex(e => e.KindParameterId, "kindParameterId_idx");
-
-            builder.Property(e => e.EquipmentId)
-                .HasColumnName("equipmentId");
-
-            builder.Property(e => e.KindParameterId)
-                .HasColumnName("kindParameterId");
-
-            /*builder.Property(e => e.Value)
-                .HasMaxLength(1000)
-                .HasColumnName("value");*/
 
             // сравнивать object по JSON
             ValueComparer<object?> jsonComparer = new ((a, b) =>
@@ -46,7 +36,6 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
                 v => v == null ? null : JsonConvert.DeserializeObject<object>(v)
             )
             .HasColumnType("nvarchar(max)")
-            .HasColumnName("value")
             .Metadata.SetValueComparer(jsonComparer);
 
             builder.HasOne(d => d.Equipment)

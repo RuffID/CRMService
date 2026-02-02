@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Repository;
+﻿/*using CRMService.Interfaces.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.Authorize;
@@ -65,4 +65,4 @@ namespace CRMService.Controllers.Authorization
             return NoContent();
         }        
     }
-}
+}*/

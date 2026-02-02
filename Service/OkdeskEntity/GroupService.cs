@@ -40,7 +40,19 @@ namespace CRMService.Service.OkdeskEntity
 
             if (groups.Count == 0) return;
 
-            await unitOfWork.Group.Upsert(groups, ct);
+            foreach (Group group in groups)
+            {
+                group.Employees?.Clear();
+
+                Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+
+                if (existingGroup == null)
+                    unitOfWork.Group.Create(group);
+                else
+                {
+                    existingGroup.CopyData(group);
+                }
+            }
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -52,7 +64,14 @@ namespace CRMService.Service.OkdeskEntity
             if (groups.Count == 0)
                 return;
 
-            await unitOfWork.Group.Upsert(groups, ct);
+            foreach (Group group in groups)
+            {
+                Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+                if (existingGroup == null)
+                    unitOfWork.Group.Create(group);
+                else
+                    existingGroup.CopyData(group);
+            }
 
             await unitOfWork.SaveAsync(ct);
         }
@@ -61,15 +80,11 @@ namespace CRMService.Service.OkdeskEntity
         {
             List<Group> groups = await GetGroupsFromCloudApi();
 
-            List<int> groupIds = groups.Select(g => g.Id).Distinct().ToList();
-
             List<Employee> allEmployeesFromApi = groups.SelectMany(g => g.Employees ?? Enumerable.Empty<Employee>())
                 .DistinctBy(e => e.Id)
                 .ToList();
 
-            List<int> employeeIds = allEmployeesFromApi.Select(e => e.Id).Distinct().ToList();
-
-            List<EmployeeGroup> desired = new ();
+            List<EmployeeGroup> desired = new();
 
             foreach (Group group in groups)
             {
@@ -86,10 +101,13 @@ namespace CRMService.Service.OkdeskEntity
             if (desired.Count == 0)
                 return;
 
+            List<int> groupIds = groups.Select(g => g.Id).Distinct().ToList();
+            List<int> employeeIds = allEmployeesFromApi.Select(e => e.Id).Distinct().ToList();
+
             List<EmployeeGroup> existing = await unitOfWork.EmployeeGroup
-                .GetItemsByPredicate(
-                    eg => employeeIds.Contains(eg.GroupId) && groupIds.Contains(eg.GroupId), 
-                    asNoTracking: true, 
+                .GetItemsByPredicateAsync(
+                    eg => employeeIds.Contains(eg.GroupId) && groupIds.Contains(eg.GroupId),
+                    asNoTracking: true,
                     ct: ct);
 
             List<EmployeeGroup> toAdd = desired.Except(existing, EmployeeGroup.Comparer).ToList();
@@ -99,22 +117,11 @@ namespace CRMService.Service.OkdeskEntity
             if (toAdd.Count == 0 && toDelete.Count == 0)
                 return;
 
-            await unitOfWork.ExecuteInTransaction(async () =>
-            {
-                if (toAdd.Count > 0)
-                {
-                    foreach (var item in toAdd)
-                        unitOfWork.EmployeeGroup.Create(item);
-                }
+            unitOfWork.EmployeeGroup.CreateRange(toAdd);
 
-                if (toDelete.Count > 0)
-                {
-                    foreach (var item in toDelete)
-                        unitOfWork.EmployeeGroup.Delete(item);
-                }
+            unitOfWork.EmployeeGroup.DeleteRange(toDelete);
 
-                await Task.CompletedTask;
-            }, ct);
+            await unitOfWork.SaveAsync(ct);
         }
     }
 }

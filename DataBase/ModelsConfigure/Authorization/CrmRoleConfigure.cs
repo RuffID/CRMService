@@ -8,16 +8,14 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<CrmRole> entity)
         {
-            entity.ToTable("crm_role");
+            entity.ToTable("CrmRole");
 
             entity.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("NEWID()");
+                .HasDefaultValueSql("NEWSEQUENTIALID()");
 
             entity.Property(e => e.Name)
-                .HasMaxLength(45)                
-                .HasColumnName("name");
+                .HasMaxLength(45);
         }
     }
 }

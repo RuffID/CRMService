@@ -6,12 +6,12 @@ namespace CRMService.Service.Report
 {
     public class ReportService(IUnitOfWork unitOfWork)
     {
-        public async Task<List<ReportInfo>?> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, CancellationToken cancellation)
+        public async Task<List<ReportInfo>> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, CancellationToken cancellation)
         {
-            List<Employee>? employees = await unitOfWork.Employee.GetItemsByPredicateAndSortById(asNoTracking: true, ct: cancellation);
+            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(asNoTracking: true, ct: cancellation);
 
-            if (employees == null || employees.Count == 0)
-                return null;
+            if (employees.Count == 0)
+                return new ();
 
             List<ReportInfo> reportInfo = [];
 

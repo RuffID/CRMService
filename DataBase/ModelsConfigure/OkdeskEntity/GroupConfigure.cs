@@ -8,22 +8,16 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<Group> builder)
         {
-            builder.ToTable("group");
+            builder.ToTable("Group");
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedNever();
 
-            builder.Property(e => e.Active)
-                .HasColumnName("active");
-
             builder.Property(e => e.Description)
-                .HasMaxLength(200)
-                .HasColumnName("description");
+                .HasMaxLength(200);
 
             builder.Property(e => e.Name)
-                .HasMaxLength(100)
-                .HasColumnName("name");
+                .HasMaxLength(100);
         }
     }
 }

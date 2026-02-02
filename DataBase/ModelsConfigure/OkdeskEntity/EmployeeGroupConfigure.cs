@@ -8,15 +8,9 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<EmployeeGroup> builder)
         {
-            builder.ToTable("employee_groups");
+            builder.ToTable("EmployeeGroups");
 
             builder.HasKey(e => new { e.EmployeeId, e.GroupId });
-
-            builder.Property(e => e.EmployeeId)
-                .HasColumnName("employeeId");
-
-            builder.Property(e => e.GroupId)
-                .HasColumnName("groupId");
 
             builder.HasOne(e => e.Employee)
                 .WithMany(e => e.EmployeeGroups)

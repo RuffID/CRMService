@@ -8,36 +8,24 @@ namespace CRMService.DataBase.ModelsConfigure.Authorization
     {
         public void Configure(EntityTypeBuilder<BlockReason> builder)
         {
-            builder.ToTable("block_reason");            
+            builder.ToTable("BlockReason");            
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("NEWID()");
-
-            builder.Property(e => e.BlockingDate)
-                .HasColumnType("datetime")
-                .HasColumnName("blocking_date");
-
-            builder.Property(e => e.UnblockingDate)
-                .HasColumnType("datetime")
-                .HasColumnName("unblocking_date");
+                .HasDefaultValueSql("NEWSEQUENTIALID()");
 
             builder.Property(e => e.ReasonBlock)
-                .HasMaxLength(150)
-                .HasColumnName("reason_block");
+                .HasMaxLength(150);
 
             builder.Property(e => e.UnblockingReason)
-                .HasMaxLength(150)
-                .HasColumnName("reason_unblock");
+                .HasMaxLength(150);
 
             builder.Property(e => e.UserId)
-                .HasMaxLength(36)
-                .HasColumnName("user_id");
+                .HasMaxLength(36);
 
-            builder.HasOne(d => d.User).WithOne(p => p.BlockReason)
+            builder.HasOne(d => d.User)
+                .WithOne(p => p.BlockReason)
                 .HasForeignKey<BlockReason>(d => d.UserId)
-                .HasConstraintName("user_block_id")
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

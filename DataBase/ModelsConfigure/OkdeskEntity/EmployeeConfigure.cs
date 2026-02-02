@@ -8,44 +8,33 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
     {
         public void Configure(EntityTypeBuilder<Employee> builder)
         {
-            builder.ToTable("employee");
+            builder.ToTable("Employee");
 
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedNever();
 
-            builder.Property(e => e.Active)
-                .HasColumnName("active");
-
             builder.Property(e => e.Email)
-                .HasMaxLength(100)
-                .HasColumnName("email");
+                .HasMaxLength(100);
 
             builder.Property(e => e.FirstName)
-                .HasMaxLength(70)
-                .HasColumnName("first_name");
+                .HasMaxLength(70);
 
             builder.Property(e => e.LastName)
-                .HasMaxLength(70)
-                .HasColumnName("last_name");
+                .HasMaxLength(70);
 
             builder.Property(e => e.Login)
-                .HasMaxLength(45)
-                .HasColumnName("login");
+                .HasMaxLength(45);
 
             builder.Property(e => e.Patronymic)
-                .HasMaxLength(70)
-                .HasColumnName("patronymic");
+                .HasMaxLength(70);
 
             builder.Property(e => e.Phone)
-                .HasMaxLength(35)
-                .HasColumnName("phone");
+                .HasMaxLength(35);
 
             builder.Property(e => e.Position)
-                .HasMaxLength(70)
-                .HasColumnName("position");
+                .HasMaxLength(70);
         }
     }
 }

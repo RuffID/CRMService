@@ -25,8 +25,12 @@ namespace CRMService.Service.OkdeskEntity
 
             if (timeEntry == null || timeEntry.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
             {
-                await unitOfWork.TimeEntry.DeleteAllByIssueId(issueId, ct); // удалить всё по IssueId если вдруг что то было в БД по этой заявке
-                await unitOfWork.SaveAsync(ct);
+                List<TimeEntry> timeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
+                unitOfWork.TimeEntry.DeleteRange(timeEntries);
+
+                if (timeEntries.Count > 0)
+                    await unitOfWork.SaveAsync(ct);
+
                 return;
             }
 
@@ -36,7 +40,15 @@ namespace CRMService.Service.OkdeskEntity
                 entry.EmployeeId = entry.Employee?.Id ?? throw new InvalidOperationException($"Employee id is not set in time entry: {entry.Id}");
             }
 
-            await unitOfWork.TimeEntry.Upsert(timeEntry.Time_Entries, ct);
+            foreach (TimeEntry item in timeEntry.Time_Entries)
+            {
+                TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
+
+                if (existingEntry == null)
+                    unitOfWork.TimeEntry.Create(item);
+                else
+                    existingEntry.CopyData(item);
+            }
 
             await unitOfWork.SaveAsync(ct);
 
@@ -84,7 +96,16 @@ namespace CRMService.Service.OkdeskEntity
 
                 startIndex = entries.Last().Id;
 
-                await unitOfWork.TimeEntry.Upsert(entries, ct);
+                foreach (TimeEntry item in entries)
+                {
+                    TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
+
+                    if (existingEntry == null)
+                        unitOfWork.TimeEntry.Create(item);
+                    else
+                        existingEntry.CopyData(item);
+                }
+
                 await unitOfWork.SaveAsync(ct);
 
                 if (entries.Count < limit)
@@ -110,14 +131,12 @@ namespace CRMService.Service.OkdeskEntity
             foreach (var group in groups)
             {
                 // выбрать только Id к удалению, без трекинга сущностей
-                List<int> toDeleteIds = await unitOfWork.TimeEntry.GetItemIdsByCloudIdsFromIssueId(group.IssueId, group.CloudIds, ct);
+                List<TimeEntry> toDeleteEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == group.IssueId && !group.CloudIds.Contains(t.Id), ct: ct);
 
-                if (toDeleteIds.Count == 0)
+                if (toDeleteEntries.Count == 0)
                     continue;
 
-                IEnumerable<TimeEntry> stubs = toDeleteIds.Select(id => new TimeEntry { Id = id });
-
-                unitOfWork.TimeEntry.DeleteRange(stubs);
+                unitOfWork.TimeEntry.DeleteRange(toDeleteEntries);
             }
 
             await unitOfWork.SaveAsync(ct);

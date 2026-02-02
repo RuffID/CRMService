@@ -29,4 +29,6 @@ README.md
 !.git/packed-refs
 !.git/refs/heads/**
 Config/
+keys-windows/
+Logs/
 **/appsettings*.json

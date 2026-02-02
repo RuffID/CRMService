@@ -17,7 +17,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetIssuePriorities([FromQuery] int startIndex, CancellationToken ct)
         {
-            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAndSortById(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(priorities.ToDto());
         }
@@ -25,7 +25,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssuePriority([FromQuery] string code, CancellationToken ct)
         {
-            IssuePriority? prioriy = await unitOfWork.IssuePriority.GetItemByPredicate(ip => ip.Code == code, true, ct);
+            IssuePriority? prioriy = await unitOfWork.IssuePriority.GetItemByPredicateAsync(ip => ip.Code == code, asNoTracking: true, ct: ct);
 
             if (prioriy == null)
                 return NotFound();

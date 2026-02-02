@@ -8,27 +8,20 @@ namespace CRMService.DataBase.Repository.Authorization
     public class SessionRepository(IGetItemByIdRepository<Session, Guid> getItemById,
         IGetItemByPredicateRepository<Session> getItemByPredicate,
         ICreateItemRepository<Session> create,
-        IUpsertItemByIdRepository<Session, Guid> upsert,
         IDeleteItemRepository<Session> delete) : ISessionRepository
     {
-        public Task<Session?> GetItemById(Guid id, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
-            => getItemById.GetItemById(id, asNoTracking, ct, includes);
-                
+        public Task<Session?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<Session>, IQueryable<Session>>? include = null, CancellationToken ct = default)
+            => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
+        
+        public Task<Session?> GetItemByPredicateAsync(Expression<Func<Session, bool>> predicate, bool asNoTracking = false, Func<IQueryable<Session>, IQueryable<Session>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 
-        public Task<List<Session>> GetItemsByPredicateAndSortById(Expression<Func<Session, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
-            => getItemById.GetItemsByPredicateAndSortById(predicate, skip, take, asNoTracking, ct, includes);
-
-        public Task<Session?> GetItemByPredicate(Expression<Func<Session, bool>> predicate, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
-            => getItemByPredicate.GetItemByPredicate(predicate, asNoTracking, ct, includes);
-
-        public Task<List<Session>> GetItemsByPredicate(Expression<Func<Session, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, CancellationToken ct = default, params Expression<Func<Session, object>>[] includes)
-            => getItemByPredicate.GetItemsByPredicate(predicate, skip, take, asNoTracking, ct, includes);
+        public Task<List<Session>> GetItemsByPredicateAsync(Expression<Func<Session, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Session>, IQueryable<Session>>? include = null, CancellationToken ct = default)
+            => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
         public void Create(Session item) => create.Create(item);
 
-        public Task Upsert(Session item, CancellationToken ct = default) => upsert.Upsert(item, ct);
-
-        public Task Upsert(IEnumerable<Session> items, CancellationToken ct = default) => upsert.Upsert(items, ct);
+        public void CreateRange(IEnumerable<Session> entities) => create.CreateRange(entities);
 
         public void Delete(Session item) => delete.Delete(item);
 

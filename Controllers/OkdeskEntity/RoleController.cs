@@ -16,7 +16,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetRoles([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<OkdeskRole> roles = await unitOfWork.OkdeskRole.GetItemsByPredicateAndSortById(predicate: r => r.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<OkdeskRole> roles = await unitOfWork.OkdeskRole.GetItemsByPredicateAsync(predicate: r => r.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
 
             return Ok(roles.ToDto());
         }

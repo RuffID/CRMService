@@ -1,10 +1,17 @@
+using CRMService.Interfaces.Entity;
+using CRMService.Models.Authorization;
+using CRMService.Service.Attributes;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CRMService.Pages
 {
-    public class IndexModel : PageModel
+    [CookieAuthorize]
+    [LoadUser]
+    public class IndexModel : PageModel, IHasCurrentUser
     {
         private readonly ILogger<IndexModel> _logger;
+
+        public User CurrentUser { get; set; } = null!;
 
         public IndexModel(ILogger<IndexModel> logger)
         {

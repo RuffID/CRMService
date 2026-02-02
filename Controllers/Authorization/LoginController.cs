@@ -4,6 +4,7 @@ using CRMService.Models.Constants;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Controllers.Authorization
@@ -21,7 +22,7 @@ namespace CRMService.Controllers.Authorization
         [HttpPost, AllowAnonymous]
         public async Task<IActionResult> Login([FromQuery] string login, [FromQuery] string password, CancellationToken ct)
         {
-            User? user = await unitOfWork.User.GetItemByPredicate(predicate: u => u.Login == login, asNoTracking: true, ct: ct, includes: u => u.Roles);
+            User? user = await unitOfWork.User.GetItemByPredicateAsync(predicate: u => u.Login == login, asNoTracking: true, ct: ct, include: u => u.Include(u => u.Roles));
 
             if (user == null || user.Active == false || string.IsNullOrEmpty(user.Password) || !hash.Verify(password, user.Password))
                 return Unauthorized();
@@ -49,12 +50,12 @@ namespace CRMService.Controllers.Authorization
         [HttpPut("update_tokens"), AllowAnonymous]
         public async Task<IActionResult> UpdateTokens([FromQuery] string refreshToken, CancellationToken ct)
         {
-            Session? session = await unitOfWork.Session.GetItemByPredicate(predicate: s => s.RefreshToken == refreshToken, asNoTracking: false, ct: ct);
+            Session? session = await unitOfWork.Session.GetItemByPredicateAsync(predicate: s => s.RefreshToken == refreshToken, asNoTracking: false, ct: ct);
 
-            if (session == null) 
+            if (session == null)
                 return NotFound();
 
-            User? user = await unitOfWork.User.GetItemById(session.UserId, asNoTracking: true, ct);
+            User? user = await unitOfWork.User.GetItemByIdAsync(session.UserId, asNoTracking: true, ct: ct);
 
             if (user == null)
             {
@@ -72,8 +73,8 @@ namespace CRMService.Controllers.Authorization
             session.ExpirationRefreshToken = DateTime.UtcNow.AddDays(JWTSettingsConstants.REFRESH_TOKEN_LIFE_TIME_FROM_DAYS);
 
             await unitOfWork.SaveAsync(ct);
-                        
+
             return Ok(token);
-        }        
+        }
     }
 }

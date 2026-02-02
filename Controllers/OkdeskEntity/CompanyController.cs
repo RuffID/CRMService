@@ -17,7 +17,7 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetCompany([FromQuery] int id, CancellationToken ct)
         {
-            Company? company = await unitOfWork.Company.GetItemById(id, false, ct);
+            Company? company = await unitOfWork.Company.GetItemByIdAsync(id, asNoTracking: true, ct: ct);
 
             if (company == null)
                 return NotFound();
@@ -28,10 +28,10 @@ namespace CRMService.Controllers.OkdeskEntity
         [HttpGet("by_category")]
         public async Task<IActionResult> GetCompaniesByCategory([FromQuery] string categoryCode, [FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<Company> companies = await unitOfWork.Company.GetCompaniesByCategoryCode(categoryCode: categoryCode, startIndexCompany: startIndex, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
+            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(predicate: c => c.Category!.Code == categoryCode && c.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
 
             return Ok(companies.ToDto());
-        }        
+        }
 
         [HttpPut("update_from_api")]
         public async Task<IActionResult> UpdateCompanyFromCloudApi([FromQuery] int companyId, CancellationToken ct)

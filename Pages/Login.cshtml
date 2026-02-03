@@ -2,33 +2,27 @@
 @using CRMService.Pages
 @model LoginModel
 @{
-    ViewData["Title"] = "Вход в систему";
+    ViewData["Title"] = "Вход";
 }
 
 <div>
-    @if (User.Identity?.IsAuthenticated == true)
-    {
-        <h3>Добро пожаловать, @User.Identity.Name!</h3>
-    }
-    else
-    {
-        <h2 class="mb-4">Вход в приложение</h2>
+    <h2 class="mb-4">Вход в приложение</h2>
 
-        <form method="post" class="w-100" style="max-width: 400px;">
-            <div class="mb-3">
-                <label for="Login" class="form-label">Логин</label>
-                <input asp-for="UserPage.Login" name="login" id="Login" class="form-control" required />
-                <span asp-validation-for="UserPage.Login" class="text-danger small"></span>
-            </div>
+    <form method="post" class="w-100" style="max-width: 400px;">
+        <div class="mb-3">
+            <label for="Login" class="form-label">Логин</label>
+            <input asp-for="UserPage.Login" name="login" id="Login" class="form-control" required />
+            <span asp-validation-for="UserPage.Login" class="text-danger small"></span>
+        </div>
 
-            <div class="mb-3">
-                <label for="Password" class="form-label">Пароль</label>
-                <input asp-for="UserPage.Password" type="password" name="password" id="Password" class="form-control" required />
-            </div>
+        <div class="mb-3">
+            <label for="Password" class="form-label">Пароль</label>
+            <input asp-for="UserPage.Password" type="password" name="password" id="Password" class="form-control" required />
+        </div>
 
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary btn-lg">Войти</button>
-            </div>
-        </form>
-    }
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">Войти</button>
+        </div>
+    </form>
+
 </div>

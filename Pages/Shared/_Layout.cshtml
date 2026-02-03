@@ -1,36 +1,92 @@
-﻿@using Microsoft.AspNetCore.Antiforgery
+﻿@using CRMService.Models.Authorization
+@using Microsoft.AspNetCore.Antiforgery
 @inject IAntiforgery Antiforgery
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @{
+        AntiforgeryTokenSet tokens = Antiforgery.GetAndStoreTokens(Context);
+    }
+    <meta name="request-verification-token" content="@tokens.RequestToken" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-
-                <a class="navbar-brand" asp-area="" asp-page="/Index">Дашборд</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+<body class="bg-light">
+    @{
+        string path = Context.Request.Path.Value?.ToLowerInvariant() ?? "";
+        bool isAuth = User.Identity?.IsAuthenticated ?? false;
+        bool sidebarExpanded = Context.Request.Cookies.TryGetValue("crm_side_expanded", out var v) && v == "1";
+        string collapsedWidth = "56px";
+        string expandedWidth = "150px";
+        string sideWidth = sidebarExpanded ? expandedWidth : collapsedWidth;
+        string sideTextClass = sidebarExpanded ? "side-text small" : "side-text small d-none";
+        string arrowText = sidebarExpanded ? "‹" : "›";
+    }
+    <div class="d-flex min-vh-100">
+        @if (isAuth)
+        {
+            <aside id="side"
+                   data-width-collapsed="@collapsedWidth"
+                   data-width-expanded="@expandedWidth"
+                   class="d-flex flex-column bg-white border-end"
+                   style="width:@sideWidth; transition:width .15s ease;">
+                <button id="sideToggle"
+                        type="button"
+                        class="btn btn-light rounded-0 border-0 shadow-none d-flex align-items-center justify-content-center"
+                        style="height:56px;"
+                        tabindex="-1">
+                    <span id="sideArrow" class="fs-4">@arrowText</span>
                 </button>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+                <nav class="nav nav-pills flex-column gap-1 px-2 pt-2">
+                    @{
+                        bool activeIndex = path == "/" || path == "/index";
+                        string linkIndex = "nav-link d-flex align-items-center gap-2 py-2 px-2";
+                        if (activeIndex) linkIndex += " bg-info bg-opacity-10 text-primary";
+                    }
+                    <a class="@linkIndex" asp-area="" asp-page="/Index">
+                        <img src="~/icon/house.svg" style="width:22px; height:22px;" />
+                        <span class="@sideTextClass">Dashboard</span>
+                    </a>
+
+                    @{
+                        bool activeReport = path == "/report";
+                        string linkReport = "nav-link d-flex align-items-center gap-2 py-2 px-2";
+                        if (activeReport) linkReport += " bg-info bg-opacity-10 text-primary";
+                    }
+                    <a class="@linkReport" asp-area="" asp-page="/Report">
+                        <img src="~/icon/chart.svg" style="width:22px; height:22px;" />
+                        <span class="@sideTextClass">Report</span>
+                    </a>
+                </nav>
+            </aside>
+        }
+
+        <div class="flex-grow-1 d-flex flex-column">
+            @if (isAuth)
+            {
+                <header class="bg-white border-bottom px-3 py-2 d-flex justify-content-end align-items-center">
+                    <span class="me-3 fw-semibold text-truncate">@User.Identity?.Name</span>
+                    <form method="post" asp-page="/Logout" class="m-0 p-0">
+                        <button type="submit" class="btn p-0">
+                            <img src="~/icon/door-exit.svg" alt="exit" style="width:22px; height:22px;">
+                        </button>
+                    </form>
+                </header>
+            }
+
+            <main class="flex-grow-1 p-3">
+                <div class="bg-white border rounded-3 p-3 h-100">
+                    @RenderBody()
+                </div>
+            </main>
+        </div>
     </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    <script src="~/js/main.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

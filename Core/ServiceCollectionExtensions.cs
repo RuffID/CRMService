@@ -67,13 +67,34 @@ namespace CRMService.Core
 
             services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddControllers();
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(options =>
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            })
+            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
                 options.Cookie.Name = ".CRMService.Cookies";
-                options.LoginPath = "/Login";
+                options.LoginPath = "/login";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromDays(14);
+            })
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                string key = builder.Configuration[AuthorizationOptions.SectionName]!;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = JWTSettingsConstants.ISSUER,
+                    ValidateAudience = true,
+                    ValidAudience = JWTSettingsConstants.AUDIENCE,
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    ValidateIssuerSigningKey = true,
+                };
+
+                options.RequireHttpsMetadata = false;
             });
 
             services.AddAntiforgery(options =>
@@ -135,25 +156,6 @@ namespace CRMService.Core
             });
 
             services.AddSignalR();
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
-            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-                .Configure<IOptions<AuthorizationOptions>>((options, authOpt) =>
-                {
-                    AuthorizationOptions settings = authOpt.Value;
-
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidIssuer = JWTSettingsConstants.ISSUER,
-                        ValidateAudience = true,
-                        ValidAudience = JWTSettingsConstants.AUDIENCE,
-                        ValidateLifetime = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JWTSymmetricSecurityKey)),
-                        ValidateIssuerSigningKey = true,
-                    };
-
-                    options.RequireHttpsMetadata = false;
-                });
 
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
             services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));

@@ -13,12 +13,6 @@ namespace CRMService.Service.Attributes
         private const string CURRENT_USER_ITEM_KEY = "CurrentUser";
         public int Order { get; set; } = 0;
 
-        private static readonly string[] CommonUserAllowedPaths =
-        {
-            "/personal-shift",
-            "/personal-salary-report"
-        };
-
         public async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
         {
             if (context.HandlerInstance is not PageModel page)
@@ -34,7 +28,7 @@ namespace CRMService.Service.Attributes
             {
                 if (!isAuthPage)
                 {
-                    httpContext.Response.Redirect("/Login");
+                    httpContext.Response.Redirect("/login");
                     return;
                 }
 
@@ -51,11 +45,9 @@ namespace CRMService.Service.Attributes
             }
 
             IUnitOfWork unitOfWork = httpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            User? user = await unitOfWork.User.GetItemByIdAsync(userId, asNoTracking: true, 
-                u => u.Include(u => u.Roles),
-                httpContext.RequestAborted);
+            User? user = await unitOfWork.User.GetItemByIdAsync(userId, asNoTracking: true, u => u.Include(u => u.Roles), httpContext.RequestAborted);
 
-            if (user == null || !user.Active)
+            if (user is null || !user.Active)
             {
                 if (!isAuthPage)
                 {

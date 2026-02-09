@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Entity;
+﻿using CRMService.Abstractions.Entity;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.OkdeskEntity

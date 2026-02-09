@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Abstractions.Database.Repository;
 
 namespace CRMService.Controllers.OkdeskEntity
 {
@@ -14,11 +14,9 @@ namespace CRMService.Controllers.OkdeskEntity
     public class IssueTypeController(IUnitOfWork unitOfWork, IssueTypeService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetIssueTypes([FromQuery] int startIndex, CancellationToken ct)
+        public async Task<IActionResult> GetIssueTypes(CancellationToken ct)
         {
-            List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAsync(predicate: t => t.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
-
-            return Ok(types.ToDto());
+            return Ok((await service.GetTypes(ct)).Data);
         }
 
         [HttpGet]

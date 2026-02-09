@@ -1,8 +1,8 @@
-﻿using CRMService.Interfaces.Database;
-using CRMService.Interfaces.Repository;
-using CRMService.Interfaces.Repository.Authorization;
-using CRMService.Interfaces.Repository.OkdeskEntity;
-using CRMService.Interfaces.Repository.Report;
+﻿using CRMService.Abstractions.Database;
+using CRMService.Abstractions.Database.Repository;
+using CRMService.Abstractions.Database.Repository.Authorization;
+using CRMService.Abstractions.Database.Repository.OkdeskEntity;
+using CRMService.Abstractions.Database.Repository.Report;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CRMService.DataBase.Repository

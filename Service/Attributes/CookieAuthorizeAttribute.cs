@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;

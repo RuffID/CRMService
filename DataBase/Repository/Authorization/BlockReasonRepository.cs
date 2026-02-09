@@ -1,5 +1,5 @@
-﻿using CRMService.Interfaces.Repository.Authorization;
-using CRMService.Interfaces.Repository.Base;
+﻿using CRMService.Abstractions.Database.Repository.Authorization;
+using CRMService.Abstractions.Database.Repository.Base;
 using CRMService.Models.Authorization;
 using System.Linq.Expressions;
 

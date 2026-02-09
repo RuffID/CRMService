@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Database;
+﻿using CRMService.Abstractions.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;

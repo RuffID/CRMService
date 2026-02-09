@@ -1,26 +1,28 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect)
+    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<ModelService> logger)
     {
-        private async IAsyncEnumerable<List<ModelDto>> GetModelsFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<ModelDto>> GetModelsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/models?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            await foreach (List<ModelDto> manufacturers in request.GetAllItems<ModelDto>(link, startIndex, limit))
+            await foreach (List<ModelDto> manufacturers in request.GetAllItems<ModelDto>(link, startIndex: 0, limit, ct: ct))
                 yield return manufacturers;
         }
 
-        private async Task<List<Model>?> GetModelsFromCloudDb()
+        private async Task<List<Model>?> GetModelsFromCloudDb(CancellationToken ct)
         {
             string sqlCommand =
                 "SELECT equipment_models.id, equipment_models.code, equipment_models.name, equipment_kinds.code AS kindCode, equipment_manufacturers.code AS manufacturerCode " +
@@ -29,7 +31,7 @@ namespace CRMService.Service.OkdeskEntity
                 "LEFT OUTER JOIN equipment_manufacturers ON equipment_models.equipment_manufacturer_id = equipment_manufacturers.id " +
                 "ORDER BY id;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return null;
@@ -44,9 +46,11 @@ namespace CRMService.Service.OkdeskEntity
                 }).ToList();
         }
 
-        public async Task UpdateModelsFromCloudApi(long startIndex, long limit, CancellationToken ct)
+        public async Task UpdateModelsFromCloudApi(CancellationToken ct)
         {
-            await foreach (List<ModelDto> models in GetModelsFromCloudApi(startIndex, limit))
+            logger.LogInformation("[Method:{MethodName}] Starting to update manufacturers from API.", nameof(UpdateModelsFromCloudApi));
+
+            await foreach (List<ModelDto> models in GetModelsFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
                 foreach (ModelDto model in models)
                 {
@@ -63,7 +67,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateModelsFromCloudDb(CancellationToken ct)
         {
-            List<Model>? models = await GetModelsFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update manufacturers from DB.", nameof(UpdateModelsFromCloudDb));
+
+            List<Model>? models = await GetModelsFromCloudDb(ct);
 
             if (models == null || models.Count == 0)
                 return;

@@ -1,41 +1,41 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.OkdeskEntity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
-        IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<MaintenanceEntityService> logger)
     {
-        private readonly ILogger<MaintenanceEntityService> _logger = logger.CreateLogger<MaintenanceEntityService>();
-
-        public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId)
+        public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/{maintenanceEntityId}?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            return await request.GetItem<MaintenanceEntity>(link);
+            return await request.GetItem<MaintenanceEntity>(link, ct);
         }
 
-        private async IAsyncEnumerable<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
-            await foreach (List<MaintenanceEntity> me in request.GetAllItems<MaintenanceEntity>(link, startIndex, limit))
+            await foreach (List<MaintenanceEntity> me in request.GetAllItems<MaintenanceEntity>(link, startIndex: 0, limit, ct: ct))
                 yield return me;
         }
 
-        private async Task<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudDb(long startIndex, long limit)
+        private async Task<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudDb(long limit, CancellationToken ct)
         {
             string sqlCommand = string.Format(
                 "SELECT company_maintenance_entities.sequential_id, company_maintenance_entities.name, companies.sequential_id AS companyId, company_maintenance_entities.active " +
                 "FROM company_maintenance_entities " +
                 "JOIN companies ON company_maintenance_entities.company_id = companies.id " +
-                "AND company_maintenance_entities.sequential_id > '{0}' ORDER BY company_maintenance_entities.sequential_id  LIMIT '{1}';", startIndex, limit);
+                "ORDER BY company_maintenance_entities.sequential_id  LIMIT '{1}';", limit);
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? meTable = ds.Tables["Table"];
             if (meTable == null)
                 return new();
@@ -52,7 +52,7 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
-            MaintenanceEntity? newMaintenanceEntity = await GetMaintenanceEntityFromCloudApi(maintenanceEntityId);
+            MaintenanceEntity? newMaintenanceEntity = await GetMaintenanceEntityFromCloudApi(maintenanceEntityId, ct);
 
             if (newMaintenanceEntity == null)
                 return;
@@ -66,9 +66,11 @@ namespace CRMService.Service.OkdeskEntity
             await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateMaintenanceEntitiesFromCloudApi(long startIndex, long limit, CancellationToken ct)
+        public async Task UpdateMaintenanceEntitiesFromCloudApi(CancellationToken ct)
         {
-            await foreach (List<MaintenanceEntity> me in GetMaintenanceEntitiesFromCloudApi(startIndex, limit))
+            logger.LogInformation("[Method:{MethodName}] Starting to update maintenance entities from API.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
+
+            await foreach (List<MaintenanceEntity> me in GetMaintenanceEntitiesFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
                 foreach (MaintenanceEntity newMaintenanceEntity in me)
                 {
@@ -83,18 +85,16 @@ namespace CRMService.Service.OkdeskEntity
             await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateMaintenanceEntitiesFromCloudDb(long startIndex, long limit, CancellationToken ct)
+        public async Task UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
 
             while (true)
             {
-                List<MaintenanceEntity> me = await GetMaintenanceEntitiesFromCloudDb(startIndex, limit);
+                List<MaintenanceEntity> me = await GetMaintenanceEntitiesFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
                 if (me.Count == 0)
                     break;
-
-                startIndex = me.Last().Id;
 
                 foreach (MaintenanceEntity newMaintenanceEntity in me)
                 {
@@ -108,7 +108,7 @@ namespace CRMService.Service.OkdeskEntity
 
             await unitOfWork.SaveAsync(ct);
 
-            _logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
         }
     }
 }

@@ -1,48 +1,70 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using CRMService.Abstractions.Entity;
+using CRMService.Abstractions.Service;
+using CRMService.Models.Authorization;
+using CRMService.Models.Dto.Mappers;
+using CRMService.Models.Dto.OkdeskEntity;
+using CRMService.Models.Report;
+using CRMService.Models.Request;
+using CRMService.Models.Responses.Results;
+using CRMService.Service.Attributes;
+using CRMService.Service.OkdeskEntity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
 
 namespace CRMService.Pages
 {
-    public class ReportModel : PageModel
+    [CookieAuthorize]
+    [LoadUser]
+    public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IReportService reportService) : PageModel, IHasCurrentUser
     {
-        private readonly ILogger<ReportModel> _logger;
+        public User CurrentUser { get; set; } = null!;
 
-        public ReportModel(ILogger<ReportModel> logger)
+        public async Task<IActionResult> OnGetIssuePriorityListAsync(CancellationToken ct)
         {
-            _logger = logger;
+            ServiceResult<List<PriorityDto>> result = await priorityService.GetIssuePrioritiesAsync(ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
-        public void OnGet()
+        public async Task<IActionResult> OnGetIssueStatusListAsync(CancellationToken ct)
         {
+            ServiceResult<List<StatusDto>> result = await statusService.GetIssueStatusesAsync(ct);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
-        public async Task<IActionResult> OnPostDataAsync()
+        public async Task<IActionResult> OnGetIssueTypeListAsync(CancellationToken ct)
         {
-            List<EmployeeStat> data = new List<EmployeeStat>
-            {
-                new EmployeeStat { EmployeeId = 1, FullName = "Иванов Иван Иванович", ResolvedCount = 32, CurrentCount = 4, LoggedMinutes = 845 },
-                new EmployeeStat { EmployeeId = 2, FullName = "Петров Пётр Петрович", ResolvedCount = 21, CurrentCount = 6, LoggedMinutes = 410 },
-                new EmployeeStat { EmployeeId = 3, FullName = "Сидорова Анна Сергеевна", ResolvedCount = 40, CurrentCount = 2, LoggedMinutes = 1090 },
-                new EmployeeStat { EmployeeId = 4, FullName = "Кузнецов Максим Олегович", ResolvedCount = 15, CurrentCount = 9, LoggedMinutes = 270 }
-            };
-            await Task.CompletedTask;
-            return new JsonResult(data);
-        }        
+            ServiceResult<List<TaskTypeDto>> result = await typeService.GetTypes(ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetIssueTypeGroupListAsync(CancellationToken ct)
+        {
+            ServiceResult<List<IssueTypeGroupDto>> result = await typeService.GetTypeGroups(ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetEmployeeGroupListAsync(CancellationToken ct)
+        {
+            ServiceResult<List<GroupDto>> result = await groupService.GetGroups(ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnPostEmployeeListAsync([FromBody] GetEmployeeListRequest request, CancellationToken ct)
+        {
+            ServiceResult<List<EmployeeDto>> result = await employeeService.GetEmployees(request.GroupIds, ct: ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnPostReportAsync([FromBody] ReportRequest request, CancellationToken ct)
+        {
+            if (request.DateTo.Hour == 0 && request.DateTo.Minute == 0 && request.DateTo.Second == 0)
+                request.DateTo = new(request.DateTo.Year, request.DateTo.Month, request.DateTo.Day, hour: 23, minute: 59, second: 59);
+
+            if (request.DateTo <= request.DateFrom)
+                return JsonResultMapper.ToJsonResult(ServiceResult<List<ReportInfo>>.Fail(400, "Incorrect period."));
+
+            List<ReportInfo> data = await reportService.GetFullReportOnEmployees(request.DateFrom, request.DateTo, request, ct);
+            return JsonResultMapper.ToJsonResult(ServiceResult<List<ReportInfo>>.Ok(data));
+        }
     }
-
-    // Описывает запись статистики сотрудника
-        public sealed class EmployeeStat
-        {
-            // Хранит идентификатор сотрудника
-            public int EmployeeId { get; set; }
-            // Хранит ФИО сотрудника
-            public string FullName { get; set; } = string.Empty;
-            // Хранит количество решённых заявок
-            public int ResolvedCount { get; set; }
-            // Хранит количество текущих заявок
-            public int CurrentCount { get; set; }
-            // Хранит списанное время в минутах
-            public int LoggedMinutes { get; set; }
-        }
 }

@@ -1,6 +1,6 @@
-﻿using CRMService.Interfaces.Api;
-using CRMService.Interfaces.Entity;
+﻿using CRMService.Abstractions.Entity;
 using CRMService.Models.Constants;
+using HttpClientLibrary.Abstractions;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.API

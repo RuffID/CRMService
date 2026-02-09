@@ -1,6 +1,6 @@
-﻿using CRMService.Interfaces.Database;
-using CRMService.Interfaces.Entity;
-using CRMService.Interfaces.Repository.Base;
+﻿using CRMService.Abstractions.Database;
+using CRMService.Abstractions.Database.Repository.Base;
+using CRMService.Abstractions.Entity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.DataBase.Repository.Base

@@ -1,43 +1,98 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.Abstractions.Service;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Report;
+using CRMService.Models.Request;
 
 namespace CRMService.Service.Report
 {
-    public class ReportService(IUnitOfWork unitOfWork)
+    public class ReportService(IUnitOfWork unitOfWork) : IReportService
     {
-        public async Task<List<ReportInfo>> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, CancellationToken cancellation)
+        public async Task<List<ReportInfo>> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, ReportRequest filters, CancellationToken ct)
         {
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(asNoTracking: true, ct: cancellation);
+            List<int> employeeIds;
 
-            if (employees.Count == 0)
-                return new ();
-
-            List<ReportInfo> reportInfo = [];
-
-            foreach (Employee employee in employees.Where(e=> e.Active == true))
+            if (filters.HasEmployees)
             {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                ReportInfo report = new();
-                report.EmployeeId = employee.Id;
-                report.Issues = await unitOfWork.Report.GetInfoForOpenIssuesByEmployee(dateFrom, dateTo, employee.Id, cancellation);
-                report.SolvedIssues = await unitOfWork.Report.GetSolvedIssuesByEmployee(dateFrom, dateTo, employee.Id, cancellation);
-                report.SpentedTime = await unitOfWork.Report.GetSpentedTimeByEmployee(dateFrom, dateTo, employee.Id, cancellation);
-
-                if (report.Issues.Length == 0 && report.SolvedIssues == 0 && report.SpentedTime == 0)
-                    continue;
-
-                reportInfo.Add(report);
+                employeeIds = filters.EmployeeIds!.Distinct().ToList();
+            }
+            else if (filters.HasGroups)
+            {
+                employeeIds = (await unitOfWork.EmployeeGroup.GetItemsByPredicateAsync(
+                        eg => filters.GroupIds!.Contains(eg.GroupId),
+                        asNoTracking: true,
+                        ct: ct)).Select(x => x.EmployeeId).ToList();
+            }
+            else
+            {
+                employeeIds = (await unitOfWork.Employee.GetItemsByPredicateAsync(asNoTracking: true, ct: ct)).Select(e => e.Id).ToList();
             }
 
-            return reportInfo;
-        }
+            if (employeeIds.Count == 0)
+                return new();
 
-        public async Task<IssueInfo[]?> GetSolvedIssuesByEmployee(DateTime dateFrom, DateTime dateTo, long employeeId, CancellationToken cancellation)
-        {
-            return await unitOfWork.Report.GetArraySolvedIssuesByEmployee(dateFrom, dateTo, employeeId, cancellation);
+            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(e => employeeIds.Contains(e.Id), asNoTracking: true, ct: ct);
+            Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
+
+            ReportRequest effectiveFilters = new ()
+            {
+                EmployeeIds = employeeIds,
+                StatusIds = filters.StatusIds,
+                PriorityIds = filters.PriorityIds,
+                TypeIds = filters.TypeIds,
+                GroupIds = null,
+                HideWithoutSolved = filters.HideWithoutSolved,
+                HideWithoutCurrent = filters.HideWithoutCurrent,
+                HideWithoutTime = filters.HideWithoutTime
+            };
+
+            List<IssueInfo> openIssues = await unitOfWork.Report.GetInfoForOpenIssuesByEmployee(effectiveFilters, ct);
+            List<SolvedIssuesCountInfo> solvedCounts = await unitOfWork.Report.GetSolvedIssuesCountByEmployees(dateFrom, dateTo, effectiveFilters, ct);
+            List<SpentedTimeInfo> spentTimes = await unitOfWork.Report.GetSpentedTimeByEmployee(dateFrom, dateTo, effectiveFilters, ct);
+
+            Dictionary<int, List<IssueInfo>> issuesByEmployee = openIssues.GroupBy(x => x.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
+            Dictionary<int, int> solvedByEmployee = solvedCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
+            Dictionary<int, double> spentByEmployee = spentTimes.ToDictionary(x => x.EmployeeId, x => x.SpentedTime);
+
+            List<ReportInfo> result = new(employeeIds.Count);
+
+            foreach (int employeeId in employeeIds)
+            {
+                issuesByEmployee.TryGetValue(employeeId, out List<IssueInfo>? issues);
+                solvedByEmployee.TryGetValue(employeeId, out int solved);
+                spentByEmployee.TryGetValue(employeeId, out double spent);
+                employeeMap.TryGetValue(employeeId, out Employee? employee);
+
+                int current = issues?.Count ?? 0;
+
+                if (effectiveFilters.HideWithoutSolved && solved == 0)
+                    continue;
+
+                if (effectiveFilters.HideWithoutCurrent && current == 0)
+                    continue;
+
+                if (effectiveFilters.HideWithoutTime && spent == 0)
+                    continue;
+
+                if (!effectiveFilters.HideWithoutSolved && !effectiveFilters.HideWithoutCurrent && !effectiveFilters.HideWithoutTime)
+                {
+                    if (current == 0 && solved == 0 && spent == 0)
+                        continue;
+                }
+
+                result.Add(new ReportInfo
+                {
+                    EmployeeId = employeeId,
+                    FirstName = employee?.FirstName,
+                    LastName = employee?.LastName,
+                    Patronymic = employee?.Patronymic,
+                    Issues = issues ?? [],
+                    SolvedIssues = solved,
+                    SpentedTime = spent
+                });
+            }
+
+            return result;
         }
     }
 }

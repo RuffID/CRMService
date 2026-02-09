@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Entity;
+﻿using CRMService.Abstractions.Entity;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 

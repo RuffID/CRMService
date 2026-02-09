@@ -1,12 +1,14 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.OkdeskEntity
 {
@@ -15,7 +17,7 @@ namespace CRMService.Service.OkdeskEntity
     {
         private readonly ILogger<EquipmentService> _logger = logger.CreateLogger<EquipmentService>();
 
-        private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0)
+        private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, [EnumeratorCancellation] CancellationToken ct = default)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
@@ -24,13 +26,17 @@ namespace CRMService.Service.OkdeskEntity
             if (maintenanceEntityId > 0)
                 link += $"&maintenance_entity_ids[]={maintenanceEntityId}";
 
-            await foreach (List<Equipment> equipments in request.GetAllItems<Equipment>(link, startIndex, limit))
+            await foreach (List<Equipment> equipments in request.GetAllItems<Equipment>(link: link, startIndex: startIndex, limit: limit, ct: ct))
                 yield return equipments;
         }
 
-        private async Task<List<Equipment>> GetEquipmentsFromCloudDb(int startIndex, int limit)
+        private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudDb(int limit, [EnumeratorCancellation] CancellationToken ct)
         {
-            string sqlCommand = string.Format(
+            int lastId = 0;
+
+            while (true)
+            {
+                string sqlCommand = string.Format(
                     "SELECT equipments.sequential_id, equipments.inventory_number, equipments.serial_number, " +
                     "equipments.parameters, company_maintenance_entities.sequential_id AS maintenanceEntitiesId, " +
                     "companies.sequential_id AS companyId, equipment_kinds.id AS kindId, " +
@@ -41,33 +47,48 @@ namespace CRMService.Service.OkdeskEntity
                     "LEFT OUTER JOIN equipment_kinds ON equipments.equipment_kind_id = equipment_kinds.id " +
                     "LEFT OUTER JOIN equipment_manufacturers ON equipments.equipment_manufacturer_id = equipment_manufacturers.id " +
                     "LEFT OUTER JOIN equipment_models ON equipments.equipment_model_id = equipment_models.id " +
-                    "WHERE equipments.sequential_id > '{0}' ORDER BY equipments.sequential_id LIMIT '{1}';", startIndex, limit);
+                    "WHERE equipments.sequential_id > {0} " +
+                    "ORDER BY equipments.sequential_id " +
+                    "LIMIT {1};",
+                    lastId, limit);
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
+                DataSet ds = await pGSelect.Select(sqlCommand, ct);
+                DataTable? table = ds.Tables["Table"];
 
-            return table.AsEnumerable().
-                Select(equipment => new Equipment
-                {
-                    Id = equipment.Field<int>("sequential_id"),
-                    SerialNumber = equipment.Field<string?>("serial_number"),
-                    InventoryNumber = equipment.Field<string?>("inventory_number"),
-                    CompanyId = equipment.Field<int?>("companyId"),
-                    MaintenanceEntitiesId = equipment.Field<int?>("maintenanceEntitiesId"),
-                    KindId = equipment.Field<int?>("kindId"),
-                    ManufacturerId = equipment.Field<int?>("manufacturerId"),
-                    ModelId = equipment.Field<int?>("modelId"),
-                    Parameters = HandleParameters(equipment.Field<int>("sequential_id"), equipment.Field<string>("parameters"))
-                }).ToList();
+                if (table == null || table.Rows.Count == 0)
+                    yield break;
+
+                List<Equipment> equipments = table.AsEnumerable()
+                    .Select(equipment => new Equipment
+                    {
+                        Id = equipment.Field<int>("sequential_id"),
+                        SerialNumber = equipment.Field<string?>("serial_number"),
+                        InventoryNumber = equipment.Field<string?>("inventory_number"),
+                        CompanyId = equipment.Field<int?>("companyId"),
+                        MaintenanceEntitiesId = equipment.Field<int?>("maintenanceEntitiesId"),
+                        KindId = equipment.Field<int?>("kindId"),
+                        ManufacturerId = equipment.Field<int?>("manufacturerId"),
+                        ModelId = equipment.Field<int?>("modelId"),
+                        Parameters = HandleParameters(
+                            equipment.Field<int>("sequential_id"),
+                            equipment.Field<string>("parameters"))
+                    })
+                    .ToList();
+
+                lastId = equipments.Last().Id;
+
+                yield return equipments;
+
+                if (equipments.Count < limit)
+                    yield break;
+            }
         }
 
         public async Task UpdateEquipmentFromCloudApi(long id, CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.OkdeskApiToken}&page[from_id]={id}&page[direction]=forward&page[size]=1";
 
-            List<Equipment>? equipments = await request.GetRangeOfItems<Equipment>(link);
+            List<Equipment>? equipments = await request.GetRangeOfItems<Equipment>(link, ct: ct);
 
             if (equipments == null || equipments.Count == 0)
                 return;
@@ -89,11 +110,11 @@ namespace CRMService.Service.OkdeskEntity
             await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, CancellationToken ct = default)
+        public async Task UpdateEquipmentsFromCloudApi(long companyId = 0, long maintenanceEntityId = 0, CancellationToken ct = default)
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudApi));
 
-            await foreach (List<Equipment> equipments in GetEquipmentsFromCloudApi(startIndex, limit, companyId, maintenanceEntityId))
+            await foreach (List<Equipment> equipments in GetEquipmentsFromCloudApi(startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, companyId: companyId, maintenanceEntityId: maintenanceEntityId, ct: ct))
             {
                 if (equipments.Count == 0)
                     return;
@@ -102,9 +123,16 @@ namespace CRMService.Service.OkdeskEntity
                 {
                     await CheckInformationOnEquipment(equipment, ct);
 
+                    Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(equipment.Id, ct: ct);
+
+                    if (existingEquipment == null)
+                        unitOfWork.Equipment.Create(equipment);
+                    else
+                        existingEquipment.CopyData(equipment);
+
                     foreach (EquipmentParameter parameter in equipment.Parameters)
                     {
-                        EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
+                        EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == equipment.Id && p.KindParameterId == parameter.KindParameterId, ct: ct);
 
                         if (existingParameter == null)
                             unitOfWork.Parameter.Create(parameter);
@@ -119,22 +147,23 @@ namespace CRMService.Service.OkdeskEntity
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudApi));
         }
 
-        public async Task UpdateEquipmentsFromCloudDb(int startIndex, int limit, CancellationToken ct)
+        public async Task UpdateEquipmentsFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudDb));
+            _logger.LogInformation("[Method:{MethodName}] Starting ti update equipments.", nameof(UpdateEquipmentsFromCloudDb));
 
-            while (true)
+
+            await foreach (List<Equipment> equipments in GetEquipmentsFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct))
             {
-                List<Equipment> equipments = await GetEquipmentsFromCloudDb(startIndex, limit);
-
-                if (equipments.Count == 0)
-                    return;
-
-                startIndex = equipments.Last().Id;
-
                 foreach (Equipment equipment in equipments)
                 {
                     await CheckInformationOnEquipment(equipment, ct);
+
+                    Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(equipment.Id, ct: ct);
+
+                    if (existingEquipment == null)
+                        unitOfWork.Equipment.Create(equipment);
+                    else
+                        existingEquipment.CopyData(equipment);
 
                     foreach (EquipmentParameter parameter in equipment.Parameters)
                     {
@@ -148,9 +177,6 @@ namespace CRMService.Service.OkdeskEntity
                 }
 
                 await unitOfWork.SaveAsync(ct);
-
-                if (equipments.Count < limit)
-                    break;
             }
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));
@@ -159,23 +185,23 @@ namespace CRMService.Service.OkdeskEntity
         public async Task CheckInformationOnEquipment(Equipment equipment, CancellationToken ct)
         {
             if (equipment.Company != null)
-                equipment.CompanyId = (await unitOfWork.Company.GetItemByIdAsync(equipment.Company.Id, true, ct: ct))?.Id;
+                equipment.Company = await unitOfWork.Company.GetItemByIdAsync(equipment.Company.Id, ct: ct);
             else if (equipment.CompanyId != null)
-                equipment.CompanyId = (await unitOfWork.Company.GetItemByIdAsync(equipment.CompanyId.Value, true))?.Id;
+                equipment.Company = await unitOfWork.Company.GetItemByIdAsync(equipment.CompanyId.Value, ct: ct);
 
             if (equipment.MaintenanceEntities != null)
-                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItemByIdAsync(equipment.MaintenanceEntities.Id, true, ct: ct))?.Id;
+                equipment.MaintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(equipment.MaintenanceEntities.Id, ct: ct);
             else if (equipment.MaintenanceEntitiesId != null)
-                equipment.MaintenanceEntitiesId = (await unitOfWork.MaintenanceEntity.GetItemByIdAsync(equipment.MaintenanceEntitiesId.Value, true, ct: ct))?.Id;
+                equipment.MaintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(equipment.MaintenanceEntitiesId.Value, ct: ct);
 
             if (equipment.Manufacturer != null)
-                equipment.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == equipment.Manufacturer.Code, true, ct: ct))?.Id;
+                equipment.Manufacturer = await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == equipment.Manufacturer.Code, ct: ct);
 
             if (equipment.Kind != null)
-                equipment.KindId = (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == equipment.Kind.Code, true, ct: ct))?.Id;
+                equipment.Kind = await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == equipment.Kind.Code, ct: ct);
 
             if (equipment.Model != null)
-                equipment.ModelId = (await unitOfWork.Model.GetItemByPredicateAsync(m => m.Code == equipment.Model.Code, true, ct: ct))?.Id;
+                equipment.Model = await unitOfWork.Model.GetItemByPredicateAsync(m => m.Code == equipment.Model.Code, ct: ct);
 
             if (equipment.Parameters != null && equipment.Parameters.Count != 0)
             {
@@ -187,15 +213,7 @@ namespace CRMService.Service.OkdeskEntity
                     parameter.KindParameterId = (await unitOfWork.KindParameter.GetItemByPredicateAsync(predicate: kp => kp.Code == parameter.Code, true, ct: ct))?.Id
                         ?? throw new InvalidOperationException($"Equipment parameter: {parameter.Code} - not found.");
                 }
-
-                equipment.Parameters.RemoveAll(p => p.KindParameterId == null);
             }
-
-            equipment.Company = null;
-            equipment.MaintenanceEntities = null;
-            equipment.Manufacturer = null;
-            equipment.Kind = null;
-            equipment.Model = null;
         }
 
         private static List<EquipmentParameter> HandleParameters(int equipmentId, string? parameters)

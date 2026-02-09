@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Service.OkdeskEntity;
-using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
+using CRMService.Abstractions.Database.Repository;
 
 namespace CRMService.Controllers.OkdeskEntity
 {
@@ -54,44 +54,44 @@ namespace CRMService.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_by_company")]
-        public async Task<IActionResult> UpdateEquipmentsByCompanyFromCloudApi([FromQuery] int startIndex = 0, [FromQuery] long id = 0)
+        public async Task<IActionResult> UpdateEquipmentsByCompanyFromCloudApi([FromQuery] long companyId = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateEquipmentsFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, companyId: id);
+                await service.UpdateEquipmentsFromCloudApi(companyId: companyId, ct: ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_by_maintenance")]
-        public async Task<IActionResult> UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] int startIndex = 0, [FromQuery] long id = 0, CancellationToken ct = default)
+        public async Task<IActionResult> UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] long maintenanceEntityId = 0, CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateEquipmentsFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, maintenanceEntityId: id, ct: ct);
+                await service.UpdateEquipmentsFromCloudApi(maintenanceEntityId: maintenanceEntityId, ct: ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateEquipmentsFromCloudApi([FromQuery] int startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> UpdateEquipmentsFromCloudApi(CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateEquipmentsFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct: ct);
+                await service.UpdateEquipmentsFromCloudApi(ct: ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk([FromQuery] int startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk(CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateEquipmentsFromCloudDb(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
+                await service.UpdateEquipmentsFromCloudDb(ct);
             });
 
             return NoContent();

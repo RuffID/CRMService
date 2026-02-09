@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Entity;
+﻿using CRMService.Abstractions.Entity;
 using Newtonsoft.Json;
 
 namespace CRMService.Models.OkdeskEntity
@@ -27,7 +27,6 @@ namespace CRMService.Models.OkdeskEntity
             Name = newItem.Name;
             Address = newItem.Address;
             Active = newItem.Active;
-            CompanyId = newItem.CompanyId;
         }
     }
 }

@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Abstractions.Database.Repository;
 
 namespace CRMService.Controllers.OkdeskEntity
 {
@@ -15,9 +15,9 @@ namespace CRMService.Controllers.OkdeskEntity
     public class CategoryController(IUnitOfWork unitOfWork, CompanyCategoryService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetCategories([FromQuery] int startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> GetCategories(CancellationToken ct = default)
         {
-            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(predicate: c => c.Id >= startIndex, asNoTracking: true, ct: ct);
+            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             return Ok(categories.ToDto());
         }

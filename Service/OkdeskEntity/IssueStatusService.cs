@@ -1,27 +1,37 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
+using CRMService.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect)
+    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<IssueStatusService> logger)
     {
-        public async Task<List<IssueStatus>> GetIssueStatusesFromCloudApi()
+        public async Task<ServiceResult<List<StatusDto>>> GetIssueStatusesAsync(CancellationToken ct)
+        {
+            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+
+            return ServiceResult<List<StatusDto>>.Ok(statuses.ToDto().ToList());
+        }
+
+        public async Task<List<IssueStatus>> GetIssueStatusesFromCloudApi(CancellationToken ct)
         {
             string link = endpoint.Value.OkdeskApi + "/issues/statuses?api_token=" + okdeskSettings.Value.OkdeskApiToken;
 
-            return await request.GetRangeOfItems<IssueStatus>(link);
+            return await request.GetRangeOfItems<IssueStatus>(link, ct: ct);
         }
 
-        public async Task<List<IssueStatus>> GetIssueStatusesFromCloudDb()
+        public async Task<List<IssueStatus>> GetIssueStatusesFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT * FROM issue_statuses ORDER BY id;;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return new();
@@ -37,7 +47,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssueStatusesFromCloudApi(CancellationToken ct)
         {
-            List<IssueStatus> statuses = await GetIssueStatusesFromCloudApi();
+            logger.LogInformation("[Method:{MethodName}] Starting to update issue statuses from API.", nameof(UpdateIssueStatusesFromCloudApi));
+
+            List<IssueStatus> statuses = await GetIssueStatusesFromCloudApi(ct);
 
             if (statuses.Count == 0)
                 return;
@@ -59,7 +71,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssueStatusesFromCloudDb(CancellationToken ct)
         {
-            List<IssueStatus> statuses = await GetIssueStatusesFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update issue statuses from DB.", nameof(UpdateIssueStatusesFromCloudDb));
+
+            List<IssueStatus> statuses = await GetIssueStatusesFromCloudDb(ct);
 
             if (statuses.Count == 0)
                 return;

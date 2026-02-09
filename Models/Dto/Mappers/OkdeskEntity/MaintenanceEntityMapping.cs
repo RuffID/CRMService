@@ -29,7 +29,8 @@ namespace CRMService.Models.Dto.Mappers.OkdeskEntity
             {
                 Id = maintenanceEntity.Id,
                 Name = maintenanceEntity.Name,
-                Active = maintenanceEntity.Active
+                Active = maintenanceEntity.Active,
+                CompanyId = maintenanceEntity.Company.Id
             };
         }
     }

@@ -1,31 +1,58 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
+using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
+using CRMService.Models.Responses.Results;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetOkdeskEntityService request)
+    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, PGSelect pGSelect, GetOkdeskEntityService request, ILogger<EmployeeService> logger)
     {
-        public async IAsyncEnumerable<List<Employee>> GetEmployeesFromCloudApi(long startIndex, long limit)
+        public async Task<ServiceResult<List<EmployeeDto>>> GetEmployees(List<int>? groupIds = null, CancellationToken ct = default)
+        {
+            List<Employee> employees;
+            if (groupIds != null && groupIds.Count > 0)
+            {
+                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.EmployeeGroups.Any(eg => groupIds.Contains(eg.GroupId)) && e.Active,
+                    asNoTracking: true,
+                    include: e => e.Include(x => x.EmployeeGroups).ThenInclude(eg => eg.Group),
+                    ct: ct);
+            }
+            else
+            {
+                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Active, 
+                    asNoTracking: true,
+                    include: e => e.Include(x => x.EmployeeGroups).ThenInclude(eg => eg.Group),
+                    ct: ct);
+            }
+
+            return ServiceResult<List<EmployeeDto>>.Ok(employees.ToDto().ToList());
+        }
+
+        public async IAsyncEnumerable<List<Employee>> GetEmployeesFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/employees/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            await foreach (List<Employee> employees in request.GetAllItems<Employee>(link, startIndex, limit))
+            await foreach (List<Employee> employees in request.GetAllItems<Employee>(link, startIndex: 0, limit, ct: ct))
                 yield return employees;
         }
 
-        private async Task<List<Employee>> GetEmployeesFromCloudDb(int startIndex, int limit)
+        private async Task<List<Employee>> GetEmployeesFromCloudDb(int limit, CancellationToken ct)
         {
             string sqlCommand = string.Format("SELECT * FROM users " +
-                "WHERE type = 'Employee' AND users.sequential_id > '{0}' " +
+                "WHERE type = 'Employee' " +
                 "ORDER BY users.sequential_id " +
-                "LIMIT '{1}';", startIndex, limit);
+                "LIMIT '{0}';", limit);
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? employeesTable = ds.Tables["Table"];
             if (employeesTable == null)
                 return new();
@@ -44,9 +71,11 @@ namespace CRMService.Service.OkdeskEntity
                 }).ToList();
         }
 
-        public async Task UpdateEmployeesFromCloudApi(long startIndex, long limit, CancellationToken ct)
+        public async Task UpdateEmployeesFromCloudApi(CancellationToken ct)
         {
-            await foreach (List<Employee> employees in GetEmployeesFromCloudApi(startIndex, limit))
+            logger.LogInformation("[Method:{MethodName}] Starting to update employees from API.", nameof(UpdateEmployeesFromCloudApi));
+
+            await foreach (List<Employee> employees in GetEmployeesFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
                 foreach (Employee employee in employees)
                 {
@@ -61,16 +90,16 @@ namespace CRMService.Service.OkdeskEntity
             await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateEmployeesFromCloudDb(int startIndexEmployee, int limit, CancellationToken ct)
+        public async Task UpdateEmployeesFromCloudDb(CancellationToken ct)
         {
+            logger.LogInformation("[Method:{MethodName}] Starting to update employees from DB.", nameof(UpdateEmployeesFromCloudDb));
+
             while (true)
             {
-                List<Employee> employees = await GetEmployeesFromCloudDb(startIndexEmployee, limit);
+                List<Employee> employees = await GetEmployeesFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
                 if (employees.Count == 0)
                     break;
-
-                startIndexEmployee = employees.Last().Id;
 
                 foreach (Employee employee in employees)
                 {

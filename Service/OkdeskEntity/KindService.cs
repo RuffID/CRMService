@@ -1,30 +1,31 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<KindService> logger)
     {
-        private readonly ILogger<KindService> _logger = logger.CreateLogger<KindService>();
 
-        private async IAsyncEnumerable<List<Kind>> GetKindsFromCloudApi(long startIndex, long limit)
+        private async IAsyncEnumerable<List<Kind>> GetKindsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/kinds?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            await foreach (List<Kind> kinds in request.GetAllItems<Kind>(link, startIndex, limit))
+            await foreach (List<Kind> kinds in request.GetAllItems<Kind>(link, startIndex: 0, limit, ct: ct))
                 yield return kinds;
         }
 
-        private async Task<List<Kind>?> GetKindsFromCloudDb()
+        private async Task<List<Kind>?> GetKindsFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT * FROM equipment_kinds ORDER BY id;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return null;
@@ -37,9 +38,11 @@ namespace CRMService.Service.OkdeskEntity
                 }).ToList();
         }
 
-        public async Task UpdateKindsFromCloudApi(long startIndex, long limit, CancellationToken ct)
+        public async Task UpdateKindsFromCloudApi(CancellationToken ct)
         {
-            await foreach (List<Kind> kinds in GetKindsFromCloudApi(startIndex, limit))
+            logger.LogInformation("[Method:{MethodName}] Starting to update kinds from API.", nameof(UpdateKindsFromCloudApi));
+
+            await foreach (List<Kind> kinds in GetKindsFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
                 if (kinds.Count == 0)
                     return;
@@ -59,7 +62,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateKindsFromCloudDb(CancellationToken ct)
         {
-            List<Kind>? kinds = await GetKindsFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update kinds from DB.", nameof(UpdateKindsFromCloudDb));
+
+            List<Kind>? kinds = await GetKindsFromCloudDb(ct);
 
             if (kinds == null || kinds.Count == 0)
                 return;

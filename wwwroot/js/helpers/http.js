@@ -45,15 +45,34 @@ async function sendJsonRequest(url, method = "GET", headers = {}, body = null) {
     }
 }
 
-function buildJsonHeaders(forgeryToken) {
+function buildJsonHeaders(antiforgeryToken) {
     let headers = {
         "Accept": "application/json",
         "Content-Type": "application/json"
     };
 
-    if (forgeryToken) {
-        headers["RequestVerificationToken"] = forgeryToken;
+    if (antiforgeryToken) {
+        headers["RequestVerificationToken"] = antiforgeryToken;
     }
 
     return headers;
+}
+
+function unwrapServiceResult(resp) {
+    if (resp && typeof resp === 'object' && ('success' in resp)) {
+        const success = (resp.success) === true;
+        const data = resp.data;
+        const message = resp.message ?? '';
+        return { success, data, message, raw: resp };
+    }
+
+    return { success: true, data: resp, message: '', raw: resp };
+}
+
+function unwrapOrThrow(resp, defaultMessage) {
+    const r = unwrapServiceResult(resp);
+    if (!r.success) {
+        throw new Error(r.message || defaultMessage || 'Ошибка операции.');
+    }
+    return r.data;
 }

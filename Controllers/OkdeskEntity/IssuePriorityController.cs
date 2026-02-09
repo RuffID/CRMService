@@ -1,6 +1,5 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
@@ -15,11 +14,9 @@ namespace CRMService.Controllers.OkdeskEntity
     public class IssuePriorityController(IUnitOfWork unitOfWork, IssuePriorityService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetIssuePriorities([FromQuery] int startIndex, CancellationToken ct)
+        public async Task<IActionResult> GetIssuePriorities(CancellationToken ct)
         {
-            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
-
-            return Ok(priorities.ToDto());
+            return Ok((await service.GetIssuePrioritiesAsync(ct)).Data);
         }
 
         [HttpGet]

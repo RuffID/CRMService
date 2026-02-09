@@ -1,5 +1,5 @@
-﻿using CRMService.Core;
-using CRMService.Interfaces.Entity;
+﻿using CRMService.Abstractions.Entity;
+using CRMService.Core;
 
 namespace CRMService.Models.OkdeskEntity
 {

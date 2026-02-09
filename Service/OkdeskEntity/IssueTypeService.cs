@@ -1,23 +1,41 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Request;
+using CRMService.Models.Responses.Results;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<IssueTypeService> logger)
     {
-        private readonly ILogger<IssueTypeService> _logger = logger.CreateLogger<IssueTypeService>();
+        public async Task<ServiceResult<List<TaskTypeDto>>> GetTypes(CancellationToken ct)
+        {
+            List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAsync(asNoTracking: true,
+                include: t => t.Include(x => x.Group),
+                ct: ct);
 
-        public async Task<(List<IssueType> Types, List<IssueTypeGroup> TypeGroups)> GetIssueTypesFromCloudApi()
+            return ServiceResult<List<TaskTypeDto>>.Ok(types.ToDto().ToList());
+        }
+
+        public async Task<ServiceResult<List<IssueTypeGroupDto>>> GetTypeGroups(CancellationToken ct)
+        {
+            List<IssueTypeGroup> types = await unitOfWork.IssueTypeGroup.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+
+            return ServiceResult<List<IssueTypeGroupDto>>.Ok(types.ToDto().ToList());
+        }
+
+        public async Task<(List<IssueType> Types, List<IssueTypeGroup> TypeGroups)> GetIssueTypesFromCloudApi(CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/dictionaries/issues/types?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            List<IssueTypeResponse> root = await request.GetRangeOfItems<IssueTypeResponse>(link);
+            List<IssueTypeResponse> root = await request.GetRangeOfItems<IssueTypeResponse>(link, ct: ct);
             List<IssueType> types = new List<IssueType>();
             List<IssueTypeGroup> groups = new List<IssueTypeGroup>();
 
@@ -27,11 +45,11 @@ namespace CRMService.Service.OkdeskEntity
             return (types, groups);
         }
 
-        public async Task<List<IssueType>> GetIssueTypesFromCloudDb()
+        public async Task<List<IssueType>> GetIssueTypesFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT * FROM issue_work_types ORDER BY id;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return new List<IssueType>();
@@ -48,7 +66,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssueTypesFromCloudApi(CancellationToken ct)
         {
-            (List<IssueType> Types, List<IssueTypeGroup> Groups) = await GetIssueTypesFromCloudApi();
+            logger.LogInformation("[Method:{MethodName}] Starting to update issue types from API.", nameof(UpdateIssueTypesFromCloudApi));
+
+            (List<IssueType> Types, List<IssueTypeGroup> Groups) = await GetIssueTypesFromCloudApi(ct);
 
             if (Types.Count == 0 && Groups.Count == 0)
                 return;
@@ -76,9 +96,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssueTypesFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating issue types.", nameof(UpdateIssueTypesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Starting to update issue types.", nameof(UpdateIssueTypesFromCloudDb));
 
-            List<IssueType> types = await GetIssueTypesFromCloudDb();
+            List<IssueType> types = await GetIssueTypesFromCloudDb(ct);
 
             if (types.Count != 0)
             {
@@ -94,7 +114,7 @@ namespace CRMService.Service.OkdeskEntity
                 await unitOfWork.SaveAsync(ct);
             }
 
-            _logger.LogInformation("[Method:{MethodName}] Issue types update completed.", nameof(UpdateIssueTypesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Issue types update completed.", nameof(UpdateIssueTypesFromCloudDb));
         }
 
         private void TypeHandler(IssueTypeResponse node, int? parentGroupId, List<IssueTypeGroup> groups, List<IssueType> types)

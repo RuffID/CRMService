@@ -3,6 +3,8 @@ using Serilog;
 using CRMService.Service.DataBase;
 using CRMService.Core.Middleware;
 using CRMService.DataBase;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,17 @@ builder.Services.ConfigureServices(builder);
 
 WebApplication app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownProxies =
+        {
+            IPAddress.Parse("127.0.0.1"),
+            IPAddress.Parse("172.18.0.1"),
+            IPAddress.Parse("192.168.1.16")
+        },
+});
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 using (IServiceScope scope = app.Services.CreateScope())
@@ -35,7 +48,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapRazorPages();
 app.MapControllers();
+app.MapRazorPages();
 
 app.Run();

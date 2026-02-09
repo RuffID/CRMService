@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Database;
+﻿using CRMService.Abstractions.Database;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Service.DataBase

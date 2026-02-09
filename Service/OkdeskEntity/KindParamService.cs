@@ -1,23 +1,17 @@
-﻿using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.DataBase.Postgresql;
 using CRMService.Models.OkdeskEntity;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class KindParamService(IUnitOfWork unitOfWork, PGSelect pGSelect)
+    public class KindParamService(IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<KindParamService> logger)
     {
-        private async Task<List<KindParam>> GetConnectionsFromCloudDb()
+        private async Task<List<KindParam>> GetConnectionsFromCloudDb(CancellationToken ct)
         {
-            /* string sqlCommand = "SELECT equipment_kind_parameters.id, equipment_parameters.code AS kindParameterCode, equipment_kinds.code AS kindCode " +
-                     "FROM equipment_kinds " +
-                     "LEFT OUTER JOIN equipment_kind_parameters ON equipment_kinds.id = equipment_kind_parameters.equipment_kind_id " +
-                     "LEFT OUTER JOIN equipment_parameters ON equipment_kind_parameters.parameter_id = equipment_parameters.id " +
-                     "ORDER BY id;";*/
-
             const string SQL = "SELECT equipment_kind_id, parameter_id FROM equipment_kind_parameters;";
 
-            DataSet ds = await pGSelect.Select(SQL);
+            DataSet ds = await pGSelect.Select(SQL, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return new();
@@ -32,7 +26,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpsertConnectionsFromCloudDb(CancellationToken ct)
         {
-            List<KindParam> connections = await GetConnectionsFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update kind-parameter connections from DB.", nameof(UpsertConnectionsFromCloudDb));
+
+            List<KindParam> connections = await GetConnectionsFromCloudDb(ct);
 
             if (connections.Count == 0)
                 return;

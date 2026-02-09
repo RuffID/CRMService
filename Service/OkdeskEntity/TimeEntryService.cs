@@ -1,27 +1,28 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<TimeEntryService> logger)
     {
-        private readonly ILogger<TimeEntryService> _logger = logger.CreateLogger<TimeEntryService>();
-
-        public async Task<TimeEntries?> GetimeEntriesFromCloudApi(int issueId)
+        public async Task<TimeEntries?> GetimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/issues/{issueId}/time_entries?api_token={okdesk.Value.OkdeskApiToken}";
 
-            return await request.GetItem<TimeEntries>(link);
+            return await request.GetItem<TimeEntries>(link, ct);
         }
 
         public async Task UpdateTimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
-            TimeEntries? timeEntry = await GetimeEntriesFromCloudApi(issueId);
+            logger.LogInformation("[Method:{MethodName}] Starting to update time entries for issues from API.", nameof(UpdateTimeEntriesFromCloudApi));
+
+            TimeEntries? timeEntry = await GetimeEntriesFromCloudApi(issueId, ct);
 
             if (timeEntry == null || timeEntry.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
             {
@@ -55,7 +56,7 @@ namespace CRMService.Service.OkdeskEntity
             await DeleteMarkedAsDeletedTimeEntries(timeEntry.Time_Entries, ct);
         }
 
-        private async Task<List<TimeEntry>?> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long timeEntryId, long limit)
+        private async Task<List<TimeEntry>> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long startId, long limit, CancellationToken ct)
         {
             string sqlCommand = string.Format(
                     "SELECT time_entries.id, users.sequential_id AS employee_id, time_entries.spent_time, issues.sequential_id AS issue_id, time_entries.logged_at, time_entries.created_at " +
@@ -63,13 +64,14 @@ namespace CRMService.Service.OkdeskEntity
                     "LEFT OUTER JOIN users ON time_entries.employee_id = users.id " +
                     "LEFT OUTER JOIN issues ON time_entries.issue_id = issues.id " +
                     "WHERE (time_entries.logged_at BETWEEN '{0}' AND '{1}') " +
-                    "AND time_entries.id > '{2}' ORDER BY time_entries.id LIMIT '{3}';",
-                    dateFrom.ToString("yyyy-MM-dd HH:mm:ss"), dateTo.ToString("yyyy-MM-dd HH:mm:ss"), timeEntryId, limit);
+                    "AND time_entries.id > {2} " +
+                    "ORDER BY time_entries.id LIMIT {3};",
+                    dateFrom.ToString("yyyy-MM-dd HH:mm:ss"), dateTo.ToString("yyyy-MM-dd HH:mm:ss"), startId, limit);
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
-                return null;
+                return new();
 
             return table.AsEnumerable().
                 Select(entry => new TimeEntry
@@ -83,21 +85,29 @@ namespace CRMService.Service.OkdeskEntity
                 }).ToList();
         }
 
-        public async Task UpdateTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long startIndex, long limit, CancellationToken ct)
+        public async Task UpdateTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating time entries.", nameof(UpdateTimeEntriesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Starting to update time entries from DB.", nameof(UpdateTimeEntriesFromCloudDb));
+
+            long startId = 0;
 
             while (true)
             {
-                List<TimeEntry>? entries = await GetTimeEntriesFromCloudDb(dateFrom, dateTo, startIndex, limit);
+                List<TimeEntry> entries = await GetTimeEntriesFromCloudDb(dateFrom, dateTo, startId, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
-                if (entries == null || entries.Count == 0)
+                if (entries.Count == 0)
                     return;
-
-                startIndex = entries.Last().Id;
 
                 foreach (TimeEntry item in entries)
                 {
+                    Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(item.IssueId, asNoTracking: true, ct: ct);
+
+                    if (existingIssue == null)
+                    {
+                        logger.LogWarning("[Method:{MethodName}] Issue: {issueId} - not found in local DB.", nameof(UpdateTimeEntriesFromCloudDb), item.IssueId);
+                        continue;
+                    }
+
                     TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
 
                     if (existingEntry == null)
@@ -108,11 +118,13 @@ namespace CRMService.Service.OkdeskEntity
 
                 await unitOfWork.SaveAsync(ct);
 
-                if (entries.Count < limit)
+                startId = entries.Last().Id;
+
+                if (entries.Count < LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB)
                     break;
             }
 
-            _logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
         }
 
         private async Task DeleteMarkedAsDeletedTimeEntries(TimeEntry[] entriesFromCloudApi, CancellationToken ct)

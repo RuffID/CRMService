@@ -1,29 +1,37 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
+using CRMService.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<IssuePriorityService> logger)
     {
-        private readonly ILogger<IssuePriorityService> _logger = logger.CreateLogger<IssuePriorityService>();
+        public async Task<ServiceResult<List<PriorityDto>>> GetIssuePrioritiesAsync(CancellationToken ct)
+        {
+            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-        public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudApi()
+            return ServiceResult<List<PriorityDto>>.Ok(priorities.ToDto().ToList());
+        }
+
+        public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudApi(CancellationToken ct)
         {
             string link = endpoint.Value.OkdeskApi + "/issues/priorities?api_token=" + okdeskSettings.Value.OkdeskApiToken;
 
-            return await request.GetRangeOfItems<IssuePriority>(link);
+            return await request.GetRangeOfItems<IssuePriority>(link, ct: ct);
         }
 
-        public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudDb()
+        public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT * FROM issue_priorities ORDER BY id;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return new();
@@ -39,9 +47,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating issue priorities.", nameof(UpdateIssuePrioritiesFromCloudApi));
+            logger.LogInformation("[Method:{MethodName}] Starting to update issue priorities.", nameof(UpdateIssuePrioritiesFromCloudApi));
 
-            List<IssuePriority> priorities = await GetIssuePrioritiesFromCloudApi();
+            List<IssuePriority> priorities = await GetIssuePrioritiesFromCloudApi(ct);
 
             if (priorities.Count != 0)
             {
@@ -60,14 +68,14 @@ namespace CRMService.Service.OkdeskEntity
                 await unitOfWork.SaveAsync(ct);
             }
 
-            _logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudApi));
+            logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudApi));
         }
 
         public async Task UpdateIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating issue priorities.", nameof(UpdateIssuePrioritiesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Starting to update issue priorities.", nameof(UpdateIssuePrioritiesFromCloudDb));
 
-            List<IssuePriority> priorities = await GetIssuePrioritiesFromCloudDb();
+            List<IssuePriority> priorities = await GetIssuePrioritiesFromCloudDb(ct);
 
             if (priorities.Count != 0)
             {
@@ -83,7 +91,7 @@ namespace CRMService.Service.OkdeskEntity
                 await unitOfWork.SaveAsync(ct);
             }
 
-            _logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudDb));
         }
     }
 }

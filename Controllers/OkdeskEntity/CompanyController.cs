@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
@@ -26,9 +26,9 @@ namespace CRMService.Controllers.OkdeskEntity
         }
 
         [HttpGet("by_category")]
-        public async Task<IActionResult> GetCompaniesByCategory([FromQuery] string categoryCode, [FromQuery] int startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> GetCompaniesByCategory([FromQuery] string categoryCode, CancellationToken ct = default)
         {
-            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(predicate: c => c.Category!.Code == categoryCode && c.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct: ct);
+            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(predicate: c => c.Category!.Code == categoryCode, ct: ct);
 
             return Ok(companies.ToDto());
         }
@@ -45,22 +45,22 @@ namespace CRMService.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateCompaniesFromCloudApi([FromQuery] int startIndexCategory, int startIndexCompany, CancellationToken ct)
+        public async Task<IActionResult> UpdateCompaniesFromCloudApi(CancellationToken ct)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateCompaniesFromCloudApi(startIndexCategory, startIndexCompany, ct);
+                await service.UpdateCompaniesFromCloudApi(ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateCompaniesFromCloudDb([FromQuery] int startIndexCategory, int startIndexCompany, CancellationToken ct)
+        public async Task<IActionResult> UpdateCompaniesFromCloudDb(CancellationToken ct)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateCompaniesFromCloudDb(startIndexCategory, startIndexCompany, ct);
+                await service.UpdateCompaniesFromCloudDb(ct);
             });
 
             return NoContent();

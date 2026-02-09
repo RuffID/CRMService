@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
@@ -14,11 +14,9 @@ namespace CRMService.Controllers.OkdeskEntity
     public class IssueStatusController(IUnitOfWork unitOfWork, IssueStatusService service) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetIssueStatuses([FromQuery] int startIndex, CancellationToken ct)
+        public async Task<IActionResult> GetIssueStatuses(CancellationToken ct)
         {
-            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsByPredicateAsync(predicate: s => s.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
-
-            return Ok(statuses.ToDto());
+            return Ok((await service.GetIssueStatusesAsync(ct)).Data);
         }
 
         [HttpGet]

@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
@@ -14,9 +14,9 @@ namespace CRMService.Controllers.OkdeskEntity
     public class KindParameterController(IUnitOfWork unitOfWork, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
     {
         [HttpGet("list")]
-        public async Task<IActionResult> GetKindParameters([FromQuery] int startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> GetKindParameters(CancellationToken ct = default)
         {
-            List<KindsParameter> kindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAsync(predicate: p => p.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<KindsParameter> kindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             return Ok(kindParameters.ToDto());
         }

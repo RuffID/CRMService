@@ -1,6 +1,6 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -14,19 +14,19 @@ namespace CRMService.Service.OkdeskEntity
     {
         private readonly ILogger<IssueService> _logger = logger.CreateLogger<IssueService>();
 
-        private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit)
+        private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = string.Format("{0}/issues/list?api_token={1}&updated_since={2}&updated_until={3}&assignee_ids[]={4}",
                     endpoint.Value.OkdeskApi, okdeskSettings.Value.OkdeskApiToken, updatedSinceFrom.ToString("dd-MM-yyyy HH:mm:ss"), updatedUntilTo.ToString("dd-MM-yyyy HH:mm:ss"), assigneeId);
 
-            await foreach (List<Issue> issues in itemService.GetAllItems<Issue>(link, startIndex, limit, pageNumber))
+            await foreach (List<Issue> issues in itemService.GetAllItems<Issue>(link, startIndex, limit, pageNumber, ct))
                 yield return issues;
         }
 
-        private async Task<List<Issue>> GetIssuesFromCloudDb(DateTime updatedSinceFrom, DateTime updatedUntilTo, int startIndex, int limit)
+        private async Task<List<Issue>> GetIssuesFromCloudDb(DateTime updatedSinceFrom, DateTime updatedUntilTo, int startIndex, int limit, CancellationToken ct)
         {
             string sqlCommand = string.Format(
-                    "SELECT issues.sequential_id, assigned.sequential_id AS assignee_id, author.sequential_id AS author_id, issues.title, issues.created_at, issues.completed_at, issues.deadline_at, issues.employees_updated_at, issues.deleted_at, issues.delay_to, issue_statuses.id AS statusId, issue_work_types.id AS typeId, issue_priorities.id AS priorityId, companies.sequential_id AS companyId, company_maintenance_entities.sequential_id AS maintenanceEntityId " +
+                    "SELECT issues.sequential_id, assigned.sequential_id AS assignee_id, author.sequential_id AS author_id, issues.title, issues.created_at, issues.completed_at, issues.deadline_at, issues.employees_updated_at, issues.deleted_at, issues.delay_to, issue_statuses.code AS statusCode, issue_work_types.code AS typeCode, issue_priorities.code AS priorityCode, companies.sequential_id AS companyId, company_maintenance_entities.sequential_id AS maintenanceEntityId " +
                     "FROM issues " +
                     "LEFT OUTER JOIN issue_statuses ON issues.status_id = issue_statuses.id " +
                     "LEFT OUTER JOIN issue_work_types ON issues.work_type_id = issue_work_types.id " +
@@ -39,7 +39,7 @@ namespace CRMService.Service.OkdeskEntity
                     "AND issues.sequential_id > '{2}' ORDER BY issues.sequential_id LIMIT '{3}';",
                     updatedSinceFrom.ToString("yyyy-MM-dd HH:mm:ss"), updatedUntilTo.ToString("yyyy-MM-dd HH:mm:ss"), startIndex, limit);
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? issuesTable = ds.Tables["Table"];
             if (issuesTable == null)
                 return new();
@@ -53,9 +53,9 @@ namespace CRMService.Service.OkdeskEntity
                     AuthorId = issue.Field<int?>("author_id"),
                     CompanyId = issue.Field<int?>("companyId"),
                     ServiceObjectId = issue.Field<int?>("maintenanceEntityId"),
-                    StatusId = issue.Field<int>("statusId"),
-                    TypeId = issue.Field<int>("typeId"),
-                    PriorityId = issue.Field<int>("priorityId"),
+                    Status = new IssueStatus() { Code = issue.Field<string>("statusCode") ?? string.Empty },
+                    Type = new IssueType() { Code = issue.Field<string>("typeCode") ?? string.Empty },
+                    Priority = new IssuePriority { Code = issue.Field<string>("priorityCode") ?? string.Empty },
                     CreatedAt = issue.Field<DateTime>("created_at").ToLocalTime(),
                     CompletedAt = issue.Field<DateTime?>("completed_at")?.ToLocalTime(),
                     DeadlineAt = issue.Field<DateTime?>("deadline_at")?.ToLocalTime(),
@@ -81,7 +81,7 @@ namespace CRMService.Service.OkdeskEntity
             {
                 foreach (Employee employee in employees.Where(e => e.Active == true))
                 {
-                    await foreach (List<Issue> issues in GetIssuesFromCloudApi(dateFrom, dateTo, employee.Id, pageNubmer, startIndex, limit))
+                    await foreach (List<Issue> issues in GetIssuesFromCloudApi(dateFrom, dateTo, employee.Id, pageNubmer, startIndex, limit, ct))
                     {
                         foreach (Issue issue in issues)
                         {
@@ -109,11 +109,11 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssuesFromCloudDb(DateTime dateFrom, DateTime dateTo, int startIndex, int limit, [CallerMemberName] string caller = "", CancellationToken ct = default)
         {
-            _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudDb), caller);
+            _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting to update issues.", nameof(UpdateIssuesFromCloudDb), caller);
 
             while (true)
             {
-                List<Issue> issues = await GetIssuesFromCloudDb(dateFrom, dateTo, startIndex, limit);
+                List<Issue> issues = await GetIssuesFromCloudDb(dateFrom, dateTo, startIndex, limit, ct);
 
                 if (issues.Count == 0)
                     break;

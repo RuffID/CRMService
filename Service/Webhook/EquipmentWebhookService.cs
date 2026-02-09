@@ -1,35 +1,44 @@
-﻿using CRMService.Interfaces.Repository;
-using CRMService.Interfaces.Service;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.Abstractions.Service;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.WebHook;
+using CRMService.Service.OkdeskEntity;
 
 namespace CRMService.Service.Webhook
 {
-    public class EquipmentWebhookService(IUnitOfWork unitOfWork) : IWebhookHandler
+    public class EquipmentWebhookService(IUnitOfWork unitOfWork, EquipmentService service, ILogger<EquipmentWebhookService> logger) : IWebhookHandler
     {
-        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
+        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct = default)
         {
             if (@event.Equipment == null)
                 return false;
 
+            logger.LogInformation("[Method:{MethodName}] Update equipment entity from webhook: \"{EventType}\". Id: {equipmentId}, inventory number: {inventoryNumber}.", nameof(HandleWebhook), @event.Event?.Event_type, @event.Equipment.Id, @event.Equipment.InventoryNumber);
+
             switch (@event.Event!.Event_type)
             {
                 case "new_equipment":
-                    {
-                        Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(@event.Equipment.Id, ct: ct);
-                        if (existingEquipment == null)
-                            unitOfWork.Equipment.Create(@event.Equipment);
-                        else
-                            existingEquipment.CopyData(@event.Equipment);
-                    }
-                    break;
                 case "change_equipment":
                     {
-                        Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(@event.Equipment.Id, ct: ct);
+                        Equipment dto = @event.Equipment;
+
+                        await service.CheckInformationOnEquipment(dto, ct);
+
+                        Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(dto.Id, ct: ct);
                         if (existingEquipment == null)
-                            unitOfWork.Equipment.Create(@event.Equipment);
+                            unitOfWork.Equipment.Create(dto);
                         else
-                            existingEquipment.CopyData(@event.Equipment);
+                            existingEquipment.CopyData(dto);
+
+                        foreach (EquipmentParameter parameter in dto.Parameters)
+                        {
+                            EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
+
+                            if (existingParameter == null)
+                                unitOfWork.Parameter.Create(parameter);
+                            else
+                                existingParameter.CopyData(parameter);
+                        }
                     }
                     break;
                 default:

@@ -1,6 +1,6 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -9,22 +9,20 @@ using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<KindParameterService> logger)
     {
-        private readonly ILogger<KindParameterService> _logger = logger.CreateLogger<KindParameterService>();
-
-        public async Task<List<KindsParameter>> GetKindParametersFromCloudApi()
+        public async Task<List<KindsParameter>> GetKindParametersFromCloudApi(CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/parameters?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            return await request.GetRangeOfItems<KindsParameter>(link);
+            return await request.GetRangeOfItems<KindsParameter>(link, ct: ct);
         }
 
-        private async Task<List<KindsParameter>> GetKindParametersFromCloudDb()
+        private async Task<List<KindsParameter>> GetKindParametersFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT id, code, name, field_type FROM equipment_parameters ORDER BY id;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? table = ds.Tables["Table"];
             if (table == null)
                 return new();
@@ -41,7 +39,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
-            List<KindsParameter> parameters = await GetKindParametersFromCloudApi();
+            logger.LogInformation("[Method:{MethodName}] Starting to update kind parameters from API.", nameof(UpdateKindParametersFromCloudApi));
+
+            List<KindsParameter> parameters = await GetKindParametersFromCloudApi(ct);
 
             if (parameters.Count == 0)
                 return;
@@ -60,7 +60,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateKindParametersFromCloudDb(CancellationToken ct)
         {
-            List<KindsParameter> parameters = await GetKindParametersFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update kind parameters from DB.", nameof(UpdateKindParametersFromCloudDb));
+
+            List<KindsParameter> parameters = await GetKindParametersFromCloudDb(ct);
 
             if (parameters.Count == 0)
                 return;

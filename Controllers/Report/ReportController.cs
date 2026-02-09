@@ -1,6 +1,4 @@
-﻿using CRMService.Models.Report;
-using CRMService.Service.Report;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRMService.Controllers.Report
@@ -8,9 +6,9 @@ namespace CRMService.Controllers.Report
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ReportController(ReportService service) : Controller
+    public class ReportController(/*ReportService service*/) : Controller
     {
-        [HttpGet]
+        /*[HttpGet]
         public async Task<IActionResult> GetFullReport([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo)
         {
             if (dateFrom > dateTo)
@@ -30,7 +28,7 @@ namespace CRMService.Controllers.Report
         }
 
         [HttpGet("solved_issues_by_employee")]
-        public async Task<IActionResult> GetArrayOfSolvedIssues([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] long employeeId)
+        public async Task<IActionResult> GetArrayOfSolvedIssues([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, [FromQuery] int employeeId)
         {
             if (dateFrom > dateTo)
                 return BadRequest("The start date of the period cannot be greater than the end date.");
@@ -46,6 +44,6 @@ namespace CRMService.Controllers.Report
             }
 
             return Ok(reportInfo);
-        }
+        }*/
     }
 }

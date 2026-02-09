@@ -1,5 +1,5 @@
-﻿using CRMService.Interfaces.Database;
-using CRMService.Interfaces.Repository.Base;
+﻿using CRMService.Abstractions.Database;
+using CRMService.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 

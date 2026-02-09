@@ -1,5 +1,5 @@
-﻿using CRMService.Interfaces.Repository.Base;
-using CRMService.Interfaces.Repository.OkdeskEntity;
+﻿using CRMService.Abstractions.Database.Repository.Base;
+using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using System.Linq.Expressions;
 

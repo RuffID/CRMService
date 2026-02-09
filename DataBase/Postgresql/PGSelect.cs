@@ -7,13 +7,13 @@ namespace CRMService.DataBase.Postgresql
     {
         private readonly ILogger<PGSelect> _logger = logger.CreateLogger<PGSelect>();
 
-        public async Task<DataSet> Select(string sqlCommand)
+        public async Task<DataSet> Select(string sqlCommand, CancellationToken ct)
         {
             using NpgsqlConnection connection = pgConfig.GetPsqlConnection();
             DataSet dataSet = new();
             try
             {
-                await connection.OpenAsync();
+                await connection.OpenAsync(ct);
                 using NpgsqlDataAdapter adapter = new(sqlCommand, connection);
                 adapter.Fill(dataSet);
                 return dataSet;

@@ -1,4 +1,4 @@
-﻿using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Constants;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
@@ -26,9 +26,9 @@ namespace CRMService.Controllers.OkdeskEntity
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetMaintenanceEntities([FromQuery] int startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> GetMaintenanceEntities(CancellationToken ct = default)
         {
-            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(predicate: me => me.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             return Ok(maintenanceEntities.ToDto());
         }
@@ -45,22 +45,22 @@ namespace CRMService.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi([FromQuery] long startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi(CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateMaintenanceEntitiesFromCloudApi(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct);
+                await service.UpdateMaintenanceEntitiesFromCloudApi(ct);
             });
 
             return NoContent();
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb([FromQuery] long startIndex = 0, CancellationToken ct = default)
+        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct = default)
         {
             await sync.RunExclusive(async () =>
             {
-                await service.UpdateMaintenanceEntitiesFromCloudDb(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
+                await service.UpdateMaintenanceEntitiesFromCloudDb(ct);
             });
 
             return NoContent();

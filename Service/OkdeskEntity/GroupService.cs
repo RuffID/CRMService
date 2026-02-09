@@ -1,27 +1,37 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
+using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
+using CRMService.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect)
+    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<GroupService> logger)
     {
-        public async Task<List<Group>> GetGroupsFromCloudApi()
+        public async Task<ServiceResult<List<GroupDto>>> GetGroups(CancellationToken ct = default)
+        {
+            List<Group> groups = await unitOfWork.Group.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+
+            return ServiceResult<List<GroupDto>>.Ok(groups.ToDto().ToList());
+        }
+
+        public async Task<List<Group>> GetGroupsFromCloudApi(CancellationToken ct)
         {
             string link = endpoint.Value.OkdeskApi + "/employees/groups?api_token=" + okdeskSettings.Value.OkdeskApiToken;
 
-            return await request.GetRangeOfItems<Group>(link);
+            return await request.GetRangeOfItems<Group>(link, ct: ct);
         }
 
-        private async Task<List<Group>> GetGroupsFromCloudDb()
+        private async Task<List<Group>> GetGroupsFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT * FROM groups ORDER BY groups.sequential_id;";
 
-            DataSet ds = await pGSelect.Select(sqlCommand);
+            DataSet ds = await pGSelect.Select(sqlCommand, ct);
             DataTable? groupTable = ds.Tables["Table"];
             if (groupTable == null)
                 return new();
@@ -36,7 +46,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateGroupsFromCloudApi(CancellationToken ct)
         {
-            List<Group> groups = await GetGroupsFromCloudApi();
+            logger.LogInformation("[Method:{MethodName}] Starting to update groups from API.", nameof(UpdateGroupsFromCloudApi));
+
+            List<Group> groups = await GetGroupsFromCloudApi(ct);
 
             if (groups.Count == 0) return;
 
@@ -59,7 +71,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateGroupsFromCloudDb(CancellationToken ct)
         {
-            List<Group> groups = await GetGroupsFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update groups from API.", nameof(UpdateGroupsFromCloudDb));
+
+            List<Group> groups = await GetGroupsFromCloudDb(ct);
 
             if (groups.Count == 0)
                 return;
@@ -78,7 +92,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpsertEmployeeGroupConnectionsFromApi(CancellationToken ct)
         {
-            List<Group> groups = await GetGroupsFromCloudApi();
+            logger.LogInformation("[Method:{MethodName}] Starting to update employee-group connections from API.", nameof(UpsertEmployeeGroupConnectionsFromApi));
+
+            List<Group> groups = await GetGroupsFromCloudApi(ct);
 
             List<Employee> allEmployeesFromApi = groups.SelectMany(g => g.Employees ?? Enumerable.Empty<Employee>())
                 .DistinctBy(e => e.Id)
@@ -106,7 +122,7 @@ namespace CRMService.Service.OkdeskEntity
 
             List<EmployeeGroup> existing = await unitOfWork.EmployeeGroup
                 .GetItemsByPredicateAsync(
-                    eg => employeeIds.Contains(eg.GroupId) && groupIds.Contains(eg.GroupId),
+                    eg => employeeIds.Contains(eg.EmployeeId) && groupIds.Contains(eg.GroupId),
                     asNoTracking: true,
                     ct: ct);
 

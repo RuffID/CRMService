@@ -11,7 +11,7 @@ namespace CRMService.Controllers.Server
     {
 
         [HttpGet, AllowAnonymous]
-        public IActionResult ServerStatus()
+        public IActionResult ServerStatus(CancellationToken ct = default)
         {
             TimeSpan upTime = DateTime.UtcNow - data.ServerStartingTime;
             string upTimeString = $"Days: {upTime.Days}, Hours: {upTime.Hours}, Minutes: {upTime.Minutes}";

@@ -1,5 +1,5 @@
-﻿using CRMService.API;
-using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, EmployeeService employeeService, GetOkdeskEntityService request, IUnitOfWork unitOfWork)
+    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, EmployeeService employeeService, GetOkdeskEntityService request, IUnitOfWork unitOfWork, ILogger<RoleService> logger)
     {
         private async Task<List<OkdeskRole>> GetRolesFromCloudApi()
         {
@@ -18,6 +18,8 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateRolesFromCloudApi(CancellationToken ct)
         {
+            logger.LogInformation("[Method:{MethodName}] Starting to update roles from API.", nameof(UpdateRolesFromCloudApi));
+
             List<OkdeskRole> roles = await GetRolesFromCloudApi();
 
             if (roles.Count == 0)
@@ -38,7 +40,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpsertEmployeeRoleConnectionsFromApi(CancellationToken ct)
         {
-            await foreach (List<Employee> employeesFromApi in employeeService.GetEmployeesFromCloudApi(startIndex: 0, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API))
+            logger.LogInformation("[Method:{MethodName}] Starting to update employee-role connections from API.", nameof(UpsertEmployeeRoleConnectionsFromApi));
+
+            await foreach (List<Employee> employeesFromApi in employeeService.GetEmployeesFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
                 // Собрать Id сотрудников и ролей из входных данных
                 List<int> employeeIdsIncoming = employeesFromApi.Select(e => e.Id).Distinct().ToList();

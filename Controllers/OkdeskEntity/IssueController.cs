@@ -2,19 +2,17 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Service.OkdeskEntity;
-using CRMService.Interfaces.Repository;
 using CRMService.Service.Sync;
 using CRMService.Models.Constants;
-using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
+using CRMService.Abstractions.Database.Repository;
 
 namespace CRMService.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueController(EntitySyncService sync,
-        IUnitOfWork unitOfWork, IssueService service) : Controller
+    public class IssueController(EntitySyncService sync, IUnitOfWork unitOfWork, IssueService service) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0, CancellationToken ct = default)

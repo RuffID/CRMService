@@ -1,4 +1,11 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database;
+using CRMService.Abstractions.Database.Repository;
+using CRMService.Abstractions.Database.Repository.Authorization;
+using CRMService.Abstractions.Database.Repository.Base;
+using CRMService.Abstractions.Database.Repository.OkdeskEntity;
+using CRMService.Abstractions.Database.Repository.Report;
+using CRMService.Abstractions.Service;
+using CRMService.API;
 using CRMService.Core.Filter;
 using CRMService.Core.Middleware;
 using CRMService.DataBase;
@@ -8,32 +15,26 @@ using CRMService.DataBase.Repository.Authorization;
 using CRMService.DataBase.Repository.Base;
 using CRMService.DataBase.Repository.Entity;
 using CRMService.DataBase.Repository.Report;
-using CRMService.Interfaces.Api;
-using CRMService.Interfaces.Database;
-using CRMService.Interfaces.Repository;
-using CRMService.Interfaces.Repository.Authorization;
-using CRMService.Interfaces.Repository.Base;
-using CRMService.Interfaces.Repository.OkdeskEntity;
-using CRMService.Interfaces.Repository.Report;
-using CRMService.Interfaces.Service;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.Server;
 using CRMService.Service.Authorization;
+using CRMService.Service.BackgroundServices;
 using CRMService.Service.DataBase;
 using CRMService.Service.Hosted;
-using CRMService.Service.HostedServices;
 using CRMService.Service.OkdeskEntity;
 using CRMService.Service.Report;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
+using HttpClientLibrary;
+using HttpClientLibrary.Abstractions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json;
 using System.Net;
 using System.Reflection;
@@ -59,7 +60,7 @@ namespace CRMService.Core
         }
 
         public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder,
-            Action<JsonSerializerSettings>? configureNewtonsoft = null, 
+            Action<JsonSerializerSettings>? configureNewtonsoft = null,
             Action<HttpClient>? configureHttpClient = null)
         {
             AddConfig(services, builder.Configuration);
@@ -67,11 +68,24 @@ namespace CRMService.Core
 
             services.AddTransient<ExceptionHandlingMiddleware>();
             services.AddControllers();
+
             services.AddAuthentication(options =>
             {
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultScheme = "Smart";
+                options.DefaultAuthenticateScheme = "Smart";
+                options.DefaultChallengeScheme = "Smart";
+            })
+            .AddPolicyScheme("Smart", "Smart auth", options =>
+            {
+                options.ForwardDefaultSelector = ctx =>
+                {
+                    var auth = ctx.Request.Headers[HeaderNames.Authorization].ToString();
+                    if (!string.IsNullOrWhiteSpace(auth) &&
+                        auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        return JwtBearerDefaults.AuthenticationScheme;
+
+                    return CookieAuthenticationDefaults.AuthenticationScheme;
+                };
             })
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
@@ -79,6 +93,27 @@ namespace CRMService.Core
                 options.LoginPath = "/login";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromDays(14);
+
+                options.Events.OnRedirectToLogin = ctx =>
+                {
+                    if (ctx.Request.Path.StartsWithSegments("/api"))
+                    {
+                        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        return Task.CompletedTask;
+                    }
+                    ctx.Response.Redirect(ctx.RedirectUri);
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = ctx =>
+                {
+                    if (ctx.Request.Path.StartsWithSegments("/api"))
+                    {
+                        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return Task.CompletedTask;
+                    }
+                    ctx.Response.Redirect(ctx.RedirectUri);
+                    return Task.CompletedTask;
+                };
             })
             .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
@@ -93,7 +128,6 @@ namespace CRMService.Core
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
                     ValidateIssuerSigningKey = true,
                 };
-
                 options.RequireHttpsMetadata = false;
             });
 
@@ -133,26 +167,15 @@ namespace CRMService.Core
                 .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
                 .SetApplicationName(projectName);
 
-            services.AddDbContext<ApplicationContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql"));});
-            services.AddDbContext<OkdeskContext>(options => { options.UseNpgsql(builder.Configuration.GetConnectionString("Postgresql"));});
+            services.AddDbContext<ApplicationContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")); });
+            services.AddDbContext<OkdeskContext>(options => { options.UseNpgsql(builder.Configuration.GetConnectionString("Postgresql")); });
 
             services.AddLogging();
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(180);
-                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
-                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
-                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("br"));
                 configureHttpClient?.Invoke(client);
-            })
-            .ConfigurePrimaryHttpMessageHandler(() =>
-            {
-                HttpClientHandler handler = new ()
-                {
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
-                };
-                return handler;
             });
 
             services.AddSignalR();
@@ -162,12 +185,6 @@ namespace CRMService.Core
             services.AddSingleton(new PGConfig(builder.Configuration.GetConnectionString("Postgresql")!));
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
-            services.AddSingleton<IJsonSerializer>(sp =>
-            {
-                JsonSerializerSettings settings = new ();
-                configureNewtonsoft?.Invoke(settings);
-                return new NewtonsoftJsonSerializer(settings);
-            });
             services.AddScoped<PGSelect>();
             services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -197,7 +214,7 @@ namespace CRMService.Core
             services.AddScoped<ModelService>();
             services.AddScoped<RoleService>();
             services.AddScoped<TimeEntryService>();
-            services.AddScoped<ReportService>();
+            services.AddScoped<IReportService, ReportService>();
 
             services.AddScoped<GetOkdeskEntityService>();
             services.AddScoped<UpdateDirectoriesService>();

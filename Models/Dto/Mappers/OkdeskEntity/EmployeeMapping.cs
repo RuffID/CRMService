@@ -16,6 +16,7 @@ namespace CRMService.Models.Dto.Mappers.OkdeskEntity
             return new EmployeeDto()
             {
                 Id = employee.Id,
+                GroupIds = employee.EmployeeGroups.Select(g => g.GroupId).ToList(),
                 LastName = employee.LastName,
                 FirstName = employee.FirstName,
                 Patronymic = employee.Patronymic

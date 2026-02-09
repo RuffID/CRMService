@@ -1,20 +1,19 @@
-﻿using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.DataBase.Postgresql;
 using CRMService.Models.OkdeskEntity;
 using System.Data;
 
 namespace CRMService.Service.OkdeskEntity
 {
-    public class CompanyCategoryService(PGSelect pGSelect, IUnitOfWork unitOfWork, ILoggerFactory logger)
+    public class CompanyCategoryService(PGSelect pGSelect, IUnitOfWork unitOfWork, ILogger<CompanyCategoryService> logger)
     {
         private readonly PGSelect _pGSelect = pGSelect;
-        private readonly ILogger<CompanyCategoryService> _logger = logger.CreateLogger<CompanyCategoryService>();
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-        private async Task<List<CompanyCategory>> GetCategoriesFromCloudDb()
+        private async Task<List<CompanyCategory>> GetCategoriesFromCloudDb(CancellationToken ct)
         {
             string sqlCommand = "SELECT * FROM company_categories;";
-            DataSet ds = await _pGSelect.Select(sqlCommand);
+            DataSet ds = await _pGSelect.Select(sqlCommand, ct);
             DataTable? categoryTable = ds.Tables["Table"];
             if (categoryTable == null)
                 return new();
@@ -44,7 +43,9 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateCategoriesFromCloudDb(CancellationToken ct)
         {
-            List<CompanyCategory> categories = await GetCategoriesFromCloudDb();
+            logger.LogInformation("[Method:{MethodName}] Starting to update company categories from DB.", nameof(UpdateCategoriesFromCloudDb));
+
+            List<CompanyCategory> categories = await GetCategoriesFromCloudDb(ct);
 
             if (categories.Count == 0)
                 return;

@@ -13,5 +13,10 @@ namespace CRMService.Models.Dto.OkdeskEntity
         public string? FirstName { get; set; }
 
         public string? Patronymic { get; set; }
+
+        /// <summary>
+        /// User's membership in groups.
+        /// </summary>
+        public List<int> GroupIds { get; set; } = new();
     }
 }

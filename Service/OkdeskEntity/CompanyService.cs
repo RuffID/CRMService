@@ -1,19 +1,18 @@
-﻿using CRMService.API;
+﻿using CRMService.Abstractions.Database.Repository;
+using CRMService.API;
 using CRMService.DataBase.Postgresql;
-using CRMService.Interfaces.Repository;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace CRMService.Service.OkdeskEntity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        GetOkdeskEntityService _request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        GetOkdeskEntityService _request, IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<CompanyService> logger)
     {
-        private readonly ILogger<CompanyService> _logger = logger.CreateLogger<CompanyService>();
-
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
             string link = $"{endpoint.Value.OkdeskApi}/companies?api_token={okdSettings.Value.OkdeskApiToken}&id={companyId}";
@@ -21,12 +20,12 @@ namespace CRMService.Service.OkdeskEntity
             return await _request.GetItem<Company>(link);
         }
 
-        private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudApiByCategory(IEnumerable<CompanyCategory> categories, long startIndex, long limit)
+        private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudApiByCategory(IEnumerable<CompanyCategory> categories, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             foreach (CompanyCategory category in categories)
             {
                 string link = $"{endpoint.Value.OkdeskApi}/companies/list?api_token={okdSettings.Value.OkdeskApiToken}&category_ids[]={category.Id}";
-                await foreach (List<Company> companies in _request.GetAllItems<Company>(link, startIndex, limit))
+                await foreach (List<Company> companies in _request.GetAllItems<Company>(link, startIndex: 0, limit, ct: ct))
                 {
                     foreach (Company company in companies)
                     {
@@ -39,7 +38,7 @@ namespace CRMService.Service.OkdeskEntity
             }
         }
 
-        private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, long startIndexCompany)
+        private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, [EnumeratorCancellation] CancellationToken ct)
         {
             foreach (CompanyCategory category in categories)
             {
@@ -48,8 +47,7 @@ namespace CRMService.Service.OkdeskEntity
                     string sqlCommand = string.Format(
                         "SELECT companies.sequential_id AS id, companies.name, companies.additional_name, companies.active " +
                         "FROM companies " +
-                        "LEFT OUTER JOIN company_categories ON companies.category_id = company_categories.id " +
-                        "WHERE companies.sequential_id > '{0}' ", startIndexCompany);
+                        "LEFT OUTER JOIN company_categories ON companies.category_id = company_categories.id");
 
                     if (category.Code == "no_category")
                         sqlCommand += " AND company_categories.code IS NULL ";
@@ -57,7 +55,7 @@ namespace CRMService.Service.OkdeskEntity
 
                     sqlCommand += $" ORDER BY companies.sequential_id LIMIT {LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB};";
 
-                    DataSet ds = await pGSelect.Select(sqlCommand);
+                    DataSet ds = await pGSelect.Select(sqlCommand, ct);
                     DataTable? companyTable = ds.Tables["Table"];
                     if (companyTable == null)
                         break;
@@ -78,10 +76,8 @@ namespace CRMService.Service.OkdeskEntity
                     if (companies == null || companies.Count == 0)
                         break;
 
-                    startIndexCompany = companies.Last().Id;
                     yield return companies;
                 }
-                startIndexCompany = 0;
             }
         }
 
@@ -105,14 +101,16 @@ namespace CRMService.Service.OkdeskEntity
             await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateCompaniesFromCloudApi(int startIndexCategory, long startIndexCompany, CancellationToken ct)
+        public async Task UpdateCompaniesFromCloudApi(CancellationToken ct)
         {
-            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
+            logger.LogInformation("[Method:{MethodName}] Starting to update companies from API.", nameof(UpdateCompaniesFromCloudApi));
+
+            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             if (categories.Count == 0)
                 return;
 
-            await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, startIndexCompany, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API))
+            await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
                 foreach (Company company in companies)
                 {
@@ -127,16 +125,16 @@ namespace CRMService.Service.OkdeskEntity
             await unitOfWork.SaveAsync(ct);
         }
 
-        public async Task UpdateCompaniesFromCloudDb(int startIndexCategory, long startIndexCompany, CancellationToken ct)
+        public async Task UpdateCompaniesFromCloudDb(CancellationToken ct)
         {
-            _logger.LogInformation("[Method:{MethodName}] Starting updating companies.", nameof(UpdateCompaniesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Starting to update companies from DB.", nameof(UpdateCompaniesFromCloudDb));
 
-            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(predicate: c => c.Id >= startIndexCategory, asNoTracking: true, ct: ct);
+            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             if (categories == null || !categories.Any())
                 return;
 
-            await foreach (List<Company> companies in GetCompaniesFromCloudDbByCategory(categories, startIndexCompany))
+            await foreach (List<Company> companies in GetCompaniesFromCloudDbByCategory(categories, ct))
             {
                 if (companies.Count == 0)
                     continue;
@@ -153,7 +151,7 @@ namespace CRMService.Service.OkdeskEntity
 
             await unitOfWork.SaveAsync(ct);
 
-            _logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }
 
         public async Task<bool> CheckCompanyCategory(Company company, CancellationToken ct)

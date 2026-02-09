@@ -17,7 +17,9 @@ namespace CRMService.Models.Dto.Mappers.OkdeskEntity
             {
                 Id = type.Id,
                 Name = type.Name,
-                Code = type.Code
+                Code = type.Code,
+                GroupId = type.GroupId,
+                GroupName = type.Group?.Name
             };
         }
     }

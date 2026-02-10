@@ -10,10 +10,8 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Service.OkdeskEntity
 {
     public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, GetOkdeskEntityService itemService,
-        IUnitOfWork unitOfWork, PGSelect pGSelect, ILoggerFactory logger)
+        IUnitOfWork unitOfWork, PGSelect pGSelect, ILogger<IssueService> logger)
     {
-        private readonly ILogger<IssueService> _logger = logger.CreateLogger<IssueService>();
-
         private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = string.Format("{0}/issues/list?api_token={1}&updated_since={2}&updated_until={3}&assignee_ids[]={4}",
@@ -67,7 +65,7 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateIssuesFromCloudApi(DateTime dateFrom, DateTime dateTo, long startIndex = 0, long limit = 0, [CallerMemberName] string caller = "", CancellationToken ct = default)
         {
-            _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudApi), caller);
+            logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting updating issues.", nameof(UpdateIssuesFromCloudApi), caller);
 
             long employeeStartIndex = 0;
             List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id >= employeeStartIndex, asNoTracking: true, ct: ct);
@@ -104,12 +102,12 @@ namespace CRMService.Service.OkdeskEntity
 
             await unitOfWork.SaveAsync(ct);
 
-            _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
+            logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
         }
 
         public async Task UpdateIssuesFromCloudDb(DateTime dateFrom, DateTime dateTo, int startIndex, int limit, [CallerMemberName] string caller = "", CancellationToken ct = default)
         {
-            _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting to update issues.", nameof(UpdateIssuesFromCloudDb), caller);
+            logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting to update issues.", nameof(UpdateIssuesFromCloudDb), caller);
 
             while (true)
             {
@@ -137,36 +135,71 @@ namespace CRMService.Service.OkdeskEntity
 
             await unitOfWork.SaveAsync(ct);
 
-            _logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
+            logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
         }
 
         public async Task CheckAttributes(Issue issue, CancellationToken ct)
         {
             if (issue.Company != null)
-                issue.CompanyId = (await unitOfWork.Company.GetItemByIdAsync(issue.Company.Id, true, ct: ct))?.Id ??
-                    throw new InvalidOperationException($"Company by id: {issue.Company.Id} - not found.");
+            {
+                Company? company = await unitOfWork.Company.GetItemByIdAsync(issue.Company.Id, true, ct: ct);
+                if (company == null)
+                    logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.Company.Id, issue.Id);
+
+                issue.CompanyId = company?.Id;
+            }
 
             if (issue.ServiceObject != null)
-                issue.ServiceObjectId = (await unitOfWork.MaintenanceEntity.GetItemByIdAsync(issue.ServiceObject.Id, true, ct: ct))?.Id ??
-                    throw new InvalidOperationException($"Service object by id: {issue.ServiceObject.Id} - not found.");
+            {
+                MaintenanceEntity? serviceObject = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(issue.ServiceObject.Id, true, ct: ct);
+                if (serviceObject == null)
+                    logger.LogWarning("[Method:{MethodName}] Service object with id: {ServiceObjectId} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.ServiceObject.Id, issue.Id);
+
+                issue.ServiceObjectId = serviceObject?.Id;
+            }
 
             if (issue.Status != null)
-                issue.StatusId = (await unitOfWork.IssueStatus.GetItemByPredicateAsync(s => s.Code == issue.Status.Code, true, ct: ct))?.Id ??
-                    throw new InvalidOperationException($"Status by code: {issue.Status.Code} - not found.");
+            {
+                IssueStatus? status = await unitOfWork.IssueStatus.GetItemByPredicateAsync(s => s.Code == issue.Status.Code, true, ct: ct);
+                if (status == null)
+                    logger.LogWarning("[Method:{MethodName}] Status with code: {StatusCode} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.Status.Code, issue.Id);
+
+                issue.StatusId = status?.Id;
+            }
 
             if (issue.Priority != null)
-                issue.PriorityId = (await unitOfWork.IssuePriority.GetItemByPredicateAsync(p => p.Code == issue.Priority.Code, true, ct: ct))?.Id ??
-                    throw new InvalidOperationException($"Priority by code: {issue.Priority.Code} - not found.");
+            {
+                IssuePriority? priority = await unitOfWork.IssuePriority.GetItemByPredicateAsync(p => p.Code == issue.Priority.Code, true, ct: ct);
+                if (priority == null)
+                    logger.LogWarning("[Method:{MethodName}] Priority with code: {PriorityCode} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.Priority.Code, issue.Id);
+
+                issue.PriorityId = priority?.Id;
+            }
 
             if (issue.Type != null)
-                issue.TypeId = (await unitOfWork.IssueType.GetItemByPredicateAsync(t => t.Code == issue.Type.Code, true, ct: ct))?.Id ??
-                    throw new InvalidOperationException($"Type by code: {issue.Type.Code} - not found.");
+            {
+                IssueType? type = await unitOfWork.IssueType.GetItemByPredicateAsync(t => t.Code == issue.Type.Code, true, ct: ct);
+                if (type == null)
+                    logger.LogWarning("[Method:{MethodName}] Type with code: {TypeCode} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.Type.Code, issue.Id);
+
+                issue.TypeId = type?.Id;
+            }
 
             if (issue.AssigneeId != null && issue.AssigneeId != 0)
-                issue.AssigneeId = (await unitOfWork.Employee.GetItemByIdAsync(issue.AssigneeId.Value, true, ct: ct))?.Id ??
-                    throw new InvalidOperationException($"Assignee by id: {issue.AssigneeId} - not found.");
+            {
+                Employee? assignee = await unitOfWork.Employee.GetItemByIdAsync(issue.AssigneeId.Value, true, ct: ct);
+                if (assignee == null)
+                    logger.LogWarning("[Method:{MethodName}] Employee with id: {AssigneeId} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.AssigneeId, issue.Id);
 
-            // Если не зануллить то будет выдавать ошибку EF (id уже использовался)
+                issue.AssigneeId = assignee?.Id;
+            }
+
             issue.Company = null;
             issue.ServiceObject = null;
             issue.Status = null;
@@ -174,5 +207,6 @@ namespace CRMService.Service.OkdeskEntity
             issue.Type = null;
             issue.Assignee = null;
         }
+
     }
 }

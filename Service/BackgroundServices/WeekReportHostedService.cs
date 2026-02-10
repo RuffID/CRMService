@@ -8,7 +8,6 @@ namespace CRMService.Service.BackgroundServices
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                // Вычисляет задержку до следующей недели
                 await Task.Delay(TimeSpan.FromDays(7), stoppingToken);
 
                 using IServiceScope scope = scopeFactory.CreateScope();

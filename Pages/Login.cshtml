@@ -5,24 +5,27 @@
     ViewData["Title"] = "Вход";
 }
 
-<div>
-    <h2 class="mb-4">Вход в приложение</h2>
 
-    <form method="post" class="w-100" style="max-width: 400px;">
-        <div class="mb-3">
-            <label for="Login" class="form-label">Логин</label>
-            <input asp-for="UserPage.Login" name="login" id="Login" class="form-control" required />
-            <span asp-validation-for="UserPage.Login" class="text-danger small"></span>
-        </div>
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light p-3">
+    <div class="bg-white border rounded-3 shadow-sm p-4 w-100" style="max-width: 420px;">
+        <h2 class="mb-4">Вход в приложение</h2>
 
-        <div class="mb-3">
-            <label for="Password" class="form-label">Пароль</label>
-            <input asp-for="UserPage.Password" type="password" name="password" id="Password" class="form-control" required />
-        </div>
+        <form method="post" class="w-100" style="max-width: 400px;">
+            <div class="mb-3">
+                <label for="Login" class="form-label">Логин</label>
+                <input asp-for="UserPage.Login" name="login" id="Login" class="form-control" required />
+                <span asp-validation-for="UserPage.Login" class="text-danger small"></span>
+            </div>
 
-        <div class="d-grid">
-            <button type="submit" class="btn btn-primary btn-lg">Войти</button>
-        </div>
-    </form>
+            <div class="mb-3">
+                <label for="Password" class="form-label">Пароль</label>
+                <input asp-for="UserPage.Password" type="password" name="password" id="Password" class="form-control" required />
+            </div>
 
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Войти</button>
+            </div>
+        </form>
+
+    </div>
 </div>

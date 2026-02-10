@@ -1,14 +1,20 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.InteropServices;
 
 namespace CRMService.Service.DataBase
 {
-    public class BackupService<TContext>(string connectionString, string backupFolder, ILoggerFactory logger) where TContext : DbContext
+    public class BackupService<TContext>(string connectionString, string backupFolder, ILogger<BackupService<TContext>> logger) where TContext : DbContext
     {
-        private readonly ILogger<BackupService<TContext>> _logger = logger.CreateLogger<BackupService<TContext>>();
 
         public void CreateSqlServerBackup()
         {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (!Directory.Exists(backupFolder))
+                    Directory.CreateDirectory(backupFolder);
+            }
+
             string timestamp = DateTime.Now.ToString("yyyy.MM.dd_HHmmss");
             string backupFilePath = Path.Combine(backupFolder, $"backup_{timestamp}.sql");
 
@@ -21,7 +27,7 @@ namespace CRMService.Service.DataBase
             using SqlCommand command = new(sql, connection);
             command.ExecuteNonQuery();
 
-            _logger.LogInformation("[Method:{MethodName}] Backup created at: {BackupFilePath}", nameof(CreateSqlServerBackup), backupFilePath);
+            logger.LogInformation("[Method:{MethodName}] Backup created at: {BackupFilePath}", nameof(CreateSqlServerBackup), backupFilePath);
         }
     }
 }

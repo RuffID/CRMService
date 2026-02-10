@@ -105,13 +105,13 @@ namespace CRMService.DataBase.Repository.Report
                 query = query.Where(i => i.AssigneeId != null && filters.EmployeeIds!.Contains(i.AssigneeId.Value));
 
             if (filters.HasStatus)
-                query = query.Where(i => filters.StatusIds!.Contains(i.StatusId));
+                query = query.Where(i => i.StatusId != null && filters.StatusIds!.Contains(i.StatusId.Value));
 
             if (filters.HasPriority)
-                query = query.Where(i => filters.PriorityIds!.Contains(i.PriorityId));
+                query = query.Where(i => i.PriorityId != null && filters.PriorityIds!.Contains(i.PriorityId.Value));
 
             if (filters.HasType)
-                query = query.Where(i => filters.TypeIds!.Contains(i.TypeId));
+                query = query.Where(i => i.TypeId != null && i.TypeId != null && filters.TypeIds!.Contains(i.TypeId.Value));
 
             return query;
         }

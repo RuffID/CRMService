@@ -190,10 +190,10 @@ namespace CRMService.Core
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<BackupService<ApplicationContext>>(sp =>
             {
-                ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                ILogger<BackupService<ApplicationContext>> logger = sp.GetRequiredService<ILogger<BackupService<ApplicationContext>>>();
                 string connectionString = builder.Configuration.GetConnectionString("MSSql")!;
                 string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
-                return new BackupService<ApplicationContext>(connectionString, backupFolder, loggerFactory);
+                return new BackupService<ApplicationContext>(connectionString, backupFolder, logger);
             });
 
 
@@ -219,6 +219,7 @@ namespace CRMService.Core
             services.AddScoped<GetOkdeskEntityService>();
             services.AddScoped<UpdateDirectoriesService>();
             services.AddScoped<Hasher>();
+            services.AddScoped<TelegramNotification>();
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();

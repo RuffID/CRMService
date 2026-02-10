@@ -1,5 +1,4 @@
-﻿using HttpClientLibrary.Abstractions;
-using CRMService.Abstractions.Database.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Service;
 using CRMService.API;
 using CRMService.Models.ConfigClass;
@@ -10,12 +9,11 @@ using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook
 {
-    public class IssueWebhookService(IUnitOfWork unitOfWork, IssueService issueService, IHttpApiClient client, IOptions<ApiEndpointOptions> endp,
-        IOptions<TelegramBotOptions> tgSettings, ILoggerFactory logger) : IWebhookHandler
+    public class IssueWebhookService(IUnitOfWork unitOfWork, IssueService issueService, IOptions<ApiEndpointOptions> endp,
+        IOptions<TelegramBotOptions> tgSettings, ILoggerFactory logger, TelegramNotification tgNotif) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
         private readonly ILogger<IssueWebhookService> _logger = logger.CreateLogger<IssueWebhookService>();
-        private readonly TelegramNotification tgNotif = new(client, endp.Value, logger);
 
         public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct = default)
         {
@@ -73,7 +71,7 @@ namespace CRMService.Service.Webhook
             content += $"{endp.Value.OkdeskDomainUrl}/issues/{issue.Id}";
 
             if (issueJson.Author?.Type == AUTHOR_CONTACT_TYPE)
-                await tgNotif.SendMessage(tgSettings.Value.ChatId, content, ct);
+                await tgNotif.SendMessage(tgSettings.Value.SupportChatId, content, ct);
         }
 
         private async Task UpdateStatusAndSaveTimeEntries(RootEventWebHook @event, CancellationToken ct)
@@ -182,7 +180,7 @@ namespace CRMService.Service.Webhook
             content += $"{@event?.Issue?.Client?.Company?.Name}" + Environment.NewLine + Environment.NewLine;
             content += $"{endp.Value.OkdeskDomainUrl}/issues/{@event?.Issue?.Id}";
 
-            await tgNotif.SendMessage(tgSettings.Value.ChatId, content, ct);
+            await tgNotif.SendMessage(tgSettings.Value.SupportChatId, content, ct);
         }
 
         private static string Priority(string? priority) => priority switch

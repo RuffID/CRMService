@@ -20,8 +20,6 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateTimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
-            logger.LogInformation("[Method:{MethodName}] Starting to update time entries for issues from API.", nameof(UpdateTimeEntriesFromCloudApi));
-
             TimeEntries? timeEntry = await GetimeEntriesFromCloudApi(issueId, ct);
 
             if (timeEntry == null || timeEntry.Time_Entries == null || timeEntry.Time_Entries.Length == 0)

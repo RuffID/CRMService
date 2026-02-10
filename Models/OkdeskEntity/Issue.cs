@@ -32,11 +32,11 @@ namespace CRMService.Models.OkdeskEntity
         [JsonProperty("deleted_at")]
         public DateTime? DeletedAt { get; set; }
 
-        public int StatusId { get; set; }
+        public int? StatusId { get; set; }
 
-        public int TypeId { get; set; }
+        public int? TypeId { get; set; }
 
-        public int PriorityId { get; set; }
+        public int? PriorityId { get; set; }
 
         public int? CompanyId { get; set; }
 

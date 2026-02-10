@@ -1,34 +1,38 @@
 ﻿using CRMService.Models.ConfigClass;
+using CRMService.Models.Request;
 using HttpClientLibrary.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace CRMService.API
 {
-    public  class TelegramNotification(IHttpApiClient client, ApiEndpointOptions endpoint, ILoggerFactory logger)
+    public  class TelegramNotification(IHttpApiClient client, IOptions<ApiEndpointOptions> endpoint, ILogger<TelegramNotification> logger)
     {
-        private readonly ILogger<TelegramNotification> _logger = logger.CreateLogger<TelegramNotification>();
         public async Task SendMessage(long? chatId, string content, CancellationToken ct = default)
         {
-            if (string.IsNullOrEmpty(content) || chatId == null) 
+            if (string.IsNullOrWhiteSpace(content) || chatId is null || chatId == 0)
+            {
+                logger.LogWarning("[Method:{MethodName}] Invalid parameters for Telegram notification. chatId={ChatId}, content length={ContentLength}", nameof(SendMessage), chatId, content?.Length ?? 0);
                 return;
+            }
 
-            object body = new { content };
-            string url = $"{endpoint.TelegramBotUrl}?chatId={chatId}";
+            TelegramSendMessageRequest body = new () { Message = content };
+            string url = $"{endpoint.Value.TelegramBotUrl}?chatId={chatId}";
 
             try
             {
-                await client.PostAsync(url, body, contentType: "application/json", ct: ct);
+                await client.PostAsync(url, body, ct: ct);
             }
             catch (OperationCanceledException)
             {
-                _logger.LogWarning("[Method:{MethodName}] Telegram notification cancelled. chatId={ChatId}", nameof(SendMessage), chatId );
+                logger.LogWarning("[Method:{MethodName}] Telegram notification cancelled. chatId={ChatId}", nameof(SendMessage), chatId );
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning("[Method:{MethodName}] Failed to send Telegram notification. chatId={ChatId}, url={Url}, error={Error}", nameof(SendMessage), chatId, url, ex.Message);
+                logger.LogWarning("[Method:{MethodName}] Failed to send Telegram notification. chatId={ChatId}, url={Url}, error={Error}", nameof(SendMessage), chatId, url, ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Method:{MethodName}] Unexpected error while sending Telegram notification. chatId={ChatId}", nameof(SendMessage), chatId);
+                logger.LogError(ex, "[Method:{MethodName}] Unexpected error while sending Telegram notification. chatId={ChatId}", nameof(SendMessage), chatId);
             }
         }
     }

@@ -17,7 +17,7 @@ namespace CRMService.DataBase.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -390,13 +390,13 @@ namespace CRMService.DataBase.Migrations
                     b.Property<DateTime>("EmployeesUpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PriorityId")
+                    b.Property<int?>("PriorityId")
                         .HasColumnType("int");
 
                     b.Property<int?>("ServiceObjectId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StatusId")
+                    b.Property<int?>("StatusId")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -404,7 +404,7 @@ namespace CRMService.DataBase.Migrations
                         .HasMaxLength(3000)
                         .HasColumnType("nvarchar(3000)");
 
-                    b.Property<int>("TypeId")
+                    b.Property<int?>("TypeId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -897,8 +897,7 @@ namespace CRMService.DataBase.Migrations
                     b.HasOne("CRMService.Models.OkdeskEntity.IssuePriority", "Priority")
                         .WithMany("Issues")
                         .HasForeignKey("PriorityId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.MaintenanceEntity", "ServiceObject")
                         .WithMany("Issues")
@@ -908,14 +907,12 @@ namespace CRMService.DataBase.Migrations
                     b.HasOne("CRMService.Models.OkdeskEntity.IssueStatus", "Status")
                         .WithMany("Issues")
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CRMService.Models.OkdeskEntity.IssueType", "Type")
                         .WithMany("Issues")
                         .HasForeignKey("TypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Assignee");
 

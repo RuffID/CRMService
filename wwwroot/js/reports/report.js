@@ -1,5 +1,6 @@
 ﻿let antiForgeryToken = null;
 const reportSortKey = "crm_report_sort_v1";
+const reportFontScaleKey = "crm_report_font_scale_v1";
 let lastReportItems = [];
 window.resetReportSorting = resetReportSorting;
 const reportAutoReloadMs = 5 * 60 * 1000; // 5 минут
@@ -7,6 +8,8 @@ const reportAutoReloadMs = 5 * 60 * 1000; // 5 минут
 document.addEventListener('DOMContentLoaded', () => {
     antiForgeryToken = getRequestVerificationToken();
     initReportSorting();
+    initReportFontScale();
+    applyRowDensity(0.6);
     startAutoReload();
 
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
@@ -122,6 +125,8 @@ function renderTableRows(items) {
         tr.appendChild(tdTime);
         tbody.appendChild(tr);
     });
+
+    applyRowDensity(0.6);
 }
 
 function formatHours(hours) {
@@ -131,9 +136,9 @@ function formatHours(hours) {
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
 
-    if (h > 0 && m > 0) return `${h} час${h > 1 ? 'а' : ''} ${m} минут`;
-    if (h > 0) return `${h} час${h > 1 ? 'а' : ''}`;
-    return `${m} минут`;
+    if (h > 0 && m > 0) return `${h} ч. ${m} м.`;
+    if (h > 0) return `${h} ч.`;
+    return `${m} м.`;
 }
 
 function buildFullName(it) {
@@ -311,4 +316,63 @@ function applyClientFilters(items) {
     }
 
     return res;
+}
+
+function initReportFontScale() {
+    const btnMinus = document.getElementById('fontMinus');
+    const btnPlus = document.getElementById('fontPlus');
+
+    if (!btnMinus || !btnPlus) return;
+
+    applyFontScale(loadFontScale());
+
+    btnMinus.addEventListener('click', () => changeFontScale(-0.1));
+    btnPlus.addEventListener('click', () => changeFontScale(+0.1));
+}
+
+function changeFontScale(delta) {
+    const cur = loadFontScale();
+    const next = clamp(round1(cur + delta), 0.7, 1.6);
+    saveFontScale(next);
+    applyFontScale(next);
+}
+
+function applyFontScale(scale) {
+    const grid = document.getElementById('grid');
+    if (grid) grid.style.fontSize = `${scale}em`;
+
+    const label = document.getElementById('fontScaleLabel');
+    if (label) label.textContent = `${Math.round(scale * 100)}%`;
+}
+
+function loadFontScale() {
+    const raw = localStorage.getItem(reportFontScaleKey);
+    const v = raw ? Number(raw) : NaN;
+    if (!Number.isFinite(v)) return 1.0;
+    return clamp(v, 0.7, 1.6);
+}
+
+function saveFontScale(scale) {
+    localStorage.setItem(reportFontScaleKey, String(scale));
+}
+
+function clamp(v, min, max) {
+    return Math.min(max, Math.max(min, v));
+}
+
+function round1(v) {
+    return Math.round(v * 10) / 10;
+}
+
+function applyRowDensity(scale) {
+    const grid = document.getElementById('grid');
+    if (!grid) return;
+
+    const basePadding = 8;
+    const px = Math.max(2, Math.round(basePadding * scale));
+
+    grid.querySelectorAll('th, td').forEach(cell => {
+        cell.style.paddingTop = px + 'px';
+        cell.style.paddingBottom = px + 'px';
+    });
 }

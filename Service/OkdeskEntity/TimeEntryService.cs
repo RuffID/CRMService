@@ -37,18 +37,24 @@ namespace CRMService.Service.OkdeskEntity
 
             foreach (TimeEntry entry in timeEntry.Time_Entries)
             {
-                entry.IssueId = issueId;
                 entry.EmployeeId = entry.Employee?.Id ?? throw new InvalidOperationException($"Employee id is not set in time entry: {entry.Id}");
-            }
+                entry.IssueId = issueId;
 
-            foreach (TimeEntry item in timeEntry.Time_Entries)
-            {
-                TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
+                if (await unitOfWork.Employee.GetItemByIdAsync(entry.EmployeeId, asNoTracking: true, ct: ct) == null)
+                {
+                    logger.LogWarning("[Method:{MethodName}] Employee: {employeeId} - not found in local DB.", nameof(UpdateTimeEntriesFromCloudApi), entry.EmployeeId);
+                    continue;
+                }
+
+                entry.Employee = null;
+                entry.Issue = null;
+
+                TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(entry.Id, ct: ct);
 
                 if (existingEntry == null)
-                    unitOfWork.TimeEntry.Create(item);
+                    unitOfWork.TimeEntry.Create(entry);
                 else
-                    existingEntry.CopyData(item);
+                    existingEntry.CopyData(entry);
             }
 
             await unitOfWork.SaveAsync(ct);

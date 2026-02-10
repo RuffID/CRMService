@@ -8,9 +8,9 @@ using System.Net;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration
-    .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Config"))
-    .AddJsonFile("config.json");
+string configPath = Path.Combine(AppContext.BaseDirectory, "Config", "config.json");
+
+builder.Configuration.AddJsonFile(configPath, optional: false, reloadOnChange: false);
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.With(new SimpleClassNameEnricher())

@@ -1,10 +1,10 @@
 ﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Service;
-using CRMService.API;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.WebHook;
 using CRMService.Service.OkdeskEntity;
+using CRMService.Service.Requests;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.Webhook

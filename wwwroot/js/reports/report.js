@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     antiForgeryToken = getRequestVerificationToken();
     initReportSorting();
     initReportFontScale();
-    applyRowDensity(0.6);
+    applyRowDensity(0.3);
     startAutoReload();
 
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
@@ -126,7 +126,7 @@ function renderTableRows(items) {
         tbody.appendChild(tr);
     });
 
-    applyRowDensity(0.6);
+    applyRowDensity(0.3);
 }
 
 function formatHours(hours) {
@@ -332,7 +332,7 @@ function initReportFontScale() {
 
 function changeFontScale(delta) {
     const cur = loadFontScale();
-    const next = clamp(round1(cur + delta), 0.7, 1.6);
+    const next = clamp(round1(cur + delta), 0.7, 2.0);
     saveFontScale(next);
     applyFontScale(next);
 }
@@ -342,14 +342,14 @@ function applyFontScale(scale) {
     if (grid) grid.style.fontSize = `${scale}em`;
 
     const label = document.getElementById('fontScaleLabel');
-    if (label) label.textContent = `${Math.round(scale * 100)}%`;
+    if (label) label.textContent = `(${scale.toFixed(1)})`;
 }
 
 function loadFontScale() {
     const raw = localStorage.getItem(reportFontScaleKey);
     const v = raw ? Number(raw) : NaN;
     if (!Number.isFinite(v)) return 1.0;
-    return clamp(v, 0.7, 1.6);
+    return clamp(v, 0.7, 2.0);
 }
 
 function saveFontScale(scale) {

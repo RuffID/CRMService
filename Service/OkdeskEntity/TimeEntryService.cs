@@ -1,9 +1,9 @@
 ﻿using CRMService.Abstractions.Database.Repository;
-using CRMService.API;
 using CRMService.DataBase.Postgresql;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
+using CRMService.Service.Requests;
 using HttpClientLibrary.Exceptions;
 using Microsoft.Extensions.Options;
 using System.Data;

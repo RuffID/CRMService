@@ -1,8 +1,8 @@
 ﻿using CRMService.Abstractions.Database.Repository;
-using CRMService.API;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
+using CRMService.Service.Requests;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Service.OkdeskEntity

@@ -3,7 +3,7 @@ using CRMService.Models.Request;
 using HttpClientLibrary.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace CRMService.API
+namespace CRMService.Service.Requests
 {
     public  class TelegramNotification(IHttpApiClient client, IOptions<ApiEndpointOptions> endpoint, ILogger<TelegramNotification> logger)
     {

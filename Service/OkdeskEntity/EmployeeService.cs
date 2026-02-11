@@ -1,5 +1,4 @@
 ﻿using CRMService.Abstractions.Database.Repository;
-using CRMService.API;
 using CRMService.DataBase.Postgresql;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
@@ -7,6 +6,7 @@ using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Responses.Results;
+using CRMService.Service.Requests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Data;

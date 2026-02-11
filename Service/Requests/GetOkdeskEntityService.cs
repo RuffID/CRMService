@@ -1,11 +1,12 @@
 ﻿using CRMService.Abstractions.Entity;
 using CRMService.Models.Constants;
 using HttpClientLibrary.Abstractions;
+using HttpClientLibrary.Exceptions;
 using System.Runtime.CompilerServices;
 
-namespace CRMService.API
+namespace CRMService.Service.Requests
 {
-    public class GetOkdeskEntityService(IHttpApiClient client)
+    public class GetOkdeskEntityService(IHttpApiClient client, ILogger<GetOkdeskEntityService> logger)
     {
         public async IAsyncEnumerable<List<T>> GetAllItems<T>(string link, long startIndex, long limit, long pageNubmer = 0, [EnumeratorCancellation] CancellationToken ct = default)
         {
@@ -45,12 +46,30 @@ namespace CRMService.API
             if (pageNubmer != 0)
                 link += $"&page[number]={pageNubmer}";
 
-            return await client.GetAsync<List<T>>(link, ct: ct) ?? new();
+            try
+            {
+                return await client.GetAsync<List<T>>(link, ct: ct) ?? new();
+            }
+            catch (HttpRequestFailedException ex)
+            {
+                logger.LogWarning(ex, "[Method:{MethodName}] Failed to retrieve items from Okdesk API. Link: {Link}", nameof(GetRangeOfItems), link);
+            }
+
+            return new List<T>();
         }
 
         public async Task<T?> GetItem<T>(string link, CancellationToken ct = default)
         {
-            return await client.GetAsync<T>(link, ct: ct);    
+            try
+            {
+                return await client.GetAsync<T>(link, ct: ct);
+            }
+            catch (HttpRequestFailedException ex)
+            {
+                logger.LogWarning(ex, "[Method:{MethodName}] Failed to retrieve item from Okdesk API. Link: {Link}", nameof(GetItem), link);
+            }
+
+            return default;
         }        
     }
 }

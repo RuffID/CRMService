@@ -5,7 +5,6 @@ using CRMService.Abstractions.Database.Repository.Base;
 using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Abstractions.Database.Repository.Report;
 using CRMService.Abstractions.Service;
-using CRMService.API;
 using CRMService.Core.Filter;
 using CRMService.Core.Middleware;
 using CRMService.DataBase;
@@ -24,6 +23,7 @@ using CRMService.Service.DataBase;
 using CRMService.Service.Hosted;
 using CRMService.Service.OkdeskEntity;
 using CRMService.Service.Report;
+using CRMService.Service.Requests;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
 using HttpClientLibrary;
@@ -59,9 +59,7 @@ namespace CRMService.Core
             return services;
         }
 
-        public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder,
-            Action<JsonSerializerSettings>? configureNewtonsoft = null,
-            Action<HttpClient>? configureHttpClient = null)
+        public static IServiceCollection ConfigureServices(this IServiceCollection services, WebApplicationBuilder builder)
         {
             AddConfig(services, builder.Configuration);
             AddRepositories(services);
@@ -175,7 +173,6 @@ namespace CRMService.Core
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(180);
-                configureHttpClient?.Invoke(client);
             });
 
             services.AddSignalR();

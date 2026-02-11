@@ -4,8 +4,10 @@ using CRMService.DataBase.Postgresql;
 using CRMService.Models.ConfigClass;
 using CRMService.Models.Constants;
 using CRMService.Models.OkdeskEntity;
+using HttpClientLibrary.Exceptions;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Net;
 
 namespace CRMService.Service.OkdeskEntity
 {
@@ -20,15 +22,43 @@ namespace CRMService.Service.OkdeskEntity
 
         public async Task UpdateTimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
-            TimeEntries? timeEntry = await GetimeEntriesFromCloudApi(issueId, ct);
+            TimeEntries? timeEntry;
 
-            if (timeEntry == null || timeEntry.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
+            try
             {
-                List<TimeEntry> timeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
-                unitOfWork.TimeEntry.DeleteRange(timeEntries);
+                timeEntry = await GetimeEntriesFromCloudApi(issueId, ct);
+            }
+            catch (HttpRequestFailedException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                logger.LogWarning("[Method:{MethodName}] Issue {IssueId} not found in Okdesk (404). Marking as deleted.", nameof(UpdateTimeEntriesFromCloudApi), issueId);
 
-                if (timeEntries.Count > 0)
+                Issue? issue = await unitOfWork.Issue.GetItemByIdAsync(issueId, ct: ct);
+                if (issue != null && issue.DeletedAt == null)
+                {
+                    issue.DeletedAt = DateTime.UtcNow;
                     await unitOfWork.SaveAsync(ct);
+                }
+
+                List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
+
+                if (existingTimeEntries.Count > 0)
+                {
+                    unitOfWork.TimeEntry.DeleteRange(existingTimeEntries);
+                    await unitOfWork.SaveAsync(ct);
+                }
+
+                return;
+            }
+
+            if (timeEntry?.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
+            {
+                List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
+
+                if (existingTimeEntries.Count > 0)
+                {
+                    unitOfWork.TimeEntry.DeleteRange(existingTimeEntries);
+                    await unitOfWork.SaveAsync(ct);
+                }
 
                 return;
             }
@@ -36,11 +66,13 @@ namespace CRMService.Service.OkdeskEntity
             foreach (TimeEntry entry in timeEntry.Time_Entries)
             {
                 entry.EmployeeId = entry.Employee?.Id ?? throw new InvalidOperationException($"Employee id is not set in time entry: {entry.Id}");
+
                 entry.IssueId = issueId;
 
                 if (await unitOfWork.Employee.GetItemByIdAsync(entry.EmployeeId, asNoTracking: true, ct: ct) == null)
                 {
-                    logger.LogWarning("[Method:{MethodName}] Employee: {employeeId} - not found in local DB.", nameof(UpdateTimeEntriesFromCloudApi), entry.EmployeeId);
+                    logger.LogWarning("[Method:{MethodName}] Employee {EmployeeId} not found in local DB.", nameof(UpdateTimeEntriesFromCloudApi), entry.EmployeeId);
+
                     continue;
                 }
 
@@ -59,6 +91,7 @@ namespace CRMService.Service.OkdeskEntity
 
             await DeleteMarkedAsDeletedTimeEntries(timeEntry.Time_Entries, ct);
         }
+
 
         private async Task<List<TimeEntry>> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long startId, long limit, CancellationToken ct)
         {

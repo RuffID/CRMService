@@ -10,10 +10,9 @@ using Microsoft.Extensions.Options;
 namespace CRMService.Service.Webhook
 {
     public class IssueWebhookService(IUnitOfWork unitOfWork, IssueService issueService, IOptions<ApiEndpointOptions> endp,
-        IOptions<TelegramBotOptions> tgSettings, ILoggerFactory logger, TelegramNotification tgNotif) : IWebhookHandler
+        IOptions<TelegramBotOptions> tgSettings, ILogger<IssueWebhookService> logger, TelegramNotification tgNotif) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
-        private readonly ILogger<IssueWebhookService> _logger = logger.CreateLogger<IssueWebhookService>();
 
         public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct = default)
         {
@@ -58,7 +57,7 @@ namespace CRMService.Service.Webhook
             else
                 existingIssue.CopyData(issue);
 
-            _logger.LogInformation("[Method:{MethodName}] Create issue from webhook: \"{EventType}\" Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+            logger.LogInformation("[Method:{MethodName}] Create issue from webhook: \"{EventType}\" Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(CreateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
 
             await unitOfWork.SaveAsync(ct);
@@ -79,7 +78,7 @@ namespace CRMService.Service.Webhook
             Issue issue = @event.Issue!.ConvertToIssue();
             await issueService.CheckAttributes(issue, ct);
 
-            _logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+            logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, @event.Issue.Id, @event.Issue.Status?.Code, @event.Issue.Priority?.Code, @event.Issue.Type?.Code, @event.Issue.Client?.Company?.Id, @event.Issue.Maintenance_entity?.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
 
             Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
@@ -113,7 +112,7 @@ namespace CRMService.Service.Webhook
                         existingTimeEntry.CopyData(item);
                 }
 
-                _logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
+                logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
             }
 
@@ -131,7 +130,7 @@ namespace CRMService.Service.Webhook
             else
                 existingIssue.CopyData(issue);
 
-            _logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+            logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(UpdateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
 
             await unitOfWork.SaveAsync(ct);
@@ -150,7 +149,7 @@ namespace CRMService.Service.Webhook
             else
                 existingIssue.CopyData(issue);
 
-            _logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, old work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+            logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, old work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(MarkIssueAsDeletedAsync), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
 
             await unitOfWork.SaveAsync(ct);
@@ -177,9 +176,10 @@ namespace CRMService.Service.Webhook
             content += Priority(@event.Issue?.Priority.Code.ToLower());
             content += " Добавлен комментарий: " + @event.Event?.Comment.Content + Environment.NewLine;
             content += FullName(@event.Event?.Author) + Environment.NewLine;
-            content += $"{@event?.Issue?.Client?.Company?.Name}" + Environment.NewLine + Environment.NewLine;
-            content += $"{endp.Value.OkdeskDomainUrl}/issues/{@event?.Issue?.Id}";
+            content += $"{@event.Issue?.Client?.Company?.Name}" + Environment.NewLine + Environment.NewLine;
+            content += $"{endp.Value.OkdeskDomainUrl}/issues/{@event.Issue?.Id}";
 
+            logger.LogInformation("[Method:{MethodName}] New comment from webhook: \"{WebhookType}\". Issue: {issueId}, author: {authorFullName}, companyId: {companyId}", nameof(NewComment), @event.Event!.Event_type, @event.Issue!.Id, FullName(@event.Event.Author), @event.Issue.Client?.Company?.Id);
             await tgNotif.SendMessage(tgSettings.Value.SupportChatId, content, ct);
         }
 

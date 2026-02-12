@@ -28,233 +28,263 @@
                         <span class="fw-semibold text-secondary">Фильтры</span>
                     </button>
 
-                    <div id="filtersPanel" class="collapse">
-                        <div class="border-top px-3 py-3">
-                            <div class="row g-3">
-                                @* Сотрудники *@
-                                <div class="col-12 col-lg-6">
-                                    <div class="dropdown w-100">
-                                        <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
-                                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                            <span>Сотрудники</span>
-                                            <span class="badge bg-primary" id="badgeEmployees">0</span>
-                                        </button>
+                    <div id="reportFocusRoot" style="
+                            background-image: url('/resources/report-bg.jpg');
+                            background-size: cover;
+                            background-position: center center;
+                            background-repeat: no-repeat;
+                         ">
+                        <div id="filtersPanel" class="collapse">
+                            <div class="border-top px-3 py-3">
+                                <div class="row g-3">
+                                    @* Сотрудники *@
+                                    <div class="col-12 col-lg-6">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                                <span>Сотрудники</span>
+                                                <span class="badge bg-primary" id="badgeEmployees">0</span>
+                                            </button>
 
-                                        <div class="dropdown-menu p-2 w-100">
-                                            <input id="searchEmployees" class="form-control form-control-sm mb-2" placeholder="Поиск" />
+                                            <div class="dropdown-menu p-2 w-100">
+                                                <input id="searchEmployees" class="form-control form-control-sm mb-2" placeholder="Поиск" />
 
-                                            <div class="d-flex gap-2 mb-2" id="employeesActions">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" id="employeesSelectAll">Выбрать всё</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="employeesClearAll">Снять всё</button>
-                                            </div>
-
-                                            <div class="text-muted small mb-2 d-none" id="employeesHint"></div>
-
-                                            <div class="overflow-auto px-1" style="max-height:400px;" id="listEmployees">
-                                                <div class="text-muted small px-1 py-2" id="employeesLoading">Загрузка...</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @* Группы *@
-                                <div class="col-12 col-lg-6">
-                                    <div class="dropdown w-100">
-                                        <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
-                                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                            <span>Группы</span>
-                                            <span class="badge bg-primary" id="badgeGroups">0</span>
-                                        </button>
-
-                                        <div class="dropdown-menu p-2 w-100">
-                                            <input id="searchGroups" class="form-control form-control-sm mb-2" placeholder="Поиск" />
-
-                                            <div class="d-flex gap-2 mb-2" id="groupsActions">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" id="groupsSelectAll">Выбрать всё</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="groupsClearAll">Снять всё</button>
-                                            </div>
-
-                                            <div class="text-muted small mb-2 d-none" id="groupsHint"></div>
-
-                                            <div class="overflow-auto px-1" style="max-height:400px;" id="listGroups">
-                                                <div class="text-muted small px-1 py-2" id="groupsLoading">Загрузка...</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @* Приоритеты *@
-                                <div class="col-12 col-lg-6">
-                                    <div class="dropdown w-100">
-                                        <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
-                                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                            <span>Приоритеты</span>
-                                            <span class="badge bg-primary" id="badgePriorities">0</span>
-                                        </button>
-
-                                        <div class="dropdown-menu p-2 w-100">
-                                            <input id="searchPriorities" class="form-control form-control-sm mb-2" placeholder="Поиск" />
-
-                                            <div class="d-flex gap-2 mb-2" id="prioritiesActions">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" id="prioritiesSelectAll">Выбрать всё</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="prioritiesClearAll">Снять всё</button>
-                                            </div>
-
-                                            <div class="overflow-auto px-1" style="max-height:400px;" id="listPriorities">
-                                                <div class="text-muted small px-1 py-2" id="prioritiesLoading">Загрузка...</div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                @* Статусы *@
-                                <div class="col-12 col-lg-6">
-                                    <div class="dropdown w-100">
-                                        <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
-                                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                            <span>Статусы</span>
-                                            <span class="badge bg-primary" id="badgeStatuses">0</span>
-                                        </button>
-
-                                        <div class="dropdown-menu p-2 w-100">
-                                            <input id="searchStatuses" class="form-control form-control-sm mb-2" placeholder="Поиск" />
-
-                                            <div class="d-flex gap-2 mb-2" id="statusesActions">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" id="statusesSelectAll">Выбрать всё</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="statusesClearAll">Снять всё</button>
-                                            </div>
-
-                                            <div class="overflow-auto px-1" style="max-height:400px;" id="listStatuses">
-                                                <div class="text-muted small px-1 py-2" id="statusesLoading">Загрузка...</div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                @* Типы *@
-                                <div class="col-12 col-lg-6">
-                                    <div class="dropdown w-100">
-                                        <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
-                                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                            <span>Типы</span>
-                                            <span class="badge bg-primary" id="badgeTypes">0</span>
-                                        </button>
-
-                                        <div class="dropdown-menu p-2 w-100">
-                                            <input id="searchTypes" class="form-control form-control-sm mb-2" placeholder="Поиск" />
-
-                                            <div class="d-flex gap-2 mb-2" id="typesActions">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" id="typesSelectAll">Выбрать всё</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="typesClearAll">Снять всё</button>
-                                            </div>
-
-                                            <div class="overflow-auto px-1 pt-1" style="max-height:400px;" id="listTypes">
-                                                <div class="text-muted small px-1 py-2" id="typesLoading">Загрузка...</div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                @* Доп. флаги *@
-                                <div class="col-12">
-                                    <div class="row g-3">
-                                        <div class="col-12 col-lg-6">
-                                            <div class="d-flex flex-column gap-2">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="hideWithoutSolved">
-                                                    <label class="form-check-label" for="hideWithoutSolved">Не показывать без решённых</label>
+                                                <div class="d-flex gap-2 mb-2" id="employeesActions">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="employeesSelectAll">Выбрать всё</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="employeesClearAll">Снять всё</button>
                                                 </div>
 
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="hideWithoutCurrent">
-                                                    <label class="form-check-label" for="hideWithoutCurrent">Не показывать без текущих</label>
+                                                <div class="text-muted small mb-2 d-none" id="employeesHint"></div>
+
+                                                <div class="overflow-auto px-1" style="max-height:400px;" id="listEmployees">
+                                                    <div class="text-muted small px-1 py-2" id="employeesLoading">Загрузка...</div>
                                                 </div>
 
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="hideWithoutTime">
-                                                    <label class="form-check-label" for="hideWithoutTime">Не показывать без времени</label>
-                                                </div>
-
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="eoMode">
-                                                    <label class="form-check-label" for="eoMode">Показывать только текущий день</label>
-
-                                                    <i class="bi bi-question-circle text-primary"
-                                                       role="button"
-                                                       tabindex="0"
-                                                       data-bs-toggle="tooltip"
-                                                       data-bs-placement="right"
-                                                       data-bs-html="true"
-                                                       data-bs-custom-class="tooltip-light"
-                                                       title="Период автоматически устанавливается на текущий день и обновляется при каждом обновлении отчёта.">
-                                                    </i>
-                                                </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div class="col-12 col-lg-6 d-flex align-items-center gap-2">
-                                            <label class="form-label mb-1">Размер шрифта</label>
+                                    @* Группы *@
+                                    <div class="col-12 col-lg-6">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                                <span>Группы</span>
+                                                <span class="badge bg-primary" id="badgeGroups">0</span>
+                                            </button>
 
-                                            <div class="btn-group" role="group" aria-label="Увеличение или уменьшение шрифта">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="fontMinus">−</button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="fontPlus">+</button>
+                                            <div class="dropdown-menu p-2 w-100">
+                                                <input id="searchGroups" class="form-control form-control-sm mb-2" placeholder="Поиск" />
+
+                                                <div class="d-flex gap-2 mb-2" id="groupsActions">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="groupsSelectAll">Выбрать всё</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="groupsClearAll">Снять всё</button>
+                                                </div>
+
+                                                <div class="text-muted small mb-2 d-none" id="groupsHint"></div>
+
+                                                <div class="overflow-auto px-1" style="max-height:400px;" id="listGroups">
+                                                    <div class="text-muted small px-1 py-2" id="groupsLoading">Загрузка...</div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @* Приоритеты *@
+                                    <div class="col-12 col-lg-6">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                                <span>Приоритеты</span>
+                                                <span class="badge bg-primary" id="badgePriorities">0</span>
+                                            </button>
+
+                                            <div class="dropdown-menu p-2 w-100">
+                                                <input id="searchPriorities" class="form-control form-control-sm mb-2" placeholder="Поиск" />
+
+                                                <div class="d-flex gap-2 mb-2" id="prioritiesActions">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="prioritiesSelectAll">Выбрать всё</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="prioritiesClearAll">Снять всё</button>
+                                                </div>
+
+                                                <div class="overflow-auto px-1" style="max-height:400px;" id="listPriorities">
+                                                    <div class="text-muted small px-1 py-2" id="prioritiesLoading">Загрузка...</div>
+                                                </div>
                                             </div>
 
-                                            <span class="text-muted small mb-0" id="fontScaleLabel">(1.0)</span>
                                         </div>
                                     </div>
-                                </div>
 
-                                @* Даты *@
-                                <div class="col-12">
-                                    <div class="row g-3">
-                                        <div class="col-12 col-lg-6">
-                                            <label class="form-label mb-1" for="dateFrom">Начало периода</label>
-                                            <input id="dateFrom" type="date" class="form-control">
-                                        </div>
+                                    @* Статусы *@
+                                    <div class="col-12 col-lg-6">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                                <span>Статусы</span>
+                                                <span class="badge bg-primary" id="badgeStatuses">0</span>
+                                            </button>
 
-                                        <div class="col-12 col-lg-6">
-                                            <label class="form-label mb-1" for="dateTo">Конец периода</label>
-                                            <input id="dateTo" type="date" class="form-control">
+                                            <div class="dropdown-menu p-2 w-100">
+                                                <input id="searchStatuses" class="form-control form-control-sm mb-2" placeholder="Поиск" />
+
+                                                <div class="d-flex gap-2 mb-2" id="statusesActions">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="statusesSelectAll">Выбрать всё</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="statusesClearAll">Снять всё</button>
+                                                </div>
+
+                                                <div class="overflow-auto px-1" style="max-height:400px;" id="listStatuses">
+                                                    <div class="text-muted small px-1 py-2" id="statusesLoading">Загрузка...</div>
+                                                </div>
+                                            </div>
+
                                         </div>
                                     </div>
-                                </div>
 
-                                @* Кнопки "применить" и "сбросить" фильтры*@
-                                <div class="col-12">
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <button type="button" class="btn btn-primary" id="applyFilters">
-                                            Применить
-                                        </button>
+                                    @* Типы *@
+                                    <div class="col-12 col-lg-6">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                                    type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                                <span>Типы</span>
+                                                <span class="badge bg-primary" id="badgeTypes">0</span>
+                                            </button>
 
-                                        <button type="button" class="btn btn-outline-secondary" id="resetFilters">
-                                            Сбросить
-                                        </button>
+                                            <div class="dropdown-menu p-2 w-100">
+                                                <input id="searchTypes" class="form-control form-control-sm mb-2" placeholder="Поиск" />
+
+                                                <div class="d-flex gap-2 mb-2" id="typesActions">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="typesSelectAll">Выбрать всё</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="typesClearAll">Снять всё</button>
+                                                </div>
+
+                                                <div class="overflow-auto px-1 pt-1" style="max-height:400px;" id="listTypes">
+                                                    <div class="text-muted small px-1 py-2" id="typesLoading">Загрузка...</div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    @* Доп. флаги *@
+                                    <div class="col-12">
+                                        <div class="row g-3">
+                                            <div class="col-12 col-lg-6">
+                                                <div class="d-flex flex-column gap-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="hideWithoutSolved">
+                                                        <label class="form-check-label" for="hideWithoutSolved">Не показывать без решённых</label>
+                                                    </div>
+
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="hideWithoutCurrent">
+                                                        <label class="form-check-label" for="hideWithoutCurrent">Не показывать без текущих</label>
+                                                    </div>
+
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="hideWithoutTime">
+                                                        <label class="form-check-label" for="hideWithoutTime">Не показывать без времени</label>
+                                                    </div>
+
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="eoMode">
+                                                        <label class="form-check-label" for="eoMode">Показывать только текущий день</label>
+
+                                                        <i class="bi bi-question-circle text-primary"
+                                                           role="button"
+                                                           tabindex="0"
+                                                           data-bs-toggle="tooltip"
+                                                           data-bs-placement="right"
+                                                           data-bs-html="true"
+                                                           data-bs-custom-class="tooltip-light"
+                                                           title="Период автоматически устанавливается на текущий день и обновляется при каждом обновлении отчёта.">
+                                                        </i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-lg-6 d-flex align-items-center gap-2">
+                                                <label class="form-label mb-1">Размер шрифта</label>
+
+                                                <div class="btn-group" role="group" aria-label="Увеличение или уменьшение шрифта">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="fontMinus">−</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="fontPlus">+</button>
+                                                </div>
+
+                                                <span class="text-muted small mb-0" id="fontScaleLabel">(1.0)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @* Даты *@
+                                    <div class="col-12">
+                                        <div class="row g-3">
+                                            <div class="col-12 col-lg-6">
+                                                <label class="form-label mb-1" for="dateFrom">Начало периода</label>
+                                                <input id="dateFrom" type="date" class="form-control">
+                                            </div>
+
+                                            <div class="col-12 col-lg-6">
+                                                <label class="form-label mb-1" for="dateTo">Конец периода</label>
+                                                <input id="dateTo" type="date" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @* Кнопки "применить" и "сбросить" фильтры*@
+                                    <div class="col-12">
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-primary" id="applyFilters">
+                                                Применить
+                                            </button>
+
+                                            <button type="button" class="btn btn-outline-secondary" id="resetFilters">
+                                                Сбросить
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                @* Таблица *@
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped align-middle" id="grid">
-                        <thead class="table-light">
-                            <tr>
-                                <th data-sort-key="name" class="user-select-none">ФИО сотрудника</th>
-                                <th data-sort-key="resolved" class="text-center user-select-none">Решённые заявки</th>
-                                <th data-sort-key="current" class="text-center user-select-none">Текущие заявки</th>
-                                <th data-sort-key="time" class="text-center user-select-none">Списанное время</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rows"></tbody>
-                    </table>
+                        <div class="border rounded-2 overflow-hidden">
+                            <div class="d-flex align-items-stretch">
+                                <div class="d-flex flex-column align-items-center flex-shrink-0 border-end border-secondary pe-2 pt-3"
+                                     style="width:52px;">
+                                    <button type="button" class="btn btn-outline-dark btn-sm mb-2" id="reportFocusToggle" title="Фокус">
+                                        ⛶
+                                    </button>
+
+                                    <button type="button" class="btn btn-outline-dark btn-sm" id="reportReload" title="Обновить">
+                                        ↻
+                                    </button>
+                                </div>
+
+                                @* Таблица *@
+                                <div class="flex-grow-1 ps-2">
+                                    <div class="table-responsive" id="reportTableScroll">
+                                        <table class="table table-hover table-striped align-middle mb-0" id="grid">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th data-col-id="name" data-sort-key="name" class="user-select-none border-end border-secondary-subtle" draggable="true">ФИО сотрудника</th>
+                                                    <th data-col-id="resolved" data-sort-key="resolved" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">Решённые заявки</th>
+                                                    <th data-col-id="current" data-sort-key="current" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">Текущие заявки</th>
+                                                    <th data-col-id="time" data-sort-key="time" class="text-center user-select-none" draggable="true">Списанное время</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="rows"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white border-top px-3 py-2 d-flex justify-content-between align-items-center"
+                                 id="reportSummaryBar">
+                                <div class="fw-semibold fs-6 text-dark" id="summaryLeft">—</div>
+                                <div class="fw-semibold fs-6 text-dark" id="summaryRight">—</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -230,8 +230,8 @@ namespace CRMService.Core
 
 #if !DEBUG
             services.AddHostedService<ThirtyMinutesReportHostedService>();
+            services.AddHostedService<DailyReportHostedService>();
             services.AddHostedService<UpdateDirectoriesHostedService>();
-            services.AddHostedService<WeekReportHostedService>();
 #endif
 
             return services;

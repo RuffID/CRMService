@@ -43,7 +43,7 @@ namespace CRMService.Controllers.OkdeskEntity
 
             category.CopyData(updatedCategory.ToEntity());
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return NoContent();
         }
@@ -58,7 +58,7 @@ namespace CRMService.Controllers.OkdeskEntity
 
             unitOfWork.CompanyCategory.Create(categoryCreate.ToEntity());
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return NoContent();
         }

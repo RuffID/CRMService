@@ -98,7 +98,7 @@ namespace CRMService.Service.OkdeskEntity
             else
                 existingCompany.CopyData(company);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateCompaniesFromCloudApi(CancellationToken ct)
@@ -122,7 +122,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateCompaniesFromCloudDb(CancellationToken ct)
@@ -149,7 +149,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }

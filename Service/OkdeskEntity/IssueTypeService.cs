@@ -4,7 +4,7 @@ using CRMService.Models.ConfigClass;
 using CRMService.Models.Dto.Mappers.OkdeskEntity;
 using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.OkdeskEntity;
-using CRMService.Models.Request;
+using CRMService.Models.Responses;
 using CRMService.Models.Responses.Results;
 using CRMService.Service.Requests;
 using Microsoft.EntityFrameworkCore;
@@ -91,7 +91,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingTypes.CopyData(item);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateIssueTypesFromCloudDb(CancellationToken ct)
@@ -111,7 +111,7 @@ namespace CRMService.Service.OkdeskEntity
                         existingTypes.CopyData(item);
                 }
 
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
             }
 
             logger.LogInformation("[Method:{MethodName}] Issue types update completed.", nameof(UpdateIssueTypesFromCloudDb));

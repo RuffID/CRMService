@@ -14,6 +14,8 @@ namespace CRMService.Models.Dto.OkdeskEntity
 
         public string? Patronymic { get; set; }
 
+        public bool Active { get; set; }
+
         /// <summary>
         /// User's membership in groups.
         /// </summary>

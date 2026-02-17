@@ -65,7 +65,7 @@ namespace CRMService.Service.OkdeskEntity
                         existingPriority.CopyData(priority);
                 }
 
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
             }
 
             logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudApi));
@@ -88,7 +88,7 @@ namespace CRMService.Service.OkdeskEntity
                         existingPriority.CopyData(priority);
                 }
 
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
             }
 
             logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudDb));

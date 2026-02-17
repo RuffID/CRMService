@@ -1,6 +1,8 @@
-﻿using CRMService.Abstractions.Database;
+﻿using CRMService.Abstractions.CrmEntity;
+using CRMService.Abstractions.Database;
 using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Database.Repository.Authorization;
+using CRMService.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Abstractions.Database.Repository.Report;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -34,7 +36,9 @@ namespace CRMService.DataBase.Repository
         ICrmRoleRepository crmRole, 
         ISessionRepository session, 
         IUserRepository user, 
-        IUserRoleRepository userRole) : IUnitOfWork
+        IUserRoleRepository userRole,
+        IPlanSettingRepository planSetting,
+        IPlanColorSchemeRepository planColor) : IUnitOfWork
     {
         public ICompanyRepository Company { get; } = company;
         public ICompanyCategoryRepository CompanyCategory { get; } = companyCategory;
@@ -57,14 +61,17 @@ namespace CRMService.DataBase.Repository
         public IOkdeskRoleRepository OkdeskRole { get; } = okdeskRole;
         public ITimeEntryRepository TimeEntry { get; } = timeEntry;
         public IEquipmentRepository Equipment { get; } = equipment;
+
         public IReportRepository Report { get; } = report;
         public IBlockReasonRepository BlockReason { get; } = blockReason;
         public ICrmRoleRepository CrmRole { get; } = crmRole;
         public ISessionRepository Session { get; } = session;
         public IUserRepository User { get; } = user;
         public IUserRoleRepository UserRole { get; } = userRole;
+        public IPlanSettingRepository PlanSetting { get; } = planSetting;
+        public IPlanColorSchemeRepository PlanColor { get; set; } = planColor;
 
-        public Task SaveAsync(CancellationToken ct = default) => context.SaveChanges(ct);
+        public Task SaveChangesAsync(CancellationToken ct = default) => context.SaveChanges(ct);
 
         public async Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default)
         {
@@ -73,7 +80,7 @@ namespace CRMService.DataBase.Repository
             try
             {
                 await action();
-                await SaveAsync(ct);
+                await SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
             }
             catch

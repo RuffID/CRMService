@@ -57,7 +57,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateKindsFromCloudDb(CancellationToken ct)
@@ -78,7 +78,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingKinds.CopyData(item);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

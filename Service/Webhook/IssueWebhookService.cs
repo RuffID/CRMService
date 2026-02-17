@@ -60,7 +60,7 @@ namespace CRMService.Service.Webhook
             logger.LogInformation("[Method:{MethodName}] Create issue from webhook: \"{EventType}\" Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(CreateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             string content = string.Empty;
 
@@ -116,7 +116,7 @@ namespace CRMService.Service.Webhook
                 nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task UpdateIssue(IssueWebHook issueJson, string eventType, CancellationToken ct)
@@ -133,7 +133,7 @@ namespace CRMService.Service.Webhook
             logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(UpdateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task MarkIssueAsDeletedAsync(IssueWebHook issueJson, string eventType, CancellationToken ct)
@@ -152,7 +152,7 @@ namespace CRMService.Service.Webhook
             logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, old work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
                 nameof(MarkIssueAsDeletedAsync), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task NewComment(RootEventWebHook @event, CancellationToken ct)

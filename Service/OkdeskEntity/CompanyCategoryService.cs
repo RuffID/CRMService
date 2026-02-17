@@ -37,7 +37,7 @@ namespace CRMService.Service.OkdeskEntity
             if (noCategoryFromDb == null)
             {
                 _unitOfWork.CompanyCategory.Create(no_category);
-                await _unitOfWork.SaveAsync(ct);
+                await _unitOfWork.SaveChangesAsync(ct);
             }
         }
 
@@ -60,7 +60,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingCategory.CopyData(category);
             }
 
-            await _unitOfWork.SaveAsync(ct);
+            await _unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

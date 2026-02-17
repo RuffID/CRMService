@@ -1,4 +1,5 @@
 ﻿using CRMService.Abstractions.Database.Repository.Authorization;
+using CRMService.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Abstractions.Database.Repository.Report;
 
@@ -6,6 +7,8 @@ namespace CRMService.Abstractions.Database.Repository
 {
     public interface IUnitOfWork
     {
+        #region [Okdesk Entities]
+
         ICompanyRepository Company { get; }
         ICompanyCategoryRepository CompanyCategory { get; }
         IParameterRepository Parameter { get; }
@@ -27,14 +30,19 @@ namespace CRMService.Abstractions.Database.Repository
         IOkdeskRoleRepository OkdeskRole { get; }
         ITimeEntryRepository TimeEntry { get; }
         IEquipmentRepository Equipment { get; }
+
+        #endregion
+
         IReportRepository Report { get; }
         IBlockReasonRepository BlockReason { get; }
         ICrmRoleRepository CrmRole { get; }
         ISessionRepository Session { get; }
         IUserRepository User { get; }
         IUserRoleRepository UserRole { get; }
+        IPlanSettingRepository PlanSetting { get; }
+        IPlanColorSchemeRepository PlanColor { get; }
 
-        Task SaveAsync(CancellationToken ct = default);
+        Task SaveChangesAsync(CancellationToken ct = default);
         Task ExecuteInTransaction(Func<Task> action, CancellationToken ct = default);
     }
 }

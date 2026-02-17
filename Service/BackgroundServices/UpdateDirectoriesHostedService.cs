@@ -1,4 +1,5 @@
-﻿using CRMService.Service.Sync;
+﻿using CRMService.Service.Hosted;
+using CRMService.Service.Sync;
 
 namespace CRMService.Service.BackgroundServices
 {
@@ -14,7 +15,7 @@ namespace CRMService.Service.BackgroundServices
 
                     using IServiceScope scope = scopeFactory.CreateScope();
 
-                    Hosted.UpdateDirectoriesService updateDirectoriesService = scope.ServiceProvider.GetRequiredService<Hosted.UpdateDirectoriesService>();
+                    UpdateDirectoriesService updateDirectoriesService = scope.ServiceProvider.GetRequiredService<UpdateDirectoriesService>();
 
                     EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 

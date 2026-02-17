@@ -36,7 +36,7 @@ namespace CRMService.Service.OkdeskEntity
                 if (issue != null && issue.DeletedAt == null)
                 {
                     issue.DeletedAt = DateTime.UtcNow;
-                    await unitOfWork.SaveAsync(ct);
+                    await unitOfWork.SaveChangesAsync(ct);
                 }
 
                 List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
@@ -44,7 +44,7 @@ namespace CRMService.Service.OkdeskEntity
                 if (existingTimeEntries.Count > 0)
                 {
                     unitOfWork.TimeEntry.DeleteRange(existingTimeEntries);
-                    await unitOfWork.SaveAsync(ct);
+                    await unitOfWork.SaveChangesAsync(ct);
                 }
 
                 return;
@@ -57,7 +57,7 @@ namespace CRMService.Service.OkdeskEntity
                 if (existingTimeEntries.Count > 0)
                 {
                     unitOfWork.TimeEntry.DeleteRange(existingTimeEntries);
-                    await unitOfWork.SaveAsync(ct);
+                    await unitOfWork.SaveChangesAsync(ct);
                 }
 
                 return;
@@ -87,7 +87,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingEntry.CopyData(entry);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             await DeleteMarkedAsDeletedTimeEntries(timeEntry.Time_Entries, ct);
         }
@@ -153,7 +153,7 @@ namespace CRMService.Service.OkdeskEntity
                         existingEntry.CopyData(item);
                 }
 
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
 
                 startId = entries.Last().Id;
 
@@ -188,7 +188,7 @@ namespace CRMService.Service.OkdeskEntity
                 unitOfWork.TimeEntry.DeleteRange(toDeleteEntries);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

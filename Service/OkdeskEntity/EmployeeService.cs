@@ -87,7 +87,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateEmployeesFromCloudDb(CancellationToken ct)
@@ -111,7 +111,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

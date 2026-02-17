@@ -47,7 +47,7 @@ namespace CRMService.Service.OkdeskEntity
 
             unitOfWork.KindParams.DeleteRange(toDelete);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

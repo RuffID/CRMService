@@ -6,14 +6,14 @@ using CRMService.Service.Sync;
 
 namespace CRMService.Service.BackgroundServices
 {
-    public class ThirtyMinutesReportHostedService(IServiceScopeFactory scopeFactory, ILogger<ThirtyMinutesReportHostedService> logger) : BackgroundService
+    public class DailyReportHostedService(IServiceScopeFactory scopeFactory, ILogger<DailyReportHostedService> logger) : BackgroundService
     {
-        const int REPORT_TIMEOUT = 30; // задержка в минутах для автоматического запроса
-        const int REPORT_WINDOW_MINUTES = 60; // окно в минутах для получения обновлённых заявок с API, должно быть больше, чем REPORT_TIMEOUT, чтобы не пропустить заявки, которые были обновлены между запросами
+        const int REPORT_TIMEOUT_HOURS = 24;
+        const int REPORT_WINDOW_DAYS = 2;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT), stoppingToken);
+            await Task.Delay(TimeSpan.FromHours(REPORT_TIMEOUT_HOURS), stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -26,15 +26,12 @@ namespace CRMService.Service.BackgroundServices
                     EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 
                     DateTime dateTo = DateTime.Now;
-                    DateTime dateFrom = dateTo.AddMinutes(-REPORT_WINDOW_MINUTES);
+                    DateTime dateFrom = dateTo.AddDays(-REPORT_WINDOW_DAYS);
 
-                    // Обновление заявок через API за определённый промежуток
                     await sync.RunExclusive(async () =>
                     {
-                        await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(ThirtyMinutesReportHostedService));
+                        await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService));
 
-                        // Ниже обновляется списанное время по заявкам, которые были обновлены в течении определённого промежутка времени. Это нужно для того, чтобы в отчетах отображалось актуальное списанное время.
-                        // Получение из БД заявок, которые были обновлены за определённый промежуток времени
                         List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
                             i => i.DeletedAt == null
                             && i.Id >= 0
@@ -42,7 +39,6 @@ namespace CRMService.Service.BackgroundServices
                             && i.EmployeesUpdatedAt <= dateTo,
                             asNoTracking: true, ct: stoppingToken);
 
-                        // Обновление списанного времени по каждой заявке, которая была обновлена в течении определённого промежутка времени
                         if (issuesFromLocalDb.Count != 0)
                         {
                             foreach (Issue issue in issuesFromLocalDb)
@@ -58,10 +54,10 @@ namespace CRMService.Service.BackgroundServices
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError( ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(ThirtyMinutesReportHostedService));
+                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(DailyReportHostedService));
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT_HOURS), stoppingToken);
             }
         }
     }

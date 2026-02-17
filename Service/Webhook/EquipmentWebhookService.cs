@@ -45,7 +45,7 @@ namespace CRMService.Service.Webhook
                     return false;
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return true;
         }

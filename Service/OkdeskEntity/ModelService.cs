@@ -62,7 +62,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateModelsFromCloudDb(CancellationToken ct)
@@ -85,7 +85,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingModel.CopyData(model);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task CheckModel(Model model, CancellationToken ct)

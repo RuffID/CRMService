@@ -14,7 +14,7 @@ namespace CRMService.Pages
     public class LoginModel(IUnitOfWork unitOfWork, Hasher hash) : PageModel
     {
         [BindProperty]
-        public UserPage UserPage { get; set; } = new();
+        public UserPageRequest UserPage { get; set; } = new();
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl, CancellationToken ct)
         {

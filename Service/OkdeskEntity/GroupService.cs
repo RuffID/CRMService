@@ -66,7 +66,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateGroupsFromCloudDb(CancellationToken ct)
@@ -87,7 +87,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingGroup.CopyData(group);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpsertEmployeeGroupConnectionsFromApi(CancellationToken ct)
@@ -137,7 +137,7 @@ namespace CRMService.Service.OkdeskEntity
 
             unitOfWork.EmployeeGroup.DeleteRange(toDelete);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

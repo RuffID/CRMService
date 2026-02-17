@@ -1,4 +1,5 @@
-﻿using CRMService.Models.OkdeskEntity;
+﻿using CRMService.Models.CrmEntities;
+using CRMService.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -35,6 +36,11 @@ namespace CRMService.DataBase.ModelsConfigure.OkdeskEntity
 
             builder.Property(e => e.Position)
                 .HasMaxLength(70);
+
+            builder.HasOne(x => x.PlanSetting)
+                .WithOne(x => x.Employee)
+                .HasForeignKey<PlanSetting>(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

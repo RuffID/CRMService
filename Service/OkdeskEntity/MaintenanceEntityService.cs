@@ -63,7 +63,7 @@ namespace CRMService.Service.OkdeskEntity
             else
                 existingMaintenance.CopyData(newMaintenanceEntity);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudApi(CancellationToken ct)
@@ -82,7 +82,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct)
@@ -106,7 +106,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
         }

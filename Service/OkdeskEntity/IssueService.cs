@@ -100,7 +100,7 @@ namespace CRMService.Service.OkdeskEntity
                 employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id > employeeStartIndex, asNoTracking: true, ct: ct);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
         }
@@ -133,7 +133,7 @@ namespace CRMService.Service.OkdeskEntity
                     break;
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
         }

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace CRMService.Models.Request
+namespace CRMService.Models.Responses
 {
     public class IssueTypeResponse
     {

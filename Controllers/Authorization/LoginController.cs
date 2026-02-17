@@ -41,7 +41,7 @@ namespace CRMService.Controllers.Authorization
             };
 
             unitOfWork.Session.Create(session);
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
 
             return Ok(token);
@@ -72,7 +72,7 @@ namespace CRMService.Controllers.Authorization
             session.RefreshToken = token.RefreshToken;
             session.ExpirationRefreshToken = DateTime.UtcNow.AddDays(JWTSettingsConstants.REFRESH_TOKEN_LIFE_TIME_FROM_DAYS);
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
             return Ok(token);
         }

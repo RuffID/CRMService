@@ -53,7 +53,7 @@ namespace CRMService.Service.OkdeskEntity
                 }
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateManufacturersFromCloudDb(CancellationToken ct)
@@ -71,7 +71,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingManufacturer.CopyData(newManufacturer);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

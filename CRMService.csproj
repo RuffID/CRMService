@@ -51,7 +51,6 @@
 
   <ItemGroup>
     <Folder Include="Config\" />
-    <Folder Include="Models\Responses\" />
     <Folder Include="wwwroot\resources\" />
   </ItemGroup>
 

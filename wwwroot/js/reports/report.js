@@ -2,8 +2,10 @@
 const reportFontScaleKey = "crm_report_font_scale_v1";
 const reportFocusKey = "crm_report_focus_v1";
 const reportColOrderKey = "crm_report_col_order_v1";
+let isManualReloadInProgress = false;
 let antiForgeryToken = null;
 let lastReportItems = [];
+let isHeaderDragging = false;
 window.resetReportSorting = resetReportSorting;
 const reportAutoReloadMs = 5 * 60 * 1000; // 5 минут
 let dragOverColId = null;
@@ -74,8 +76,10 @@ async function loadPerformanceReport() {
         lastReportItems = Array.isArray(data) ? data : [];
         lastReportUpdatedAt = new Date();
         applySortAndRender();
+        return true;
     } catch (e) {
         console.error(e);
+        return false;
     }
 }
 
@@ -174,7 +178,19 @@ function initReportReloadButton() {
     if (!btn) return;
 
     btn.addEventListener('click', async () => {
-        await loadPerformanceReport();
+        if (isManualReloadInProgress) return;
+
+        isManualReloadInProgress = true;
+        btn.disabled = true;
+
+        const ok = await loadPerformanceReport();
+
+        if (ok) {
+            await new Promise(r => setTimeout(r, 2000));
+        }
+
+        btn.disabled = false;
+        isManualReloadInProgress = false;
     });
 }
 
@@ -366,12 +382,8 @@ function formatMinutesShort(totalMinutes) {
 function formatLastUpdated(d) {
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
 
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-
-    return `${hh}:${mm}:${ss} ${day}.${month}`;
+    return `${hh}:${mm}`;
 }
 
 function enforceEoModeDates() {

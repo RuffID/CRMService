@@ -1,4 +1,5 @@
 ﻿using CRMService.Abstractions.Entity;
+using CRMService.Models.CrmEntities;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -36,6 +37,8 @@ namespace CRMService.Models.OkdeskEntity
         public virtual ICollection<EmployeeGroup> EmployeeGroups { get; set; } = new List<EmployeeGroup>();
 
         public virtual ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
+
+        public virtual PlanSetting? PlanSetting { get; set; }
 
         public void CopyData(Employee employee)
         {

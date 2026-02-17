@@ -2,6 +2,7 @@
 using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Database.Repository.Authorization;
 using CRMService.Abstractions.Database.Repository.Base;
+using CRMService.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Abstractions.Database.Repository.Report;
 using CRMService.Abstractions.Service;
@@ -12,6 +13,7 @@ using CRMService.DataBase.Postgresql;
 using CRMService.DataBase.Repository;
 using CRMService.DataBase.Repository.Authorization;
 using CRMService.DataBase.Repository.Base;
+using CRMService.DataBase.Repository.CrmEntity;
 using CRMService.DataBase.Repository.Entity;
 using CRMService.DataBase.Repository.Report;
 using CRMService.Models.ConfigClass;
@@ -19,6 +21,7 @@ using CRMService.Models.Constants;
 using CRMService.Models.Server;
 using CRMService.Service.Authorization;
 using CRMService.Service.BackgroundServices;
+using CRMService.Service.CrmServices;
 using CRMService.Service.DataBase;
 using CRMService.Service.Hosted;
 using CRMService.Service.OkdeskEntity;
@@ -211,7 +214,9 @@ namespace CRMService.Core
             services.AddScoped<ModelService>();
             services.AddScoped<RoleService>();
             services.AddScoped<TimeEntryService>();
+
             services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<IPlanSettingsService, PlanSettingsService>();
 
             services.AddScoped<GetOkdeskEntityService>();
             services.AddScoped<UpdateDirectoriesService>();
@@ -270,6 +275,8 @@ namespace CRMService.Core
             services.AddScoped<ITimeEntryRepository, TimeEntryRepository>();
 
             services.AddScoped<IReportRepository, ReportRepository>();
+            services.AddScoped<IPlanSettingRepository, PlanSettingRepository>();
+            services.AddScoped<IPlanColorSchemeRepository, PlanColorSchemeRepository>();
 
             return services;
         }

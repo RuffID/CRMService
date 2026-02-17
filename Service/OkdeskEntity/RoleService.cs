@@ -35,7 +35,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingRole.CopyData(role);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpsertEmployeeRoleConnectionsFromApi(CancellationToken ct)
@@ -78,7 +78,7 @@ namespace CRMService.Service.OkdeskEntity
 
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }

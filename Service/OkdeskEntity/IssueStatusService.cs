@@ -66,7 +66,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingStatus.CopyData(item);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateIssueStatusesFromCloudDb(CancellationToken ct)
@@ -87,7 +87,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingStatus.CopyData(item);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
 
         }
     }

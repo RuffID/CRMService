@@ -107,7 +107,7 @@ namespace CRMService.Service.OkdeskEntity
                     existingParameter.CopyData(parameter);
             }
 
-            await unitOfWork.SaveAsync(ct);
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateEquipmentsFromCloudApi(long companyId = 0, long maintenanceEntityId = 0, CancellationToken ct = default)
@@ -141,7 +141,7 @@ namespace CRMService.Service.OkdeskEntity
                     }
                 }
 
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudApi));
@@ -176,7 +176,7 @@ namespace CRMService.Service.OkdeskEntity
                     }
                 }
 
-                await unitOfWork.SaveAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
             }
 
             _logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));

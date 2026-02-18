@@ -8,7 +8,7 @@ namespace CRMService.Service.Webhook
 {
     public class EquipmentWebhookService(IUnitOfWork unitOfWork, EquipmentService service, ILogger<EquipmentWebhookService> logger) : IWebhookHandler
     {
-        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct = default)
+        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
         {
             if (@event.Equipment == null)
                 return false;

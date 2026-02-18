@@ -13,9 +13,9 @@ namespace CRMService.Core.Filter
         private readonly List<(IPAddress Network, int PrefixLength)> _cidrWhitelist = [];
         private readonly List<IPAddress> _singleIpWhitelist = [];
 
-        public IpOkdeskWebHookActionFilterAttribute(ILoggerFactory logger, IOptions<WebHookOkdeskOptions> webHookOptions)
+        public IpOkdeskWebHookActionFilterAttribute(ILogger<IpOkdeskWebHookActionFilterAttribute> logger, IOptions<WebHookOkdeskOptions> webHookOptions)
         {
-            _logger = logger.CreateLogger<IpOkdeskWebHookActionFilterAttribute>();
+            _logger = logger;
             string[] ipList = webHookOptions.Value.IpAddressList;
 
             // Запись ip адресов из конфига в переменную для дальнейшей работы
@@ -38,8 +38,11 @@ namespace CRMService.Core.Filter
             }
 
             // Добавление localhost (IPv4 и IPv6)
-            _singleIpWhitelist.Add(IPAddress.Loopback);        // 127.0.0.1
-            _singleIpWhitelist.Add(IPAddress.IPv6Loopback);    // ::1
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            {
+                _singleIpWhitelist.Add(IPAddress.Loopback);
+                _singleIpWhitelist.Add(IPAddress.IPv6Loopback);
+            }
         }
 
         public override void OnActionExecuting(ActionExecutingContext context)
@@ -47,7 +50,7 @@ namespace CRMService.Core.Filter
             // Получение ip адреса из запроса
             var remoteIp = context.HttpContext.Connection.RemoteIpAddress;
             // Нужно для дебага
-            var forwarderIp = context.HttpContext.Request.Headers["X-Forwarder-For"].ToString();
+            var forwarderIp = context.HttpContext.Request.Headers["X-Forwarded-For"].ToString();
 
             // Если ip не в белом списке, то выдаёт код ошибки авторизации
             if (!IsAllowed(remoteIp))

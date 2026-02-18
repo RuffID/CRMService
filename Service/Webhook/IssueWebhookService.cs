@@ -14,7 +14,7 @@ namespace CRMService.Service.Webhook
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
 
-        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct = default)
+        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
         {
             if (@event.Issue == null)
                 return false;
@@ -31,6 +31,9 @@ namespace CRMService.Service.Webhook
                     await UpdateIssue(@event.Issue, @event.Event!.Event_type, ct);
                     break;
                 case "update_issue_work_type":
+                    await UpdateIssue(@event.Issue, @event.Event!.Event_type, ct);
+                    break;
+                case "new_priority":
                     await UpdateIssue(@event.Issue, @event.Event!.Event_type, ct);
                     break;
                 case "ticket_deleted":

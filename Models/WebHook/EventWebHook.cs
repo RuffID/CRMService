@@ -11,5 +11,7 @@ namespace CRMService.Models.WebHook
         public TimeEntryWebHook[]? Time_entries { get; set; }
         public AssigneeWebHook? New_Assignee { get; set; }
         public CommentWebHook? Comment { get; set; }
+        public IssuePriority? Old_priority { get; set; }
+        public IssuePriority? New_priority { get; set; }
     }
 }

@@ -8,7 +8,7 @@ namespace CRMService.Service.Webhook
 {
     public class MaintenanceEntityWebhookService(IUnitOfWork unitOfWork, ILogger<MaintenanceEntityWebHook> logger) : IWebhookHandler
     {
-        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct = default)
+        public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
         {
             if (@event.Service_aim == null)
                 return false;

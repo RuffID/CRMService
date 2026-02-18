@@ -1,6 +1,4 @@
-﻿using CRMService.Models.OkdeskEntity;
-
-namespace CRMService.Models.WebHook
+﻿namespace CRMService.Models.WebHook
 {
     public class TimeEntryWebHook
     {

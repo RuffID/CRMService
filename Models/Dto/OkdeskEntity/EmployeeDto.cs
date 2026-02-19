@@ -19,6 +19,6 @@ namespace CRMService.Models.Dto.OkdeskEntity
         /// <summary>
         /// User's membership in groups.
         /// </summary>
-        public List<int> GroupIds { get; set; } = new();
+        public List<GroupDto> Groups { get; set; } = new();
     }
 }

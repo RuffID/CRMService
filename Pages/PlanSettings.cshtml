@@ -5,6 +5,8 @@
 }
 
 <div class="min-vh-100 bg-light p-3">
+    <div id="pageError" class="alert alert-danger d-none mb-3"></div>
+
     <div class="bg-white border rounded-3 shadow-sm p-3">
 
         <div class="d-flex flex-wrap gap-2 justify-content-end mb-3">
@@ -51,6 +53,14 @@
                                     </button>
                                 </div>
                             </th>
+                            <th data-sort-key="groups" class="user-select-none">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                    <span>Группы</span>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnGroupFilter" title="Фильтр">
+                                        ⌕
+                                    </button>
+                                </div>
+                            </th>
                             <th data-sort-key="month" class="text-center user-select-none">План на месяц</th>
                             <th data-sort-key="day" class="text-center user-select-none">План на день</th>
                         </tr>
@@ -77,7 +87,7 @@
             </div>
 
             <div class="modal-body">
-                <input id="nameFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО" />
+                <input id="nameFilterSearch" name="nameFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО" />
                 <div class="d-flex gap-2 mb-2">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="nameFilterSelectAll">Выбрать всё</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="nameFilterClearAll">Снять выделения</button>
@@ -95,6 +105,33 @@
     </div>
 </div>
 
+<div class="modal fade" id="groupFilterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title fw-semibold">Фильтр групп</div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <input id="groupFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по группе" />
+                <div class="d-flex gap-2 mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="groupFilterSelectAll">Выбрать всё</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="groupFilterClearAll">Снять выделения</button>
+                </div>
+                <div class="text-muted small mb-2 d-none" id="groupFilterHint"></div>
+                <div class="overflow-auto" style="max-height: 420px;">
+                    <div id="groupFilterList"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="groupFilterApply" data-bs-dismiss="modal">Применить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="~/js/helpers/http.js" asp-append-version="true"></script>
 <script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
-<script src="~/js/planSettings/planSettings.js" asp-append-version="true"></script>
+<script src="~/js/settings/planSettings.js" asp-append-version="true"></script>

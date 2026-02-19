@@ -1,5 +1,7 @@
 ﻿const psSortKey = "crm_plan_settings_sort_v1";
 const psFilterKey = "crm_plan_settings_filter_v1";
+const psGroupFilterKey = "crm_plan_settings_group_filter_v1";
+let selectedGroupIds = null;
 let antiForgeryToken = null;
 
 let allRows = [];
@@ -19,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initSorting();
     initButtons();
     initNameFilter();
+    initGroupFilter();
 
     loadInitial();
 });
@@ -53,6 +56,15 @@ function initButtons() {
             isSaving = true;
             btnSave.disabled = true;
 
+            clearPageError();
+
+            const okUi = validateColorRulesBeforeSave();
+            if (!okUi) {
+                btnSave.disabled = false;
+                isSaving = false;
+                return;
+            }
+
             const okPlans = await savePlanSettings();
             const okColors = await saveColorRules();
 
@@ -69,11 +81,10 @@ function initButtons() {
     if (btnAddRule) {
         btnAddRule.addEventListener("click", () => {
             colorRules.push({
-                id: 0,
+                id: null,
                 fromPercent: 0,
                 toPercent: 0,
-                color: "#198754",
-                sortOrder: colorRules.length + 1
+                color: null
             });
             renderColorRules();
         });
@@ -98,7 +109,6 @@ async function reloadColorRules() {
         const resp = await sendJsonRequest("?handler=PlanColorRules", "GET", buildJsonHeaders(antiForgeryToken));
         const data = unwrapOrThrow(resp, "Ошибка загрузки цветовой схемы.");
         colorRules = Array.isArray(data) ? data : [];
-        normalizeColorRulesOrder();
         renderColorRules();
         return true;
     } catch (e) {
@@ -129,6 +139,50 @@ function initSorting() {
     });
 }
 
+function initGroupFilter() {
+    const btn = document.getElementById("btnGroupFilter");
+    const modalEl = document.getElementById("groupFilterModal");
+    if (!btn || !modalEl) return;
+
+    const modal = new bootstrap.Modal(modalEl);
+
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        rebuildGroupFilterList();
+        modal.show();
+    });
+
+    const search = document.getElementById("groupFilterSearch");
+    if (search) {
+        search.addEventListener("input", () => rebuildGroupFilterList());
+    }
+
+    const selAll = document.getElementById("groupFilterSelectAll");
+    if (selAll) {
+        selAll.addEventListener("click", () => {
+            selectedGroupIds = getAllGroupIds();
+            saveState();
+            rebuildGroupFilterList();
+        });
+    }
+
+    const clrAll = document.getElementById("groupFilterClearAll");
+    if (clrAll) {
+        clrAll.addEventListener("click", () => {
+            selectedGroupIds = null;
+            saveState();
+            rebuildGroupFilterList();
+        });
+    }
+
+    const apply = document.getElementById("groupFilterApply");
+    if (apply) {
+        apply.addEventListener("click", () => {
+            applyFilterSortRender();
+        });
+    }
+}
+
 function applyFilterSortRender() {
     visibleRows = applyEmployeeFilter(allRows);
     sortRows(visibleRows);
@@ -136,18 +190,33 @@ function applyFilterSortRender() {
     renderPlanSummary(visibleRows);
     renderPlansHint();
     rebuildNameFilterList();
+    loadSavedState();
 }
 
 function applyEmployeeFilter(rows) {
-    if (!Array.isArray(selectedEmployeeIds) || selectedEmployeeIds.length === 0) return rows;
-    const set = new Set(selectedEmployeeIds);
-    return rows.filter(x => set.has(Number(x.employeeId)));
+    let res = rows;
+
+    if (Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0) {
+        const set = new Set(selectedEmployeeIds.map(Number));
+        res = res.filter(x => set.has(Number(x.employeeId)));
+    }
+
+    if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
+        const gs = new Set(selectedGroupIds.map(Number));
+        res = res.filter(x => {
+            if (!Array.isArray(x.groups) || x.groups.length === 0) return false;
+            return x.groups.some(g => gs.has(Number(g.id)));
+        });
+    }
+
+    return res;
 }
 
 function sortRows(rows) {
     const sign = (sortState.dir === "desc") ? -1 : 1;
 
     const name = (x) => String(x.fullName || "").trim().toLowerCase();
+    const groupsKey = (x) => formatGroups(x.groups).toLowerCase();
     const m = (x) => (x.monthPlan === null || x.monthPlan === undefined) ? -1 : Number(x.monthPlan);
     const d = (x) => (x.dayPlan === null || x.dayPlan === undefined) ? -1 : Number(x.dayPlan);
 
@@ -155,6 +224,7 @@ function sortRows(rows) {
         let r = 0;
 
         if (sortState.key === "name") r = name(a).localeCompare(name(b), "ru");
+        else if (sortState.key === "groups") r = groupsKey(a).localeCompare(groupsKey(b), "ru");
         else if (sortState.key === "month") r = (m(a) === m(b)) ? 0 : (m(a) < m(b) ? -1 : 1);
         else if (sortState.key === "day") r = (d(a) === d(b)) ? 0 : (d(a) < d(b) ? -1 : 1);
 
@@ -172,7 +242,7 @@ function renderPlanRows(rows) {
     if (!rows || rows.length === 0) {
         const tr = document.createElement("tr");
         const td = document.createElement("td");
-        td.colSpan = 3;
+        td.colSpan = 4;
         td.className = "text-center text-muted py-4";
         td.textContent = "Нет данных";
         tr.appendChild(td);
@@ -186,6 +256,10 @@ function renderPlanRows(rows) {
         const tdName = document.createElement("td");
         tdName.textContent = r.fullName || "";
         tr.appendChild(tdName);
+
+        const tdGroups = document.createElement("td");
+        tdGroups.textContent = formatGroups(r.groups);
+        tr.appendChild(tdGroups);
 
         const tdMonth = document.createElement("td");
         tdMonth.className = "text-center";
@@ -209,6 +283,8 @@ function buildPlanInput(employeeId, kind, value) {
     input.style.maxWidth = "140px";
     input.dataset.employeeId = String(employeeId);
     input.dataset.kind = kind;
+    input.id = `plan_${employeeId}_${kind}`;
+    input.name = `plan_${employeeId}_${kind}`;
     input.value = (value === null || value === undefined) ? "" : String(value);
 
     input.addEventListener("input", () => {
@@ -242,11 +318,17 @@ function renderPlansHint() {
     const el = document.getElementById("plansHint");
     if (!el) return;
 
+    const parts = [];
+
     if (Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0) {
-        el.textContent = `Фильтр: выбрано ${selectedEmployeeIds.length}`;
-    } else {
-        el.textContent = "—";
+        parts.push(`сотрудники ${selectedEmployeeIds.length}`);
     }
+
+    if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
+        parts.push(`группы ${selectedGroupIds.length}`);
+    }
+
+    el.textContent = parts.length > 0 ? `Фильтр: ${parts.join(" • ")}` : "—";
 }
 
 async function savePlanSettings() {
@@ -295,7 +377,8 @@ function initNameFilter() {
 
     const modal = new bootstrap.Modal(modalEl);
 
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         rebuildNameFilterList();
         modal.show();
     });
@@ -408,6 +491,14 @@ function loadSavedState() {
             if (Array.isArray(st)) selectedEmployeeIds = st;
         } catch { }
     }
+
+    const s3 = localStorage.getItem(psGroupFilterKey);
+    if (s3) {
+        try {
+            const st = JSON.parse(s3);
+            if (Array.isArray(st)) selectedGroupIds = st;
+        } catch { }
+    }
 }
 
 function saveState() {
@@ -417,12 +508,11 @@ function saveState() {
     } else {
         localStorage.removeItem(psFilterKey);
     }
-}
 
-function normalizeColorRulesOrder() {
-    colorRules.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
-    for (let i = 0; i < colorRules.length; i++) {
-        colorRules[i].sortOrder = i + 1;
+    if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
+        localStorage.setItem(psGroupFilterKey, JSON.stringify(selectedGroupIds));
+    } else {
+        localStorage.removeItem(psGroupFilterKey);
     }
 }
 
@@ -443,27 +533,33 @@ function renderColorRules() {
         return;
     }
 
-    normalizeColorRulesOrder();
-
     for (let i = 0; i < colorRules.length; i++) {
         const r = colorRules[i];
 
         const tr = document.createElement("tr");
 
         const tdFrom = document.createElement("td");
-        tdFrom.appendChild(buildIntInput("from", r.fromPercent, v => { r.fromPercent = v; }));
+        tdFrom.appendChild(buildIntInput("from", r.fromPercent, v => { r.fromPercent = v; }, i));
         tr.appendChild(tdFrom);
 
         const tdTo = document.createElement("td");
-        tdTo.appendChild(buildIntInput("to", r.toPercent, v => { r.toPercent = v; }));
+        tdTo.appendChild(buildIntInput("to", r.toPercent, v => { r.toPercent = v; }, i));
         tr.appendChild(tdTo);
 
         const tdColor = document.createElement("td");
         const inputColor = document.createElement("input");
         inputColor.type = "text";
         inputColor.className = "form-control form-control-sm";
-        inputColor.value = r.color || "#198754";
-        inputColor.addEventListener("input", () => { r.color = inputColor.value; });
+        inputColor.value = (r.color === null || r.color === undefined) ? "" : String(r.color);
+        inputColor.id = `colorRule_${i}_color`;
+        inputColor.name = `colorRule_${i}_color`;
+
+        inputColor.addEventListener("input", () => {
+            const v = (inputColor.value || "").trim();
+            r.color = v === "" ? null : v;
+            setColorInvalid(inputColor, !isValidHexColor(v) && v !== "");
+        });
+
         tdColor.appendChild(inputColor);
         tr.appendChild(tdColor);
 
@@ -484,12 +580,14 @@ function renderColorRules() {
     }
 }
 
-function buildIntInput(kind, value, onChange) {
+function buildIntInput(kind, value, onChange, rowIndex) {
     const input = document.createElement("input");
     input.type = "text";
     input.inputMode = "numeric";
     input.className = "form-control form-control-sm text-center";
     input.style.maxWidth = "120px";
+    input.id = `colorRule_${rowIndex}_${kind}`;
+    input.name = `colorRule_${rowIndex}_${kind}`;
     input.value = (value === null || value === undefined) ? "" : String(value);
 
     input.addEventListener("input", () => {
@@ -515,12 +613,180 @@ async function saveColorRules() {
 }
 
 function buildColorRulesPayload() {
-    normalizeColorRulesOrder();
     return colorRules.map((x, idx) => ({
-        id: Number(x.id || 0),
+        id: (x.id === null || x.id === undefined || x.id === "") ? null : String(x.id),
         fromPercent: Number(x.fromPercent || 0),
         toPercent: Number(x.toPercent || 0),
-        color: String(x.color || "#198754"),
-        sortOrder: idx + 1
+        color: (x.color === null || x.color === undefined || String(x.color).trim() === "") ? null : String(x.color).trim()
     }));
+}
+
+function showPageError(msg) {
+    const el = document.getElementById("pageError");
+    if (!el) return;
+    el.textContent = msg || "Ошибка.";
+    el.classList.remove("d-none");
+}
+
+function clearPageError() {
+    const el = document.getElementById("pageError");
+    if (!el) return;
+    el.textContent = "";
+    el.classList.add("d-none");
+}
+
+function isValidHexColor(v) {
+    return /^#([0-9a-fA-F]{6})$/.test(v);
+}
+
+function setColorInvalid(input, isInvalid) {
+    if (!input) return;
+    if (isInvalid) input.classList.add("is-invalid");
+    else input.classList.remove("is-invalid");
+}
+
+function validateColorRulesBeforeSave() {
+    clearPageError();
+
+    let ok = true;
+
+    for (let i = 0; i < colorRules.length; i++) {
+        const r = colorRules[i];
+
+        const fromEl = document.getElementById(`colorRule_${i}_from`);
+        const toEl = document.getElementById(`colorRule_${i}_to`);
+        const colorEl = document.getElementById(`colorRule_${i}_color`);
+
+        const from = Number(r.fromPercent);
+        const to = Number(r.toPercent);
+
+        const badFrom = !Number.isInteger(from) || from < 0 || from > 100;
+        const badTo = !Number.isInteger(to) || to < 0 || to > 100;
+
+        setInvalid(fromEl, badFrom);
+        setInvalid(toEl, badTo);
+
+        if (badFrom || badTo) ok = false;
+
+        if (!badFrom && !badTo) {
+            const badRange = to <= from;
+            setInvalid(fromEl, badRange);
+            setInvalid(toEl, badRange);
+            if (badRange) ok = false;
+        }
+
+        const colorRaw = colorEl ? (colorEl.value || "").trim() : "";
+        const badColor = (colorRaw !== "" && !isValidHexColor(colorRaw));
+        setColorInvalid(colorEl, badColor);
+        if (badColor) ok = false;
+
+        const missingColor = colorRaw === "";
+        setColorInvalid(colorEl, missingColor || badColor);
+        if (missingColor) ok = false;
+    }
+
+    if (!ok) {
+        showPageError("Цветовая схема: проверь проценты (0–100) и диапазон (До % должен быть больше От %). Цвет — #RRGGBB или пусто для дефолта.");
+    }
+
+    return ok;
+}
+
+function formatGroups(groups) {
+    if (!Array.isArray(groups) || groups.length === 0) return "";
+    return groups
+        .map(g => (g && g.name) ? String(g.name).trim() : "")
+        .filter(x => x.length > 0)
+        .join(", ");
+}
+
+function getAllGroups() {
+    const map = new Map();
+
+    for (const r of (allRows || [])) {
+        if (!Array.isArray(r.groups)) continue;
+
+        for (const g of r.groups) {
+            const id = Number(g?.id);
+            if (!Number.isFinite(id)) continue;
+
+            const name = (g?.name ? String(g.name).trim() : "");
+            if (!map.has(id)) map.set(id, { id, name });
+            else if (name && !map.get(id).name) map.get(id).name = name;
+        }
+    }
+
+    return Array.from(map.values())
+        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
+}
+
+function getAllGroupIds() {
+    return getAllGroups().map(x => x.id);
+}
+
+function rebuildGroupFilterList() {
+    const host = document.getElementById("groupFilterList");
+    if (!host) return;
+
+    host.textContent = "";
+
+    const qEl = document.getElementById("groupFilterSearch");
+    const q = (qEl ? qEl.value : "").trim().toLowerCase();
+
+    const set = Array.isArray(selectedGroupIds) ? new Set(selectedGroupIds.map(Number)) : null;
+
+    const groups = getAllGroups();
+    const filtered = q
+        ? groups.filter(x => String(x.name || "").toLowerCase().includes(q))
+        : groups;
+
+    const hint = document.getElementById("groupFilterHint");
+    if (hint) {
+        hint.classList.add("d-none");
+        hint.textContent = "";
+        if (q && filtered.length === 0) {
+            hint.textContent = "Ничего не найдено";
+            hint.classList.remove("d-none");
+        }
+    }
+
+    for (const g of filtered) {
+        const wrap = document.createElement("div");
+        wrap.className = "form-check";
+
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.className = "form-check-input";
+        input.id = `grpf_${g.id}`;
+        input.name = input.id;
+        input.checked = set ? set.has(g.id) : false;
+
+        input.addEventListener("change", () => {
+            const id = Number(g.id);
+
+            let arr = Array.isArray(selectedGroupIds) ? [...selectedGroupIds] : [];
+            if (input.checked) {
+                if (!arr.includes(id)) arr.push(id);
+            } else {
+                arr = arr.filter(x => x !== id);
+            }
+
+            selectedGroupIds = arr.length > 0 ? arr : null;
+            saveState();
+        });
+
+        const label = document.createElement("label");
+        label.className = "form-check-label";
+        label.htmlFor = input.id;
+        label.textContent = g.name || `(id:${g.id})`;
+
+        wrap.append(input, label);
+        host.appendChild(wrap);
+    }
+}
+
+function setInvalid(input, isInvalid) {
+    if (!input) return;
+    if (isInvalid) input.classList.add("is-invalid");
+    else input.classList.remove("is-invalid");
 }

@@ -13,6 +13,7 @@ namespace CRMService.Service.CrmServices
         public async Task<ServiceResult<List<EmployeePlanRowDto>>> GetEmployeePlanRows(CancellationToken ct = default)
         {
             ServiceResult<List<EmployeeDto>> employeesResult = await employeeService.GetEmployees(groupIds: null, ct: ct);
+
             if (!employeesResult.Success)
                 return ServiceResult<List<EmployeePlanRowDto>>.Fail(employeesResult.Error!.StatusCode, employeesResult.Error.Message);
 
@@ -36,7 +37,8 @@ namespace CRMService.Service.CrmServices
                         EmployeeId = e.Id,
                         FullName = BuildFullName(e.LastName, e.FirstName, e.Patronymic),
                         MonthPlan = ps?.MonthPlan,
-                        DayPlan = ps?.DayPlan
+                        DayPlan = ps?.DayPlan,
+                        Groups = e.Groups
                     };
                 })
                 .OrderBy(x => x.FullName)
@@ -85,7 +87,7 @@ namespace CRMService.Service.CrmServices
                     if (isEmpty)
                         continue;
 
-                    PlanSetting ps = new PlanSetting
+                    PlanSetting ps = new ()
                     {
                         EmployeeId = dto.EmployeeId,
                         MonthPlan = dto.MonthPlan,
@@ -140,7 +142,7 @@ namespace CRMService.Service.CrmServices
 
             Dictionary<Guid, PlanColorScheme> map = existing.ToDictionary(x => x.Id, x => x);
 
-            HashSet<Guid> keepIds = items.Where(x => x.Id != Guid.Empty).Select(x => x.Id).ToHashSet();
+            HashSet<Guid?> keepIds = items.Where(x => x.Id.HasValue).Select(x => x.Id).ToHashSet();
 
             foreach (PlanColorScheme e in existing)
             {
@@ -150,7 +152,7 @@ namespace CRMService.Service.CrmServices
 
             foreach (PlanColorSchemeDto dto in items)
             {
-                if (dto.Id != Guid.Empty && map.TryGetValue(dto.Id, out PlanColorScheme? entity))
+                if (dto.Id.HasValue && map.TryGetValue(dto.Id.Value, out PlanColorScheme? entity))
                 {
                     entity.FromPercent = dto.FromPercent;
                     entity.ToPercent = dto.ToPercent;
@@ -158,7 +160,7 @@ namespace CRMService.Service.CrmServices
                 }
                 else
                 {
-                    PlanColorScheme rule = new PlanColorScheme
+                    PlanColorScheme rule = new ()
                     {
                         FromPercent = dto.FromPercent,
                         ToPercent = dto.ToPercent,

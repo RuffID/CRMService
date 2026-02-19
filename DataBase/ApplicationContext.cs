@@ -1,6 +1,8 @@
 ﻿using CRMService.DataBase.ModelsConfigure.Authorization;
+using CRMService.DataBase.ModelsConfigure.CrmEntity;
 using CRMService.DataBase.ModelsConfigure.OkdeskEntity;
 using CRMService.Models.Authorization;
+using CRMService.Models.CrmEntities;
 using CRMService.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +35,8 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
     public virtual DbSet<Session> Sessions { get; set; }
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
+    public virtual DbSet<PlanColorScheme> PlanColorSchemes { get; set; }
+    public virtual DbSet<PlanSetting> PlanSetting { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,7 +66,9 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
             .ApplyConfiguration(new CrmRoleConfigure())
             .ApplyConfiguration(new BlockReasonConfigure())
             .ApplyConfiguration(new SessionConfigure())
-            .ApplyConfiguration(new UserRoleConfigure());
+            .ApplyConfiguration(new UserRoleConfigure())
+            .ApplyConfiguration(new PlanSettingsConfigure())
+            .ApplyConfiguration(new PlanColorSchemeConfigure());
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -60,6 +60,16 @@
                         <img src="~/icon/report.svg" style="width:22px; height:22px;" />
                         <span class="@sideTextClass">Отчёт</span>
                     </a>
+
+                    @{
+                        bool activePlan = path == "/plansettings";
+                        string linkPlan = "nav-link d-flex align-items-center gap-2 py-2 px-2";
+                        if (activePlan) linkPlan += " bg-info bg-opacity-10 text-primary";
+                    }
+                    <a class="@linkPlan" asp-area="" asp-page="/PlanSettings">
+                        <img src="~/icon/plan.svg" style="width:22px; height:22px;" />
+                        <span class="@sideTextClass">Планы</span>
+                    </a>
                 </nav>
             </aside>
         }

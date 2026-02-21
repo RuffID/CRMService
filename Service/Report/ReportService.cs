@@ -1,5 +1,6 @@
 ﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Service;
+using CRMService.Models.CrmEntities;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Report;
 using CRMService.Models.Request;
@@ -32,9 +33,14 @@ namespace CRMService.Service.Report
                 return new();
 
             List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(e => employeeIds.Contains(e.Id), asNoTracking: true, ct: ct);
+
             Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
 
-            ReportRequest effectiveFilters = new ()
+            List<PlanSetting> planSettings = await unitOfWork.PlanSetting.GetItemsByPredicateAsync(x => employeeIds.Contains(x.EmployeeId), asNoTracking: true, ct: ct);
+
+            Dictionary<int, PlanSetting> planMap = planSettings.ToDictionary(x => x.EmployeeId, x => x);
+
+            ReportRequest effectiveFilters = new()
             {
                 EmployeeIds = employeeIds,
                 StatusIds = filters.StatusIds,
@@ -62,6 +68,7 @@ namespace CRMService.Service.Report
                 solvedByEmployee.TryGetValue(employeeId, out int solved);
                 spentByEmployee.TryGetValue(employeeId, out double spent);
                 employeeMap.TryGetValue(employeeId, out Employee? employee);
+                planMap.TryGetValue(employeeId, out PlanSetting? ps);
 
                 int current = issues?.Count ?? 0;
 
@@ -88,7 +95,9 @@ namespace CRMService.Service.Report
                     Patronymic = employee?.Patronymic,
                     Issues = issues ?? [],
                     SolvedIssues = solved,
-                    SpentedTime = spent
+                    SpentedTime = spent,
+                    MonthPlan = ps?.MonthPlan,
+                    DayPlan = ps?.DayPlan
                 });
             }
 

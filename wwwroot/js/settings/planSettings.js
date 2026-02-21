@@ -1,8 +1,13 @@
 ﻿const psSortKey = "crm_plan_settings_sort_v1";
 const psFilterKey = "crm_plan_settings_filter_v1";
 const psGroupFilterKey = "crm_plan_settings_group_filter_v1";
+const reportPlanTextColorKey = "crm_report_plan_text_color_v1";
+let sharedColorPicker = null;
+let sharedColorPickerOnPick = null;
 let selectedGroupIds = null;
 let antiForgeryToken = null;
+let isColorRulesCollapsed = false;
+let isPlansCollapsed = false;
 
 let allRows = [];
 let visibleRows = [];
@@ -14,6 +19,7 @@ let isReloading = false;
 let isSaving = false;
 
 let colorRules = [];
+const maxPercent = 999;
 
 document.addEventListener("DOMContentLoaded", () => {
     antiForgeryToken = getRequestVerificationToken();
@@ -28,8 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadInitial() {
     loadSavedState();
+    initPlanTextColorUi();
     await reloadEmployees();
     await reloadColorRules();
+    applyCollapseState();
 }
 
 function initButtons() {
@@ -37,56 +45,73 @@ function initButtons() {
     const btnSave = document.getElementById("btnSavePlans");
     const btnAddRule = document.getElementById("btnAddColorRule");
 
-    if (btnReload) {
-        btnReload.addEventListener("click", async () => {
-            if (isReloading || isSaving) return;
-            isReloading = true;
-            btnReload.disabled = true;
+    btnReload.addEventListener("click", async () => {
+        if (isReloading || isSaving) return;
+        isReloading = true;
+        btnReload.disabled = true;
 
-            await reloadEmployees();
+        await reloadEmployees();
 
-            btnReload.disabled = false;
-            isReloading = false;
-        });
-    }
+        btnReload.disabled = false;
+        isReloading = false;
+    });
 
-    if (btnSave) {
-        btnSave.addEventListener("click", async () => {
-            if (isSaving || isReloading) return;
-            isSaving = true;
-            btnSave.disabled = true;
+    btnSave.addEventListener("click", async () => {
+        if (isSaving || isReloading) return;
+        isSaving = true;
+        btnSave.disabled = true;
 
-            clearPageError();
+        clearPageError();
 
-            const okUi = validateColorRulesBeforeSave();
-            if (!okUi) {
-                btnSave.disabled = false;
-                isSaving = false;
-                return;
-            }
-
-            const okPlans = await savePlanSettings();
-            const okColors = await saveColorRules();
-
-            if (okPlans && okColors) {
-                await reloadEmployees();
-                await reloadColorRules();
-            }
-
+        const okUi = validateColorRulesBeforeSave();
+        if (!okUi) {
             btnSave.disabled = false;
             isSaving = false;
+            return;
+        }
+
+        const okPlanColor = savePlanTextColorToStorage();
+        if (!okPlanColor) {
+            btnSave.disabled = false;
+            isSaving = false;
+            return;
+        }
+
+        const okPlans = await savePlanSettings();
+        const okColors = await saveColorRules();
+
+        if (okPlans && okColors) {
+            await reloadEmployees();
+            await reloadColorRules();
+        }
+
+        btnSave.disabled = false;
+        isSaving = false;
+    });
+
+    btnAddRule.addEventListener("click", () => {
+        colorRules.push({
+            id: null,
+            fromPercent: 0,
+            toPercent: 0,
+            color: null
+        });
+        renderColorRules();
+    });
+
+    const btnToggleColors = document.getElementById("btnToggleColorRules");
+    if (btnToggleColors) {
+        btnToggleColors.addEventListener("click", () => {
+            isColorRulesCollapsed = !isColorRulesCollapsed;
+            applyCollapseState();
         });
     }
 
-    if (btnAddRule) {
-        btnAddRule.addEventListener("click", () => {
-            colorRules.push({
-                id: null,
-                fromPercent: 0,
-                toPercent: 0,
-                color: null
-            });
-            renderColorRules();
+    const btnTogglePlans = document.getElementById("btnTogglePlans");
+    if (btnTogglePlans) {
+        btnTogglePlans.addEventListener("click", () => {
+            isPlansCollapsed = !isPlansCollapsed;
+            applyCollapseState();
         });
     }
 }
@@ -109,6 +134,7 @@ async function reloadColorRules() {
         const resp = await sendJsonRequest("?handler=PlanColorRules", "GET", buildJsonHeaders(antiForgeryToken));
         const data = unwrapOrThrow(resp, "Ошибка загрузки цветовой схемы.");
         colorRules = Array.isArray(data) ? data : [];
+        sortColorRules();
         renderColorRules();
         return true;
     } catch (e) {
@@ -149,6 +175,8 @@ function initGroupFilter() {
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
         rebuildGroupFilterList();
+        const locked = hasActiveNameFilter();
+        setFilterModalLocked("group", locked);
         modal.show();
     });
 
@@ -281,6 +309,8 @@ function buildPlanInput(employeeId, kind, value) {
     input.inputMode = "numeric";
     input.className = "form-control form-control-sm text-center";
     input.style.maxWidth = "140px";
+    input.style.margin = "0 auto";
+    input.style.display = "block";
     input.dataset.employeeId = String(employeeId);
     input.dataset.kind = kind;
     input.id = `plan_${employeeId}_${kind}`;
@@ -380,6 +410,8 @@ function initNameFilter() {
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
         rebuildNameFilterList();
+        const locked = hasActiveGroupFilter();
+        setFilterModalLocked("name", locked);
         modal.show();
     });
 
@@ -443,6 +475,7 @@ function rebuildNameFilterList() {
     for (const r of filtered) {
         const wrap = document.createElement("div");
         wrap.className = "form-check";
+        wrap.style.marginLeft = "12px";
 
         const input = document.createElement("input");
         input.type = "checkbox";
@@ -547,20 +580,53 @@ function renderColorRules() {
         tr.appendChild(tdTo);
 
         const tdColor = document.createElement("td");
+
+        const colorWrap = document.createElement("div");
+        colorWrap.className = "d-flex align-items-center";
+        colorWrap.style.gap = "6px";
+
+        const preview = document.createElement("div");
+        preview.style.width = "18px";
+        preview.style.height = "18px";
+        preview.style.borderRadius = "4px";
+        preview.style.border = "1px solid #ced4da";
+        preview.style.flexShrink = "0";
+
         const inputColor = document.createElement("input");
         inputColor.type = "text";
         inputColor.className = "form-control form-control-sm";
+        inputColor.style.maxWidth = "120px";
         inputColor.value = (r.color === null || r.color === undefined) ? "" : String(r.color);
         inputColor.id = `colorRule_${i}_color`;
         inputColor.name = `colorRule_${i}_color`;
 
         inputColor.addEventListener("input", () => {
-            const v = (inputColor.value || "").trim();
-            r.color = v === "" ? null : v;
-            setColorInvalid(inputColor, !isValidHexColor(v) && v !== "");
+            const sanitized = sanitizeHexColorInput(inputColor.value);
+            inputColor.value = sanitized;
+
+            r.color = sanitized === "" ? null : sanitized;
+
+            const invalid = sanitized !== "" && !isValidHexColor(sanitized);
+            setColorInvalid(inputColor, invalid);
+            updatePreview(preview, sanitized);
         });
 
-        tdColor.appendChild(inputColor);
+        const btnPick = document.createElement("button");
+        btnPick.type = "button";
+        btnPick.className = "btn btn-outline-secondary btn-sm";
+        btnPick.textContent = "🎨";
+        btnPick.addEventListener("click", () => {
+            openSharedColorPicker(btnPick, inputColor.value, (v) => {
+                inputColor.value = v;
+                r.color = v;
+                setColorInvalid(inputColor, false);
+                updatePreview(preview, v);
+            });
+        });
+
+        colorWrap.append(preview, inputColor, btnPick);
+        updatePreview(preview, inputColor.value);
+        tdColor.appendChild(colorWrap);
         tr.appendChild(tdColor);
 
         const tdDel = document.createElement("td");
@@ -577,6 +643,16 @@ function renderColorRules() {
         tr.appendChild(tdDel);
 
         tbody.appendChild(tr);
+    }
+}
+
+function updatePreview(previewEl, val) {
+    if (!previewEl) return;
+
+    if (isValidHexColor(val)) {
+        previewEl.style.backgroundColor = val;
+    } else {
+        previewEl.style.backgroundColor = "transparent";
     }
 }
 
@@ -639,6 +715,22 @@ function isValidHexColor(v) {
     return /^#([0-9a-fA-F]{6})$/.test(v);
 }
 
+function sanitizeHexColorInput(raw) {
+    let v = String(raw || "").trim();
+
+    if (v === "") return "";
+
+    if (v[0] !== "#") v = "#" + v;
+
+    let out = "#";
+    for (let i = 1; i < v.length && out.length < 7; i++) {
+        const ch = v[i];
+        if (/[0-9a-fA-F]/.test(ch)) out += ch.toUpperCase();
+    }
+
+    return out;
+}
+
 function setColorInvalid(input, isInvalid) {
     if (!input) return;
     if (isInvalid) input.classList.add("is-invalid");
@@ -658,10 +750,10 @@ function validateColorRulesBeforeSave() {
         const colorEl = document.getElementById(`colorRule_${i}_color`);
 
         const from = Number(r.fromPercent);
-        const to = Number(r.toPercent);
+        const to = Number(r.toPercent);        
 
-        const badFrom = !Number.isInteger(from) || from < 0 || from > 100;
-        const badTo = !Number.isInteger(to) || to < 0 || to > 100;
+        const badFrom = !Number.isInteger(from) || from < 0 || from > maxPercent;
+        const badTo = !Number.isInteger(to) || to < 0 || to > maxPercent;
 
         setInvalid(fromEl, badFrom);
         setInvalid(toEl, badTo);
@@ -685,8 +777,48 @@ function validateColorRulesBeforeSave() {
         if (missingColor) ok = false;
     }
 
+    const ranges = [];
+
+    for (let i = 0; i < colorRules.length; i++) {
+        const r = colorRules[i];
+        const from = Number(r.fromPercent);
+        const to = Number(r.toPercent);
+
+        const fromEl = document.getElementById(`colorRule_${i}_from`);
+        const toEl = document.getElementById(`colorRule_${i}_to`);
+
+        const baseOk =
+            Number.isInteger(from) && Number.isInteger(to) &&
+            from >= 0 && from <= maxPercent &&
+            to >= 0 && to <= maxPercent &&
+            to > from;
+
+        if (baseOk) ranges.push({ i, from, to });
+    }
+
+    ranges.sort((a, b) => (a.from === b.from) ? (a.to - b.to) : (a.from - b.from));
+
+    for (let k = 0; k < ranges.length - 1; k++) {
+        const a = ranges[k];
+        const b = ranges[k + 1];
+
+        if (b.from <= a.to) {
+            const aFromEl = document.getElementById(`colorRule_${a.i}_from`);
+            const aToEl = document.getElementById(`colorRule_${a.i}_to`);
+            const bFromEl = document.getElementById(`colorRule_${b.i}_from`);
+            const bToEl = document.getElementById(`colorRule_${b.i}_to`);
+
+            setInvalid(aFromEl, true);
+            setInvalid(aToEl, true);
+            setInvalid(bFromEl, true);
+            setInvalid(bToEl, true);
+
+            ok = false;
+        }
+    }
+
     if (!ok) {
-        showPageError("Цветовая схема: проверь проценты (0–100) и диапазон (До % должен быть больше От %). Цвет — #RRGGBB или пусто для дефолта.");
+        showPageError("Цветовая схема: проверьте проценты (0–999), диапазон (До % должен быть больше От %) и цвет (#RRGGBB). Диапазоны не должны пересекаться.");
     }
 
     return ok;
@@ -753,6 +885,7 @@ function rebuildGroupFilterList() {
     for (const g of filtered) {
         const wrap = document.createElement("div");
         wrap.className = "form-check";
+        wrap.style.marginLeft = "12px";
 
         const input = document.createElement("input");
         input.type = "checkbox";
@@ -789,4 +922,189 @@ function setInvalid(input, isInvalid) {
     if (!input) return;
     if (isInvalid) input.classList.add("is-invalid");
     else input.classList.remove("is-invalid");
+}
+
+function sortColorRules() {
+    if (!Array.isArray(colorRules)) return;
+
+    colorRules.sort((a, b) => {
+        const af = Number(a?.fromPercent ?? 0);
+        const bf = Number(b?.fromPercent ?? 0);
+        if (af !== bf) return af - bf;
+
+        const at = Number(a?.toPercent ?? 0);
+        const bt = Number(b?.toPercent ?? 0);
+        return at - bt;
+    });
+}
+
+function applyCollapseState() {
+    const colorsBody = document.getElementById("colorRulesBody");
+    const plansBody = document.getElementById("plansBody");
+
+    const btnColors = document.getElementById("btnToggleColorRules");
+    const btnPlans = document.getElementById("btnTogglePlans");
+
+    if (colorsBody) colorsBody.classList.toggle("d-none", isColorRulesCollapsed);
+    if (plansBody) plansBody.classList.toggle("d-none", isPlansCollapsed);
+
+    if (btnColors) btnColors.textContent = isColorRulesCollapsed ? "+" : "—";
+    if (btnPlans) btnPlans.textContent = isPlansCollapsed ? "+" : "—";
+}
+
+function hasActiveNameFilter() {
+    return Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0;
+}
+
+function hasActiveGroupFilter() {
+    return Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0;
+}
+
+function setFilterModalLocked(kind, locked) {
+    if (kind === "name") {
+        const hint = document.getElementById("nameFilterHint");
+        const search = document.getElementById("nameFilterSearch");
+        const selAll = document.getElementById("nameFilterSelectAll");
+        const clrAll = document.getElementById("nameFilterClearAll");
+        const host = document.getElementById("nameFilterList");
+
+        if (hint) {
+            if (locked) {
+                hint.textContent = "Сейчас используется фильтр по группам. Чтобы использовать фильтр по ФИО, сначала очистите фильтр по группам.";
+                hint.classList.remove("d-none");
+            } else {
+                hint.textContent = "";
+                hint.classList.add("d-none");
+            }
+        }
+
+        if (search) search.disabled = locked;
+        if (selAll) selAll.disabled = locked;
+        if (clrAll) clrAll.disabled = locked;
+
+        if (host) {
+            host.querySelectorAll("input[type='checkbox']").forEach(x => x.disabled = locked);
+        }
+    }
+
+    if (kind === "group") {
+        const hint = document.getElementById("groupFilterHint");
+        const search = document.getElementById("groupFilterSearch");
+        const selAll = document.getElementById("groupFilterSelectAll");
+        const clrAll = document.getElementById("groupFilterClearAll");
+        const host = document.getElementById("groupFilterList");
+
+        if (hint) {
+            if (locked) {
+                hint.textContent = "Сейчас используется фильтр по ФИО. Чтобы использовать фильтр по группам, сначала очистите фильтр по ФИО.";
+                hint.classList.remove("d-none");
+            } else {
+                hint.textContent = "";
+                hint.classList.add("d-none");
+            }
+        }
+
+        if (search) search.disabled = locked;
+        if (selAll) selAll.disabled = locked;
+        if (clrAll) clrAll.disabled = locked;
+
+        if (host) {
+            host.querySelectorAll("input[type='checkbox']").forEach(x => x.disabled = locked);
+        }
+    }
+}
+
+function initPlanTextColorUi() {
+    const input = document.getElementById("planTextColorInput");
+    const preview = document.getElementById("planTextColorPreview");
+    const btnPick = document.getElementById("planTextColorPick");
+    if (!input || !preview || !btnPick) return;
+
+    const saved = String(localStorage.getItem(reportPlanTextColorKey) || "").trim();
+    const start = isValidHexColor(saved) ? saved.toUpperCase() : "#FFC107";
+
+    input.value = start;
+    updatePreview(preview, input.value);
+
+    input.addEventListener("input", () => {
+        const sanitized = sanitizeHexColorInput(input.value);
+        input.value = sanitized;
+
+        const ok = isValidHexColor(sanitized);
+        setColorInvalid(input, !ok);
+
+        if (ok) updatePreview(preview, sanitized.toUpperCase());
+        else updatePreview(preview, "");
+    });
+
+    btnPick.addEventListener("click", () => {
+        openSharedColorPicker(btnPick, input.value, (v) => {
+            input.value = v;
+            setColorInvalid(input, false);
+            updatePreview(preview, v);
+        });
+    });
+}
+
+function savePlanTextColorToStorage() {
+    const input = document.getElementById("planTextColorInput");
+    if (!input) return true;
+
+    const v = String(input.value || "").trim().toUpperCase();
+    if (!isValidHexColor(v)) {
+        setColorInvalid(input, true);
+        showPageError("Цвет колонки «План»: укажите #RRGGBB.");
+        return false;
+    }
+
+    setColorInvalid(input, false);
+    localStorage.setItem(reportPlanTextColorKey, v);
+    return true;
+}
+
+function ensureSharedColorPicker() {
+    if (sharedColorPicker) return sharedColorPicker;
+
+    const p = document.createElement("input");
+    p.type = "color";
+    p.style.position = "fixed";
+    p.style.left = "0px";
+    p.style.top = "0px";
+    p.style.width = "32px";
+    p.style.height = "32px";
+    p.style.opacity = "0.01";
+    p.style.pointerEvents = "none";
+    p.style.zIndex = "999999";
+    p.style.border = "0";
+    p.style.padding = "0";
+
+    p.addEventListener("input", () => {
+        const v = String(p.value || "").toUpperCase();
+        if (sharedColorPickerOnPick) sharedColorPickerOnPick(v);
+    });
+
+    document.body.appendChild(p);
+    sharedColorPicker = p;
+    return p;
+}
+
+function openSharedColorPicker(btnEl, initialHex, onPick) {
+    const p = ensureSharedColorPicker();
+
+    sharedColorPickerOnPick = onPick;
+
+    p.value = isValidHexColor(initialHex) ? initialHex.toUpperCase() : "#000000";
+
+    const rect = btnEl.getBoundingClientRect();
+
+    p.style.left = rect.left + "px";
+    p.style.top = rect.bottom + "px";
+    p.style.pointerEvents = "auto";
+
+    requestAnimationFrame(() => {
+        p.click();
+        setTimeout(() => {
+            p.style.pointerEvents = "none";
+        }, 300);
+    });
 }

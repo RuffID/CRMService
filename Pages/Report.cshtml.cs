@@ -1,12 +1,14 @@
 ﻿using CRMService.Abstractions.Entity;
 using CRMService.Abstractions.Service;
 using CRMService.Models.Authorization;
+using CRMService.Models.Dto.CrmEntities;
 using CRMService.Models.Dto.Mappers;
 using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.Report;
 using CRMService.Models.Request;
 using CRMService.Models.Responses.Results;
 using CRMService.Service.Attributes;
+using CRMService.Service.CrmServices;
 using CRMService.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -15,7 +17,7 @@ namespace CRMService.Pages
 {
     [CookieAuthorize]
     [LoadUser]
-    public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IReportService reportService) : PageModel, IHasCurrentUser
+    public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IPlanSettingsService planSettingsService, IReportService reportService) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
@@ -52,6 +54,13 @@ namespace CRMService.Pages
         public async Task<IActionResult> OnPostEmployeeListAsync([FromBody] GetEmployeeListRequest request, CancellationToken ct)
         {
             ServiceResult<List<EmployeeDto>> result = await employeeService.GetEmployees(request.GroupIds, ct: ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetPlanColorRulesAsync(CancellationToken ct)
+        {
+            ServiceResult<List<PlanColorSchemeDto>> result = await planSettingsService.GetPlanColorSchemes(ct);
+
             return JsonResultMapper.ToJsonResult(result);
         }
 

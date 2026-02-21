@@ -25,7 +25,7 @@
                             data-bs-target="#filtersPanel"
                             aria-controls="filtersPanel"
                             style="background-color:#f3f4f6;">
-                        <span class="fw-semibold text-secondary">Фильтры</span>
+                        <span class="fw-semibold text-secondary">Настройки</span>
                     </button>
 
                     <div id="reportFocusRoot" style="
@@ -200,6 +200,21 @@
                                                            title="Период автоматически устанавливается на текущий день и обновляется при каждом обновлении отчёта.">
                                                         </i>
                                                     </div>
+
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="planMode">
+                                                        <label class="form-check-label" for="planMode">Показ дневного и месячного плана</label>
+
+                                                        <i class="bi bi-question-circle text-primary"
+                                                           role="button"
+                                                           tabindex="0"
+                                                           data-bs-toggle="tooltip"
+                                                           data-bs-placement="right"
+                                                           data-bs-html="true"
+                                                           data-bs-custom-class="tooltip-light"
+                                                           title="Включает переключение отчёта: 10 секунд показывается текущий месяц, затем 10 секунд текущий день (и так по кругу). Также отображается колонка «План».">
+                                                        </i>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -266,10 +281,21 @@
                                         <table class="table table-hover table-striped align-middle mb-0" id="grid">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th data-col-id="name" data-sort-key="name" class="user-select-none border-end border-secondary-subtle" draggable="true">ФИО сотрудника</th>
-                                                    <th data-col-id="resolved" data-sort-key="resolved" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">Решённые заявки</th>
-                                                    <th data-col-id="current" data-sort-key="current" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">Текущие заявки</th>
-                                                    <th data-col-id="time" data-sort-key="time" class="text-center user-select-none" draggable="true">Списанное время</th>
+                                                    <th data-col-id="name" data-sort-key="name" class="user-select-none border-end border-secondary-subtle" draggable="true">
+                                                        ФИО сотрудника
+                                                    </th>
+                                                    <th data-col-id="resolved" data-sort-key="resolved" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
+                                                        Решённые заявки
+                                                    </th>
+                                                    <th data-col-id="plan" data-sort-key="plan" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
+                                                        План
+                                                    </th>
+                                                    <th data-col-id="current" data-sort-key="current" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
+                                                        Текущие заявки
+                                                    </th>
+                                                    <th data-col-id="time" data-sort-key="time" class="text-center user-select-none" draggable="true">
+                                                        Списанное время
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody id="rows"></tbody>

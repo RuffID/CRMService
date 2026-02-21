@@ -47,6 +47,8 @@ namespace CRMService.Service.BackgroundServices
                         {
                             foreach (Issue issue in issuesFromLocalDb)
                             {
+                                if (issue.DeletedAt.HasValue)
+                                    continue;
                                 await timeEntryService.UpdateTimeEntriesFromCloudApi(issue.Id, stoppingToken);
                             }
                         }

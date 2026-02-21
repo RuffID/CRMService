@@ -1,6 +1,14 @@
 ﻿const expandedKey = "crm_report_filters_expanded_v1";
 const storageKey = "crm_report_filters_v1";
+
+const reportEoModeKey = "crm_report_eo_mode_v1";
+const reportPlanModeKey = "crm_report_plan_mode_v1";
+
+const reportAutoReloadMs = 5 * 60 * 1000;
+const reportSwitchReloadMs = 10 * 1000;
+
 let allEmployees = [];
+let reportAutoReloadTimerId = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
     await initReportFiltersState();
@@ -19,13 +27,8 @@ document.addEventListener("change", (e) => {
 
     if (!isFilter) return;
 
-    if (t.classList.contains("filter-groups")) {
-        applyEmployeeVisibilityByGroups();
-    }
-
-    if (t.classList.contains("filter-employees")) {
-        applyGroupsVisibilityByEmployees();
-    }
+    if (t.classList.contains("filter-groups")) applyEmployeeVisibilityByGroups();
+    if (t.classList.contains("filter-employees")) applyGroupsVisibilityByEmployees();
 
     saveFilters(storageKey);
     applyMutualExclusionUI();
@@ -40,25 +43,26 @@ async function initReportFiltersState() {
 
     ensureDefaultMonthDates(storageKey);
     restoreFilters(storageKey);
+
+    loadModeFlags();
+    applyPeriodModesUi();
+    enforceModeDates();
+
     applyEmployeeVisibilityByGroups();
     applyGroupsVisibilityByEmployees();
     applyMutualExclusionUI();
     syncTypesTreeFolders();
-    applyEoModeUi();
     updateBadges();
 
     wireExpandedPersistence(expandedKey, panel);
     wireFiltersPersistence(storageKey);
+    wirePeriodModes();
 
-    loadPerformanceReport();
-}
+    restartAutoReload();
 
-function restoreExpanded(expandedKey, panel, collapse) {
-    const shouldBeExpanded = localStorage.getItem(expandedKey) === "1";
-    const isExpandedNow = panel.classList.contains("show");
-
-    if (shouldBeExpanded && !isExpandedNow) collapse.show();
-    if (!shouldBeExpanded && isExpandedNow) collapse.hide();
+    if (typeof window.loadPerformanceReport === "function") {
+        await window.loadPerformanceReport();
+    }
 }
 
 function wireExpandedPersistence(expandedKey, panel) {
@@ -71,53 +75,48 @@ function wireFiltersPersistence(storageKey) {
     getEl("hideWithoutSolved")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutTime")?.addEventListener("change", () => saveFilters(storageKey));
 
-    getEl("eoMode")?.addEventListener("change", () => {
-        applyEoModeUi();
-        saveFilters(storageKey)
-    });
-
     getEl("dateFrom")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("dateTo")?.addEventListener("change", () => saveFilters(storageKey));
 
     getEl("applyFilters")?.addEventListener("click", async () => {
-        if (getBool("eoMode")) setTodayRange();
+        enforceModeDates();
         saveFilters(storageKey);
-        await loadPerformanceReport();
+        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
     });
 
     getEl("resetFilters")?.addEventListener("click", async () => {
         resetFilters();
         saveFilters(storageKey);
-        resetReportSorting();
-        await loadPerformanceReport();
+
+        if (typeof window.resetReportSorting === "function") window.resetReportSorting();
+        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
     });
 
-    getEl('typesSelectAll')?.addEventListener('click', () => {
-        const root = getEl('listTypes');
+    getEl("typesSelectAll")?.addEventListener("click", () => {
+        const root = getEl("listTypes");
         if (!root) return;
 
-        root.querySelectorAll('input.filter-types-folder, input.filter-types').forEach(x => {
+        root.querySelectorAll("input.filter-types-folder, input.filter-types").forEach(x => {
             x.checked = true;
-            if (x.classList.contains('filter-types-folder')) x.indeterminate = false;
+            if (x.classList.contains("filter-types-folder")) x.indeterminate = false;
         });
 
         saveFilters(storageKey);
         updateBadges();
     });
 
-    getEl('typesClearAll')?.addEventListener('click', () => {
-        const root = getEl('listTypes');
+    getEl("typesClearAll")?.addEventListener("click", () => {
+        const root = getEl("listTypes");
         if (!root) return;
 
-        root.querySelectorAll('input.filter-types-folder, input.filter-types').forEach(x => {
+        root.querySelectorAll("input.filter-types-folder, input.filter-types").forEach(x => {
             x.checked = false;
-            if (x.classList.contains('filter-types-folder')) x.indeterminate = false;
+            if (x.classList.contains("filter-types-folder")) x.indeterminate = false;
         });
 
         saveFilters(storageKey);
         updateBadges();
     });
-
 
     initSearch("searchGroups", "listGroups");
     initSearch("searchEmployees", "listEmployees");
@@ -129,6 +128,167 @@ function wireFiltersPersistence(storageKey) {
     wireSelectButtons("prioritiesSelectAll", "prioritiesClearAll", "listPriorities", "input.filter-priorities");
     wireSelectButtons("statusesSelectAll", "statusesClearAll", "listStatuses", "input.filter-statuses");
     wireSelectButtons("typesSelectAll", "typesClearAll", "listTypes", "input.filter-types");
+}
+
+function wirePeriodModes() {
+    const eo = getEl("eoMode");
+    const pm = getEl("planMode");
+    if (!eo || !pm) return;
+
+    eo.addEventListener("change", async () => {
+        if (eo.checked) pm.checked = false;
+
+        saveModeFlags();
+        applyPeriodModesUi();
+        enforceModeDates();
+        restartAutoReload();
+
+        saveFilters(storageKey);
+
+        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
+        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+    });
+
+    pm.addEventListener("change", async () => {
+        if (pm.checked) eo.checked = false;
+
+        saveModeFlags();
+        applyPeriodModesUi();
+
+        if (pm.checked && typeof window.setPlanModePeriod === "function") window.setPlanModePeriod("month");
+
+        enforceModeDates();
+        restartAutoReload();
+
+        saveFilters(storageKey);
+
+        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
+        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+    });
+}
+
+function restartAutoReload() {
+    if (reportAutoReloadTimerId) {
+        clearInterval(reportAutoReloadTimerId);
+        reportAutoReloadTimerId = null;
+    }
+
+    if (isPlanModeOn()) {
+        reportAutoReloadTimerId = setInterval(async () => {
+            if (document.hidden) return;
+
+            const cur = (typeof window.getPlanModePeriod === "function") ? window.getPlanModePeriod() : "month";
+            const next = (cur === "month") ? "day" : "month";
+
+            if (typeof window.setPlanModePeriod === "function") window.setPlanModePeriod(next);
+
+            enforceModeDates();
+            saveFilters(storageKey);
+
+            if (typeof window.applySortAndRender === "function") window.applySortAndRender();
+            if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+        }, reportSwitchReloadMs);
+
+        return;
+    }
+
+    reportAutoReloadTimerId = setInterval(async () => {
+        if (document.hidden) return;
+        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+    }, reportAutoReloadMs);
+}
+
+function applyPeriodModesUi() {
+    const eo = getEl("eoMode");
+    const pm = getEl("planMode");
+    if (!eo || !pm) return;
+
+    if (eo.checked) {
+        pm.checked = false;
+        pm.disabled = true;
+        eo.disabled = false;
+    } else if (pm.checked) {
+        eo.checked = false;
+        eo.disabled = true;
+        pm.disabled = false;
+    } else {
+        eo.disabled = false;
+        pm.disabled = false;
+    }
+
+    syncDateInputsLock();
+}
+
+function syncDateInputsLock() {
+    const df = getEl("dateFrom");
+    const dt = getEl("dateTo");
+    if (!df || !dt) return;
+
+    const locked = isEoModeOn() || isPlanModeOn();
+
+    df.disabled = locked;
+    dt.disabled = locked;
+}
+
+function enforceModeDates() {
+    if (isEoModeOn()) {
+        setTodayRange();
+        return;
+    }
+
+    if (isPlanModeOn()) {
+        const p = (typeof window.getPlanModePeriod === "function") ? window.getPlanModePeriod() : "month";
+        if (p === "day") setTodayRange();
+        else setCurrentMonthRange();
+    }
+}
+
+function setTodayRange() {
+    const today = toDateInputValue(new Date());
+    setValue("dateFrom", today);
+    setValue("dateTo", today);
+}
+
+function setCurrentMonthRange() {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    setValue("dateFrom", toDateInputValue(first));
+    setValue("dateTo", toDateInputValue(last));
+}
+
+function saveModeFlags() {
+    const eo = getEl("eoMode");
+    const pm = getEl("planMode");
+    if (!eo || !pm) return;
+
+    localStorage.setItem(reportEoModeKey, eo.checked ? "1" : "0");
+    localStorage.setItem(reportPlanModeKey, pm.checked ? "1" : "0");
+}
+
+function loadModeFlags() {
+    const eo = getEl("eoMode");
+    const pm = getEl("planMode");
+    if (!eo || !pm) return;
+
+    eo.checked = localStorage.getItem(reportEoModeKey) === "1";
+    pm.checked = localStorage.getItem(reportPlanModeKey) === "1";
+
+    if (eo.checked && pm.checked) {
+        pm.checked = false;
+        localStorage.setItem(reportPlanModeKey, "0");
+    }
+}
+
+function isEoModeOn() {
+    const el = getEl("eoMode");
+    return !!el && el.checked === true;
+}
+
+function isPlanModeOn() {
+    const el = getEl("planMode");
+    return !!el && el.checked === true;
 }
 
 function wireSelectButtons(selectAllId, clearAllId, listId, checkboxSelector) {
@@ -191,7 +351,6 @@ function restoreFilters(storageKey) {
     setBool("hideWithoutCurrent", state.hideWithoutCurrent);
     setBool("hideWithoutSolved", state.hideWithoutSolved);
     setBool("hideWithoutTime", state.hideWithoutTime);
-    setBool("eoMode", state.eoMode);
 
     setValue("dateFrom", state.dateFrom);
     setValue("dateTo", state.dateTo);
@@ -204,15 +363,21 @@ function resetFilters() {
     setChecked(".filter-types", []);
     setChecked(".filter-employees", []);
 
-
     setBool("hideWithoutCurrent", false);
     setBool("hideWithoutSolved", false);
     setBool("hideWithoutTime", false);
-    setBool("eoMode", false);
 
     const { dateFrom, dateTo } = getCurrentMonthRangeForInputs();
     setValue("dateFrom", dateFrom);
     setValue("dateTo", dateTo);
+
+    const eo = getEl("eoMode");
+    const pm = getEl("planMode");
+    if (eo) eo.checked = false;
+    if (pm) pm.checked = false;
+
+    saveModeFlags();
+    applyPeriodModesUi();
 
     applyEmployeeVisibilityByGroups();
     applyGroupsVisibilityByEmployees();
@@ -231,10 +396,13 @@ function readState() {
         hideWithoutSolved: getBool("hideWithoutSolved"),
         hideWithoutTime: getBool("hideWithoutTime"),
         eoMode: getBool("eoMode"),
+        planMode: getBool("planMode"),
         dateFrom: getValue("dateFrom"),
         dateTo: getValue("dateTo")
     };
 }
+
+window.readState = readState;
 
 function getChecked(selector) {
     return Array.from(document.querySelectorAll(selector))
@@ -316,9 +484,7 @@ function ensureDefaultMonthDates(storageKey) {
         try {
             const st = JSON.parse(raw);
             if (st && st.dateFrom && st.dateTo) return;
-        } catch {
-
-        }
+        } catch { }
     }
 
     const { dateFrom, dateTo } = getCurrentMonthRangeForInputs();
@@ -357,22 +523,24 @@ function toDateInputValue(d) {
 
 async function loadAndRenderDictionaries() {
     try {
+        const token = getRequestVerificationToken();
+
         const [groups, priorities, statuses, typeGroups, types] = await Promise.all([
-            fetchDict('EmployeeGroupList', 'groupsLoading', 'Не удалось загрузить группы.'),
-            fetchDict('IssuePriorityList', 'prioritiesLoading', 'Не удалось загрузить приоритеты.'),
-            fetchDict('IssueStatusList', 'statusesLoading', 'Не удалось загрузить статусы.'),
-            fetchDict('IssueTypeGroupList', null, 'Не удалось загрузить папки типов.'),
-            fetchDict('IssueTypeList', 'typesLoading', 'Не удалось загрузить типы.')
+            fetchDict("EmployeeGroupList", "groupsLoading", "Не удалось загрузить группы."),
+            fetchDict("IssuePriorityList", "prioritiesLoading", "Не удалось загрузить приоритеты."),
+            fetchDict("IssueStatusList", "statusesLoading", "Не удалось загрузить статусы."),
+            fetchDict("IssueTypeGroupList", null, "Не удалось загрузить папки типов."),
+            fetchDict("IssueTypeList", "typesLoading", "Не удалось загрузить типы.")
         ]);
 
-        const employees = await loadEmployeesByGroups();
+        const employees = await loadEmployeesByGroups(token);
         allEmployees = Array.isArray(employees) ? employees : [];
 
         renderEmployeeList(allEmployees);
-        renderCheckboxList('listGroups', 'filter-groups', groups, x => x.name ?? x.Name ?? '', 'g');
-        renderCheckboxList('listPriorities', 'filter-priorities', priorities, x => x.name ?? x.Name ?? '', 'p');
-        renderCheckboxList('listStatuses', 'filter-statuses', statuses, x => x.name ?? x.Name ?? '', 's');
-        renderTypesTree('listTypes', typeGroups, types);
+        renderCheckboxList("listGroups", "filter-groups", groups, x => x.name ?? x.Name ?? "", "g");
+        renderCheckboxList("listPriorities", "filter-priorities", priorities, x => x.name ?? x.Name ?? "", "p");
+        renderCheckboxList("listStatuses", "filter-statuses", statuses, x => x.name ?? x.Name ?? "", "s");
+        renderTypesTree("listTypes", typeGroups, types);
     }
     catch (e) {
         console.error(e);
@@ -381,12 +549,12 @@ async function loadAndRenderDictionaries() {
 
 async function fetchDict(handlerName, loadingId, defaultErrorMessage) {
     const loadingEl = getEl(loadingId);
-    if (loadingEl) loadingEl.textContent = 'Загрузка...';
+    if (loadingEl) loadingEl.textContent = "Загрузка...";
 
     const url = `${window.location.pathname}?handler=${encodeURIComponent(handlerName)}`;
 
     try {
-        const resp = await sendJsonRequest(url, 'GET');
+        const resp = await sendJsonRequest(url, "GET");
         const data = unwrapOrThrow(resp, defaultErrorMessage);
 
         if (loadingEl) loadingEl.remove();
@@ -397,112 +565,112 @@ async function fetchDict(handlerName, loadingId, defaultErrorMessage) {
         console.error(`Failed to load dict ${handlerName}`, e);
 
         if (loadingEl) {
-            loadingEl.textContent = 'Ошибка загрузки';
-            loadingEl.classList.remove('text-muted');
-            loadingEl.classList.add('text-danger');
+            loadingEl.textContent = "Ошибка загрузки";
+            loadingEl.classList.remove("text-muted");
+            loadingEl.classList.add("text-danger");
         }
 
         return [];
     }
 }
 
-async function loadEmployeesByGroups(groupIds = null) {
+async function loadEmployeesByGroups(token, groupIds = null) {
     const payload = {
         groupIds: groupIds && groupIds.length > 0 ? groupIds.map(Number) : null
     };
 
-    const resp = await sendJsonRequest(`?handler=EmployeeList`, 'POST', buildJsonHeaders(antiForgeryToken), payload);
-    return unwrapOrThrow(resp, 'Ошибка загрузки сотрудников.');
+    const resp = await sendJsonRequest(`?handler=EmployeeList`, "POST", buildJsonHeaders(token), payload);
+    return unwrapOrThrow(resp, "Ошибка загрузки сотрудников.");
 }
 
 function renderCheckboxList(listId, checkboxClass, items, textSelector, idPrefix) {
     const list = getEl(listId);
     if (!list) return;
 
-    list.innerHTML = '';
+    list.innerHTML = "";
 
     if (!items || items.length === 0) {
-        const div = document.createElement('div');
-        div.className = 'text-muted small px-1 py-2';
-        div.textContent = 'Нет данных';
+        const div = document.createElement("div");
+        div.className = "text-muted small px-1 py-2";
+        div.textContent = "Нет данных";
         list.appendChild(div);
         return;
     }
 
-    items.forEach(x => {
+    for (const x of items) {
         const id = Number(x.id ?? x.Id);
-        if (!id || id <= 0) return;
+        if (!id || id <= 0) continue;
 
-        const labelText = (textSelector(x) || '').trim();
+        const labelText = (textSelector(x) || "").trim();
         const inputId = `${idPrefix}${id}`;
 
-        const wrap = document.createElement('div');
-        wrap.className = 'form-check';
+        const wrap = document.createElement("div");
+        wrap.className = "form-check";
 
-        const input = document.createElement('input');
+        const input = document.createElement("input");
         input.className = `form-check-input ${checkboxClass}`;
-        input.type = 'checkbox';
+        input.type = "checkbox";
         input.value = String(id);
         input.id = inputId;
 
-        const label = document.createElement('label');
-        label.className = 'form-check-label';
+        const label = document.createElement("label");
+        label.className = "form-check-label";
         label.htmlFor = inputId;
         label.textContent = labelText || `#${id}`;
 
         wrap.appendChild(input);
         wrap.appendChild(label);
         list.appendChild(wrap);
-    });
+    }
 }
 
 function renderEmployeeList(items) {
-    const list = getEl('listEmployees');
+    const list = getEl("listEmployees");
     if (!list) return;
 
-    list.innerHTML = '';
+    list.innerHTML = "";
 
     if (!items || items.length === 0) {
-        const div = document.createElement('div');
-        div.className = 'text-muted small px-1 py-2';
-        div.textContent = 'Нет данных';
+        const div = document.createElement("div");
+        div.className = "text-muted small px-1 py-2";
+        div.textContent = "Нет данных";
         list.appendChild(div);
         return;
     }
 
-    items.forEach(x => {
+    for (const x of items) {
         const id = Number(x.id ?? x.Id);
-        if (!id || id <= 0) return;
+        if (!id || id <= 0) continue;
 
         const groupIds = (x.groupIds ?? x.GroupIds ?? []).map(Number).filter(n => n > 0);
         const inputId = `e${id}`;
 
-        const wrap = document.createElement('div');
-        wrap.className = 'form-check';
-        wrap.dataset.groupIds = groupIds.join(',');
+        const wrap = document.createElement("div");
+        wrap.className = "form-check";
+        wrap.dataset.groupIds = groupIds.join(",");
 
-        const input = document.createElement('input');
-        input.className = 'form-check-input filter-employees';
-        input.type = 'checkbox';
+        const input = document.createElement("input");
+        input.className = "form-check-input filter-employees";
+        input.type = "checkbox";
         input.value = String(id);
         input.id = inputId;
 
-        const label = document.createElement('label');
-        label.className = 'form-check-label';
+        const label = document.createElement("label");
+        label.className = "form-check-label";
         label.htmlFor = inputId;
         label.textContent = employeeDisplayName(x) || `#${id}`;
 
         wrap.appendChild(input);
         wrap.appendChild(label);
         list.appendChild(wrap);
-    });
+    }
 }
 
 function employeeDisplayName(x) {
-    const ln = (x.lastName ?? x.LastName ?? '').trim();
-    const fn = (x.firstName ?? x.FirstName ?? '').trim();
-    const pn = (x.patronymic ?? x.Patronymic ?? '').trim();
-    return [ln, fn, pn].filter(s => s && s.length > 0).join(' ');
+    const ln = (x.lastName ?? x.LastName ?? "").trim();
+    const fn = (x.firstName ?? x.FirstName ?? "").trim();
+    const pn = (x.patronymic ?? x.Patronymic ?? "").trim();
+    return [ln, fn, pn].filter(s => s && s.length > 0).join(" ");
 }
 
 function applyEmployeeVisibilityByGroups() {
@@ -523,10 +691,8 @@ function applyEmployeeVisibilityByGroups() {
             return;
         }
 
-        const raw = item.dataset.groupIds || '';
-        const empGroups = raw.length > 0
-            ? raw.split(',').map(Number).filter(n => n > 0)
-            : [];
+        const raw = item.dataset.groupIds || "";
+        const empGroups = raw.length > 0 ? raw.split(",").map(Number).filter(n => n > 0) : [];
 
         const visible = empGroups.some(gid => selectedGroups.has(gid));
         item.classList.toggle("d-none-by-groups", !visible);
@@ -546,10 +712,7 @@ function applyGroupsVisibilityByEmployees() {
 
     list.querySelectorAll(".form-check").forEach(item => {
         item.classList.toggle("d-none-by-employees", hasEmployees);
-        item.classList.toggle(
-            "d-none",
-            item.classList.contains("d-none-by-search") || item.classList.contains("d-none-by-employees")
-        );
+        item.classList.toggle("d-none", item.classList.contains("d-none-by-search") || item.classList.contains("d-none-by-employees"));
     });
 
     const search = getEl("searchGroups");
@@ -655,6 +818,19 @@ function renderTypesTree(listId, folders, types) {
     initTypesTreeSearch('searchTypes', listId);
 }
 
+function syncTypesTreeFolders() {
+    const root = getEl('listTypes');
+    if (!root) return;
+
+    Array.from(root.querySelectorAll('.types-folder')).forEach(folder => {
+        updateFolderSelf(folder);
+    });
+
+    Array.from(root.querySelectorAll('.types-folder')).reverse().forEach(folder => {
+        updateFolderUpwards(folder);
+    });
+}
+
 function buildFolderTree(folderItems) {
     const byId = new Map();
     const roots = [];
@@ -663,11 +839,16 @@ function buildFolderTree(folderItems) {
         const id = Number(x.id ?? x.Id);
         if (!id || id <= 0) return;
 
-        const name = (x.name ?? x.Name ?? '').trim();
+        const name = String(x.name ?? x.Name ?? '').trim();
         const parentIdRaw = (x.parentId ?? x.ParentId);
         const parentId = parentIdRaw == null ? null : Number(parentIdRaw);
 
-        byId.set(id, { id, name, parentId: (parentId && parentId > 0) ? parentId : null, children: [] });
+        byId.set(id, {
+            id,
+            name,
+            parentId: (parentId && parentId > 0) ? parentId : null,
+            children: []
+        });
     });
 
     byId.forEach(n => {
@@ -682,8 +863,8 @@ function buildFolderTree(folderItems) {
         arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
         arr.forEach(x => sortRec(x.children));
     };
-    sortRec(roots);
 
+    sortRec(roots);
     return roots;
 }
 
@@ -694,11 +875,12 @@ function buildTypesByGroup(typeItems) {
         const id = Number(x.id ?? x.Id);
         if (!id || id <= 0) return;
 
-        const name = (x.name ?? x.Name ?? '').trim();
+        const name = String(x.name ?? x.Name ?? '').trim();
         const groupIdRaw = (x.groupId ?? x.GroupId);
         const groupId = (groupIdRaw == null) ? 0 : Number(groupIdRaw);
 
         const t = { id, name, groupId: (groupId && groupId > 0) ? groupId : 0 };
+
         if (!map.has(t.groupId)) map.set(t.groupId, []);
         map.get(t.groupId).push(t);
     });
@@ -801,7 +983,6 @@ function wireTypesTreeHandlers(listRoot) {
         if (!el) return;
 
         if (el.classList.contains('filter-types-folder')) {
-            const folderId = Number(el.dataset.folderId);
             const folder = el.closest('.types-folder');
             if (!folder) return;
 
@@ -820,10 +1001,11 @@ function wireTypesTreeHandlers(listRoot) {
 
         if (el.classList.contains('filter-types')) {
             const folder = el.closest('.types-folder');
-            if (!folder) return;
+            if (folder) {
+                updateFolderSelf(folder);
+                updateFolderUpwards(folder);
+            }
 
-            updateFolderSelf(folder);
-            updateFolderUpwards(folder);
             saveFilters(storageKey);
             updateBadges();
             return;
@@ -846,9 +1028,11 @@ function updateFolderSelf(folder) {
 
 function updateFolderUpwards(folder) {
     let parent = folder.parentElement;
+
     while (parent) {
         const parentFolder = parent.closest('.types-folder');
         if (!parentFolder) break;
+
         updateFolderSelf(parentFolder);
         parent = parentFolder.parentElement;
     }
@@ -860,7 +1044,7 @@ function initTypesTreeSearch(searchId, listId) {
     if (!input || !list) return;
 
     input.addEventListener('input', () => {
-        const q = (input.value || '').trim().toLowerCase();
+        const q = String(input.value || '').trim().toLowerCase();
 
         const folders = Array.from(list.querySelectorAll('.types-folder'));
 
@@ -872,16 +1056,16 @@ function initTypesTreeSearch(searchId, listId) {
 
         const rootLeaves = Array.from(list.querySelectorAll('.types-root-leaves .form-check'));
         rootLeaves.forEach(row => {
-            const text = (row.querySelector('label')?.textContent || '').toLowerCase();
+            const text = String(row.querySelector('label')?.textContent || '').toLowerCase();
             row.classList.toggle('d-none', !text.includes(q));
         });
 
         folders.forEach(folder => {
-            const title = (folder.querySelector('span.fw-semibold')?.textContent || '').toLowerCase();
+            const title = String(folder.querySelector('span.fw-semibold')?.textContent || '').toLowerCase();
             let anyMatch = false;
 
             folder.querySelectorAll(':scope .form-check').forEach(row => {
-                const text = (row.querySelector('label')?.textContent || '').toLowerCase();
+                const text = String(row.querySelector('label')?.textContent || '').toLowerCase();
                 const ok = title.includes(q) || text.includes(q);
                 row.classList.toggle('d-none', !ok);
                 if (ok) anyMatch = true;
@@ -893,6 +1077,7 @@ function initTypesTreeSearch(searchId, listId) {
             });
 
             folder.classList.toggle('d-none', !anyMatch);
+
             if (anyMatch) {
                 let p = folder.parentElement?.closest('.types-folder');
                 while (p) {
@@ -902,34 +1087,4 @@ function initTypesTreeSearch(searchId, listId) {
             }
         });
     });
-}
-
-function syncTypesTreeFolders() {
-    const root = getEl('listTypes');
-    if (!root) return;
-
-    Array.from(root.querySelectorAll('.types-folder')).forEach(folder => {
-        updateFolderSelf(folder);
-    });
-    Array.from(root.querySelectorAll('.types-folder')).reverse().forEach(folder => {
-        updateFolderUpwards(folder);
-    });
-}
-
-function applyEoModeUi() {
-    const eo = getBool("eoMode");
-
-    const df = getEl("dateFrom");
-    const dt = getEl("dateTo");
-
-    if (df) df.disabled = eo;
-    if (dt) dt.disabled = eo;
-
-    if (eo) setTodayRange();
-}
-
-function setTodayRange() {
-    const today = toDateInputValue(new Date());
-    setValue("dateFrom", today);
-    setValue("dateTo", today);
 }

@@ -32,6 +32,7 @@ window.loadPerformanceReport = loadPerformanceReport;
 window.applySortAndRender = applySortAndRender;
 window.getPlanModePeriod = () => planModePeriod;
 window.setPlanModePeriod = (p) => { planModePeriod = (p === "day") ? "day" : "month"; };
+window.reloadPlanColors = initPlanColors;
 
 document.addEventListener("DOMContentLoaded", () => {
     initReport();
@@ -134,6 +135,9 @@ function initReportReloadButton() {
 
         isManualReloadInProgress = true;
         btn.disabled = true;
+
+        if (typeof window.reloadPlanColors === "function")
+            await window.reloadPlanColors();
 
         const ok = await loadPerformanceReport();
 

@@ -9,6 +9,9 @@ const reportSwitchReloadMs = 10 * 1000;
 
 let allEmployees = [];
 let reportAutoReloadTimerId = null;
+let reportPlanSwitchTimerId = null;
+
+let isAutoReloadInProgress = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
     await initReportFiltersState();
@@ -35,6 +38,11 @@ document.addEventListener("change", (e) => {
     updateBadges();
 });
 
+document.addEventListener("crm-report-rendered", () => {
+    if (!isPlanModeOn()) return;
+    scheduleNextPlanSwitch();
+});
+
 async function initReportFiltersState() {
     const panel = document.getElementById("filtersPanel");
     if (!panel || !window.bootstrap) return;
@@ -58,11 +66,7 @@ async function initReportFiltersState() {
     wireFiltersPersistence(storageKey);
     wirePeriodModes();
 
-    restartAutoReload();
-
-    if (typeof window.loadPerformanceReport === "function") {
-        await window.loadPerformanceReport();
-    }
+    await restartAutoReload(true);
 }
 
 function wireExpandedPersistence(expandedKey, panel) {
@@ -141,12 +145,13 @@ function wirePeriodModes() {
         saveModeFlags();
         applyPeriodModesUi();
         enforceModeDates();
-        restartAutoReload();
+
+        await restartAutoReload(true);
 
         saveFilters(storageKey);
 
-        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
-        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+        if (typeof window.applySortAndRender === "function")
+            window.applySortAndRender();
     });
 
     pm.addEventListener("change", async () => {
@@ -155,47 +160,75 @@ function wirePeriodModes() {
         saveModeFlags();
         applyPeriodModesUi();
 
-        if (pm.checked && typeof window.setPlanModePeriod === "function") window.setPlanModePeriod("month");
+        if (pm.checked && typeof window.setPlanModePeriod === "function")
+            window.setPlanModePeriod("month");
 
         enforceModeDates();
-        restartAutoReload();
+
+        await restartAutoReload(true);
 
         saveFilters(storageKey);
 
-        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
-        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+        if (typeof window.applySortAndRender === "function")
+            window.applySortAndRender();
     });
 }
 
-function restartAutoReload() {
+function stopPlanSwitchTimer() {
+    if (reportPlanSwitchTimerId) {
+        clearTimeout(reportPlanSwitchTimerId);
+        reportPlanSwitchTimerId = null;
+    }
+}
+
+function scheduleNextPlanSwitch() {
+    stopPlanSwitchTimer();
+
+    if (!isPlanModeOn()) return;
+
+    reportPlanSwitchTimerId = setTimeout(() => {
+        if (!isPlanModeOn()) return;
+        if (document.hidden) {
+            scheduleNextPlanSwitch();
+            return;
+        }
+
+        const cur = (typeof window.getPlanModePeriod === "function") ? window.getPlanModePeriod() : "month";
+        const next = (cur === "month") ? "day" : "month";
+
+        if (typeof window.setPlanModePeriod === "function") window.setPlanModePeriod(next);
+
+        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
+
+        scheduleNextPlanSwitch();
+    }, reportSwitchReloadMs);
+}
+
+async function restartAutoReload(forceNow = false) {
     if (reportAutoReloadTimerId) {
         clearInterval(reportAutoReloadTimerId);
         reportAutoReloadTimerId = null;
     }
 
-    if (isPlanModeOn()) {
-        reportAutoReloadTimerId = setInterval(async () => {
-            if (document.hidden) return;
-
-            const cur = (typeof window.getPlanModePeriod === "function") ? window.getPlanModePeriod() : "month";
-            const next = (cur === "month") ? "day" : "month";
-
-            if (typeof window.setPlanModePeriod === "function") window.setPlanModePeriod(next);
-
-            enforceModeDates();
-            saveFilters(storageKey);
-
-            if (typeof window.applySortAndRender === "function") window.applySortAndRender();
-            if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
-        }, reportSwitchReloadMs);
-
-        return;
-    }
+    stopPlanSwitchTimer();
 
     reportAutoReloadTimerId = setInterval(async () => {
         if (document.hidden) return;
-        if (typeof window.loadPerformanceReport === "function") await window.loadPerformanceReport();
+        if (isAutoReloadInProgress) return;
+        if (typeof window.loadPerformanceReport !== "function") return;
+
+        isAutoReloadInProgress = true;
+        try {
+            await window.loadPerformanceReport();
+        } finally {
+            isAutoReloadInProgress = false;
+        }
     }, reportAutoReloadMs);
+
+    if (forceNow && typeof window.loadPerformanceReport === "function") {
+        await window.loadPerformanceReport();
+        return;
+    }
 }
 
 function applyPeriodModesUi() {

@@ -41,6 +41,13 @@ namespace CRMService.Pages
                     claims.Add(new Claim(ClaimTypes.Role, role.Name));
             }
 
+            AuthenticationProperties props = new ()
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14),
+                AllowRefresh = true
+            };
+
             ClaimsIdentity identity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal principal = new(identity);
 

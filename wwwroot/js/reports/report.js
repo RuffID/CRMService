@@ -6,13 +6,22 @@ const reportPlanTextColorKey = "crm_report_plan_text_color_v1";
 
 let isManualReloadInProgress = false;
 let antiForgeryToken = null;
-let lastReportItems = [];
+
+let reportItemsPeriod = [];
+let reportItemsPlanDay = [];
+let reportItemsPlanMonth = [];
+
+let reportUpdatedAtPeriod = null;
+let reportUpdatedAtPlanDay = null;
+let reportUpdatedAtPlanMonth = null;
+
+let lastReportUpdatedAt = null;
+
 let isHeaderDragging = false;
 let dragOverColId = null;
 let dragSrcColId = null;
 let headerInsert = { targetId: null, side: null };
 let headerInsertEl = null;
-let lastReportUpdatedAt = null;
 
 let columnOrder = null;
 let planModePeriod = "month";
@@ -233,15 +242,59 @@ function initReportColumnOrder() {
 }
 
 async function loadPerformanceReport() {
-    const payload = buildReportPayload();
-
     try {
-        const response = await sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), payload);
+        if (isPlanModeOn()) {
+            const dayRange = getTodayRangeIso();
+            const monthRange = getCurrentMonthRangeIso();
 
+            const base = buildReportPayload();
+
+            const dayPayload = {
+                ...base,
+                dateFrom: dayRange.from,
+                dateTo: dayRange.to
+            };
+
+            const monthPayload = {
+                ...base,
+                dateFrom: monthRange.from,
+                dateTo: monthRange.to
+            };
+
+            const [dayResp, monthResp] = await Promise.all([
+                sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), dayPayload),
+                sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), monthPayload)
+            ]);
+
+            const dayData = unwrapOrThrow(dayResp, "Ошибка загрузки отчёта (день).");
+            const monthData = unwrapOrThrow(monthResp, "Ошибка загрузки отчёта (месяц).");
+
+            reportItemsPlanDay = Array.isArray(dayData) ? dayData : [];
+            reportItemsPlanMonth = Array.isArray(monthData) ? monthData : [];
+
+            const ts = new Date();
+            reportUpdatedAtPlanDay = ts;
+            reportUpdatedAtPlanMonth = ts;
+
+            syncLastUpdatedAtForActive();
+            applySortAndRender();
+
+            document.dispatchEvent(new CustomEvent("crm-report-rendered"));
+            return true;
+        }
+
+        const payload = buildReportPayload();
+
+        const response = await sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), payload);
         const data = unwrapOrThrow(response, "Ошибка загрузки отчёта.");
-        lastReportItems = Array.isArray(data) ? data : [];
-        lastReportUpdatedAt = new Date();
+
+        reportItemsPeriod = Array.isArray(data) ? data : [];
+        reportUpdatedAtPeriod = new Date();
+
+        syncLastUpdatedAtForActive();
         applySortAndRender();
+
+        document.dispatchEvent(new CustomEvent("crm-report-rendered"));
         return true;
     } catch (e) {
         console.error(e);
@@ -272,8 +325,42 @@ function buildReportPayload() {
     };
 }
 
+function getActiveItems() {
+    if (isPlanModeOn()) {
+        if (planModePeriod === "day") return Array.isArray(reportItemsPlanDay) ? reportItemsPlanDay : [];
+        return Array.isArray(reportItemsPlanMonth) ? reportItemsPlanMonth : [];
+    }
+
+    return Array.isArray(reportItemsPeriod) ? reportItemsPeriod : [];
+}
+
+function syncLastUpdatedAtForActive() {
+    if (isPlanModeOn()) {
+        lastReportUpdatedAt = (planModePeriod === "day") ? reportUpdatedAtPlanDay : reportUpdatedAtPlanMonth;
+        return;
+    }
+
+    lastReportUpdatedAt = reportUpdatedAtPeriod;
+}
+
+function getTodayRangeIso() {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    return { from: from.toISOString(), to: to.toISOString() };
+}
+
+function getCurrentMonthRangeIso() {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    return { from: from.toISOString(), to: to.toISOString() };
+}
+
 function applySortAndRender() {
-    let items = Array.isArray(lastReportItems) ? [...lastReportItems] : [];
+    syncLastUpdatedAtForActive();
+
+    let items = Array.isArray(getActiveItems()) ? [...getActiveItems()] : [];
 
     items = applyClientFilters(items);
 
@@ -348,7 +435,7 @@ function buildCellForColumn(colId, it) {
         const solved = Number(it?.solvedIssues ?? 0);
         td.textContent = String(solved);
 
-        if (isPlanModeOn()) {
+        if (isPlanModeOn() && planModePeriod === "day") {
             const plan = getPlanValueForItem(it);
             const c = getResolvedTextColorByPlan(solved, plan);
 

@@ -1,5 +1,5 @@
-﻿using CRMService.Abstractions.Entity;
-using Newtonsoft.Json;
+﻿using EFCoreLibrary.Abstractions.Entity;
+using System.Text.Json.Serialization;
 
 namespace CRMService.Models.OkdeskEntity;
 
@@ -9,7 +9,7 @@ public class Company : IEntity<int>, ICopyable<Company>
 
     public string Name { get; set; } = string.Empty;
 
-    [JsonProperty("additional_name")]
+    [JsonPropertyName("additional_name")]
     public string? AdditionalName { get; set; }
 
     public bool Active { get; set; }

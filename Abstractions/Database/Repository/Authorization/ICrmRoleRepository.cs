@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Database.Repository.Base;
+﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Models.Authorization;
 
 namespace CRMService.Abstractions.Database.Repository.Authorization

@@ -1,7 +1,8 @@
-﻿namespace CRMService.Abstractions.Entity
+﻿/*namespace CRMService.Abstractions.Entity
 {
     public interface IHasCode
     {
         string Code { get; }
     }
 }
+*/

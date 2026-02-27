@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 using CRMService.Models.Constants;
 using HttpClientLibrary.Abstractions;
 using HttpClientLibrary.Exceptions;

@@ -1,7 +1,5 @@
-﻿using CRMService.Abstractions.Database;
-using CRMService.Abstractions.Database.Repository;
+﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Database.Repository.Authorization;
-using CRMService.Abstractions.Database.Repository.Base;
 using CRMService.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Abstractions.Database.Repository.Report;
@@ -12,7 +10,6 @@ using CRMService.DataBase;
 using CRMService.DataBase.Postgresql;
 using CRMService.DataBase.Repository;
 using CRMService.DataBase.Repository.Authorization;
-using CRMService.DataBase.Repository.Base;
 using CRMService.DataBase.Repository.CrmEntity;
 using CRMService.DataBase.Repository.Entity;
 using CRMService.DataBase.Repository.Report;
@@ -29,6 +26,9 @@ using CRMService.Service.Report;
 using CRMService.Service.Requests;
 using CRMService.Service.Sync;
 using CRMService.Service.Webhook;
+using EFCoreLibrary.Abstractions.Database;
+using EFCoreLibrary.EfCore;
+using EFCoreLibrary.Extensions;
 using HttpClientLibrary;
 using HttpClientLibrary.Abstractions;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -38,8 +38,6 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
-using Newtonsoft.Json;
-using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -240,11 +238,7 @@ namespace CRMService.Core
         private static IServiceCollection AddRepositories(
              this IServiceCollection services)
         {
-            services.AddScoped(typeof(ICreateItemRepository<>), typeof(CreateItemRepository<>));
-            services.AddScoped(typeof(IDeleteItemRepository<>), typeof(DeleteItemRepository<>));
-            services.AddScoped(typeof(IGetItemByIdRepository<,>), typeof(GetItemByIdRepository<,>));
-            services.AddScoped(typeof(IGetItemByPredicateRepository<>), typeof(GetItemByPredicateRepository<>));
-            services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
+            services.AddEfCoreBaseRepositories();
 
             services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();
             services.AddScoped<ICrmRoleRepository, CrmRoleRepository>();

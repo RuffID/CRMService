@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Database.Repository.Base;
+﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Abstractions.Database.Repository.Report;
 using CRMService.Models.OkdeskEntity;
 using CRMService.Models.Report;

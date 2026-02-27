@@ -1,10 +1,10 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRMService.Models.OkdeskEntity
 {
-    public class KindsParameter : IEntity<int>, IHasCode, ICopyable<KindsParameter>
+    public class KindsParameter : IEntity<int>, ICopyable<KindsParameter>
     {
         public int Id { get; set; }
 

@@ -1,4 +1,3 @@
-using CRMService.Abstractions.Entity;
 using CRMService.Abstractions.Service;
 using CRMService.Models.Authorization;
 using CRMService.Models.Dto.CrmEntities;
@@ -8,6 +7,7 @@ using CRMService.Models.Responses.Results;
 using CRMService.Service.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CRMService.Abstractions.Entity;
 
 namespace CRMService.Pages
 {

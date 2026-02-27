@@ -1,5 +1,5 @@
 ﻿using CRMService.Abstractions.Database.Repository.Authorization;
-using CRMService.Abstractions.Database.Repository.Base;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Models.Authorization;
 using System.Linq.Expressions;
 

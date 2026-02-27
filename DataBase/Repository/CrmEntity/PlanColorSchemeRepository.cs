@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Database.Repository.Base;
+﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Models.CrmEntities;
 using System.Linq.Expressions;

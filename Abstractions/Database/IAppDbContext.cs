@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿/*using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -15,3 +15,4 @@ namespace CRMService.Abstractions.Database
         EntityEntry Entry(object entity);
     }
 }
+*/

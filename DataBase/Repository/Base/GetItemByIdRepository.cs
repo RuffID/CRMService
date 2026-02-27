@@ -1,6 +1,6 @@
-﻿using CRMService.Abstractions.Database;
-using CRMService.Abstractions.Database.Repository.Base;
-using CRMService.Abstractions.Entity;
+﻿/*using EFCoreLibrary.Abstractions.Database;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using EFCoreLibrary.Abstractions.Entity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.DataBase.Repository.Base
@@ -23,7 +23,7 @@ namespace CRMService.DataBase.Repository.Base
             return await query.FirstOrDefaultAsync(x => x.Id.Equals(id), ct);
         }
 
-        /*public async Task<List<TEntity>> GetItemsByPredicateAndSortById(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default)
+        *//*public async Task<List<TEntity>> GetItemsByPredicateAndSortById(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default)
         {
             int effectiveTake = take ?? DefaultTake;
             if (effectiveTake <= 0)
@@ -49,6 +49,7 @@ namespace CRMService.DataBase.Repository.Base
                 .Take(effectiveTake);
 
             return await query.ToListAsync(ct);
-        }        */
+        }        *//*
     }
 }
+*/

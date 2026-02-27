@@ -1,8 +1,8 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 
 namespace CRMService.Models.OkdeskEntity
 {
-    public class IssuePriority : IEntity<int>, IHasCode, ICopyable<IssuePriority>
+    public class IssuePriority : IEntity<int>, ICopyable<IssuePriority>
     {
         public int Id { get; set; }
 

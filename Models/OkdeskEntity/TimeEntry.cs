@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 using Newtonsoft.Json;
 
 namespace CRMService.Models.OkdeskEntity

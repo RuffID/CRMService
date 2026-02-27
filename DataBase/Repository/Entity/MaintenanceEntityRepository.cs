@@ -1,6 +1,6 @@
 ﻿using CRMService.Models.OkdeskEntity;
 using System.Linq.Expressions;
-using CRMService.Abstractions.Database.Repository.Base;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Abstractions.Database.Repository.OkdeskEntity;
 
 namespace CRMService.DataBase.Repository.Entity

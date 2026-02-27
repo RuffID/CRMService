@@ -1,9 +1,9 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 using Newtonsoft.Json;
 
 namespace CRMService.Models.OkdeskEntity
 {
-    public class Model : IEntity<int>, IHasCode, ICopyable<Model>
+    public class Model : IEntity<int>, ICopyable<Model>
     {
         public int Id { get; set; }
 

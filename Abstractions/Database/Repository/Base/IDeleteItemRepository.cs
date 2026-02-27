@@ -1,4 +1,4 @@
-﻿namespace CRMService.Abstractions.Database.Repository.Base
+﻿/*namespace CRMService.Abstractions.Database.Repository.Base
 {
     public interface IDeleteItemRepository<TEntity> where TEntity : class
     {
@@ -6,3 +6,4 @@
         void DeleteRange(IEnumerable<TEntity> entities);
     }
 }
+*/

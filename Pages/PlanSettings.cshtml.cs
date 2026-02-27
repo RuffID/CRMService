@@ -1,4 +1,3 @@
-using CRMService.Abstractions.Entity;
 using CRMService.Abstractions.Service;
 using CRMService.Models.Authorization;
 using CRMService.Models.Constants;
@@ -10,6 +9,7 @@ using CRMService.Service.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CRMService.Abstractions.Entity;
 
 namespace CRMService.Pages
 {

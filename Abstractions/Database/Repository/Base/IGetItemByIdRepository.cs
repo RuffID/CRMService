@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Entity;
+﻿/*using EFCoreLibrary.Abstractions.Entity;
 
 namespace CRMService.Abstractions.Database.Repository.Base
 {
@@ -6,4 +6,4 @@ namespace CRMService.Abstractions.Database.Repository.Base
     {
         Task<TEntity?> GetItemByIdAsync(TId id, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default);
     }
-}
+}*/

@@ -1,5 +1,5 @@
-﻿using CRMService.Abstractions.Database;
-using CRMService.Abstractions.Database.Repository.Base;
+﻿/*using EFCoreLibrary.Abstractions.Database;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -43,3 +43,4 @@ namespace CRMService.DataBase.Repository.Base
         }
     }
 }
+*/

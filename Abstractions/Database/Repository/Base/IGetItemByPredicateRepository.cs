@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+﻿/*using System.Linq.Expressions;
 
 namespace CRMService.Abstractions.Database.Repository.Base
 {
@@ -8,4 +8,4 @@ namespace CRMService.Abstractions.Database.Repository.Base
 
         Task<List<TEntity>> GetItemsByPredicateAsync(Expression<Func<TEntity, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<TEntity>, IQueryable<TEntity>>? include = null, CancellationToken ct = default);
     }
-}
+}*/

@@ -1,6 +1,6 @@
 ﻿using CRMService.Abstractions.Database.Repository.Authorization;
-using CRMService.Abstractions.Database.Repository.Base;
 using CRMService.Models.Authorization;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using System.Linq.Expressions;
 
 namespace CRMService.DataBase.Repository.Authorization

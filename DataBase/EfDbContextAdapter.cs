@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Database;
+﻿/*using EFCoreLibrary.Abstractions.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -16,3 +16,4 @@ namespace CRMService.DataBase
         public EntityEntry Entry(object entity) => inner.Entry(entity);
     }
 }
+*/

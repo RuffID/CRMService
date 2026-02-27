@@ -1,4 +1,4 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 using CRMService.Models.CrmEntities;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;

@@ -1,8 +1,8 @@
-﻿using CRMService.Abstractions.Entity;
+﻿using EFCoreLibrary.Abstractions.Entity;
 
 namespace CRMService.Models.OkdeskEntity
 {
-    public class Manufacturer : IEntity<int>, IHasCode, ICopyable<Manufacturer>
+    public class Manufacturer : IEntity<int>, ICopyable<Manufacturer>
     {
         public int Id { get; set; }
 

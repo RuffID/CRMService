@@ -1,8 +1,12 @@
 ﻿using CRMService.Abstractions.Entity;
 using CRMService.Models.Authorization;
+using CRMService.Models.Constants;
+using CRMService.Models.Dto.Authorization;
 using CRMService.Models.Dto.Mappers;
+using CRMService.Models.Request;
 using CRMService.Models.Responses.Results;
 using CRMService.Service.Attributes;
+using Microsoft.AspNetCore.Authorization;
 using CRMService.Service.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,93 +14,77 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace CRMService.Pages
 {
     [CookieAuthorize]
+    [Authorize(Roles = RolesConstants.ADMIN)]
     [LoadUser]
     public class UsersModel(UserService userService, RoleService roleService) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
-        public IActionResult OnGet()
-        {
-            if (!userService.IsAdmin(CurrentUser))
-                return RedirectToPage("/Index");
-
-            return Page();
-        }
-
         public async Task<IActionResult> OnGetListAsync(bool includeInactive = true, CancellationToken ct = default)
         {
-            if (!userService.IsAdmin(CurrentUser))
-                return JsonResultMapper.ToJsonResult(ServiceResult<List<object>>.Fail(403, "Недостаточно прав."));
-
-            ServiceResult<List<Models.Dto.Authorization.UserDto>> result = await userService.GetUsersAsync(ct);
+            ServiceResult<List<UserDto>> result = await userService.GetUsersAsync(ct);
             if (!result.Success)
-                return JsonResultMapper.ToJsonResult(ServiceResult<List<object>>.Fail(result.Error!.StatusCode, result.Error!.Message));
+                return JsonResultMapper.ToJsonResult(ServiceResult<List<UserListItemDto>>.Fail(result.Error!.StatusCode, result.Error!.Message));
 
-            List<Models.Dto.Authorization.UserDto> users = result.Data ?? [];
+            List<UserDto> users = result.Data ?? [];
             if (!includeInactive)
                 users = users.Where(x => x.Active).ToList();
 
-            var data = users
-                .Select(u => new
+            List<UserListItemDto> data = users
+                .Select(u => new UserListItemDto
                 {
-                    u.Id,
-                    u.Name,
-                    u.Login,
-                    u.Active,
-                    Roles = u.Roles.Select(r => new { r.Id, r.Name }).OrderBy(r => r.Name).ToList()
+                    Id = u.Id,
+                    Name = u.Name,
+                    Login = u.Login,
+                    Active = u.Active,
+                    Roles = u.Roles
+                        .OrderBy(r => r.Name)
+                        .Select(r => new RoleListItemDto
+                        {
+                            Id = r.Id,
+                            Name = r.Name
+                        })
+                        .ToList()
                 })
                 .ToList();
 
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<object>>.Ok(data.Cast<object>().ToList()));
+            return JsonResultMapper.ToJsonResult(ServiceResult<List<UserListItemDto>>.Ok(data));
         }
 
         public async Task<IActionResult> OnGetRolesAsync(CancellationToken ct)
         {
-            if (!userService.IsAdmin(CurrentUser))
-                return JsonResultMapper.ToJsonResult(ServiceResult<List<object>>.Fail(403, "Недостаточно прав."));
-
-            ServiceResult<List<Models.Dto.Authorization.CrmRoleDto>> result = await roleService.GetRolesAsync(ct);
+            ServiceResult<List<CrmRoleDto>> result = await roleService.GetRolesAsync(ct);
             if (!result.Success)
-                return JsonResultMapper.ToJsonResult(ServiceResult<List<object>>.Fail(result.Error!.StatusCode, result.Error!.Message));
+                return JsonResultMapper.ToJsonResult(ServiceResult<List<RoleListItemDto>>.Fail(result.Error!.StatusCode, result.Error!.Message));
 
-            var data = (result.Data ?? [])
+            List<RoleListItemDto> data = (result.Data ?? [])
                 .OrderBy(r => r.Name)
-                .Select(r => new { r.Id, r.Name })
+                .Select(r => new RoleListItemDto
+                {
+                    Id = r.Id,
+                    Name = r.Name
+                })
                 .ToList();
 
-            return JsonResultMapper.ToJsonResult(ServiceResult<List<object>>.Ok(data.Cast<object>().ToList()));
+            return JsonResultMapper.ToJsonResult(ServiceResult<List<RoleListItemDto>>.Ok(data));
         }
 
-        public async Task<IActionResult> OnPostCreateAsync([FromBody] UserService.CreateUserRequest request, CancellationToken ct)
+        public async Task<IActionResult> OnPostCreateAsync([FromBody] CreateUserRequest request, CancellationToken ct)
         {
-            if (!userService.IsAdmin(CurrentUser))
-                return JsonResultMapper.ToJsonResult(ServiceResult.Fail(403, "Недостаточно прав."));
-
             ServiceResult result = await userService.CreateUserAsync(request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
-        public async Task<IActionResult> OnPostUpdateAsync([FromBody] UserService.UpdateUserRequest request, CancellationToken ct)
+        public async Task<IActionResult> OnPostUpdateAsync([FromBody] UpdateUserRequest request, CancellationToken ct)
         {
-            if (!userService.IsAdmin(CurrentUser))
-                return JsonResultMapper.ToJsonResult(ServiceResult.Fail(403, "Недостаточно прав."));
-
             ServiceResult result = await userService.UpdateUserAsync(request, ct);
             return JsonResultMapper.ToJsonResult(result);
         }
 
-        public async Task<IActionResult> OnPostDeactivateAsync([FromBody] DeactivateUserRequest request, CancellationToken ct)
+        public async Task<IActionResult> OnPostSetActiveAsync([FromBody] SetUserActiveRequest request, CancellationToken ct)
         {
-            if (!userService.IsAdmin(CurrentUser))
-                return JsonResultMapper.ToJsonResult(ServiceResult.Fail(403, "Недостаточно прав."));
-
-            ServiceResult result = await userService.DeactivateUserAsync(CurrentUser.Id, request.UserId, ct);
+            ServiceResult result = await userService.SetUserActiveAsync(CurrentUser.Id, request.UserId, request.IsActive, ct);
             return JsonResultMapper.ToJsonResult(result);
-        }
-
-        public sealed class DeactivateUserRequest
-        {
-            public Guid UserId { get; set; }
         }
     }
 }

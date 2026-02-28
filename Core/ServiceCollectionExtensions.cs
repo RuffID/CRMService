@@ -92,6 +92,7 @@ namespace CRMService.Core
             {
                 options.Cookie.Name = ".CRMService.Cookies";
                 options.LoginPath = "/login";
+                options.AccessDeniedPath = "/accessdenied";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromDays(14);
 

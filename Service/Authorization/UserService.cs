@@ -1,8 +1,8 @@
 ﻿using CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Authorization;
-using CRMService.Models.Constants;
 using CRMService.Models.Dto.Authorization;
 using CRMService.Models.Dto.Mappers.Authorize;
+using CRMService.Models.Request;
 using CRMService.Models.Responses.Results;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,9 +55,12 @@ namespace CRMService.Service.Authorization
                 return ServiceResult.Fail(409, $"Пользователь с логином '{login}' уже существует.");
 
             List<Guid> roleIds = (request.RoleIds ?? []).Distinct().ToList();
-            List<CrmRole> roles = roleIds.Count == 0
-                ? []
-                : await unitOfWork.CrmRole.GetItemsByPredicateAsync(r => roleIds.Contains(r.Id), asNoTracking: false, ct: ct);
+            if (roleIds.Count == 0)
+                return ServiceResult.Fail(400, "Выберите хотя бы одну роль.");
+
+            List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsByPredicateAsync(r => roleIds.Contains(r.Id), asNoTracking: false, ct: ct);
+            if (roles.Count != roleIds.Count)
+                return ServiceResult.Fail(400, "Одна или несколько ролей не найдены.");
 
             User user = new()
             {
@@ -112,16 +115,19 @@ namespace CRMService.Service.Authorization
             if (sameLogin != null)
                 return ServiceResult.Fail(409, $"Пользователь с логином '{login}' уже существует.");
 
+            List<Guid> roleIds = (request.RoleIds ?? []).Distinct().ToList();
+            if (roleIds.Count == 0)
+                return ServiceResult.Fail(400, "Выберите хотя бы одну роль.");
+
+            List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsByPredicateAsync(r => roleIds.Contains(r.Id), asNoTracking: false, ct: ct);
+            if (roles.Count != roleIds.Count)
+                return ServiceResult.Fail(400, "Одна или несколько ролей не найдены.");
+
             user.Name = name;
             user.Login = login;
 
             if (!string.IsNullOrWhiteSpace(password))
                 user.Password = hasher.Hash(password);
-
-            List<Guid> roleIds = (request.RoleIds ?? []).Distinct().ToList();
-            List<CrmRole> roles = roleIds.Count == 0
-                ? []
-                : await unitOfWork.CrmRole.GetItemsByPredicateAsync(r => roleIds.Contains(r.Id), asNoTracking: false, ct: ct);
 
             user.Roles.Clear();
             foreach (CrmRole role in roles)
@@ -132,47 +138,25 @@ namespace CRMService.Service.Authorization
             return ServiceResult.Ok();
         }
 
-        public async Task<ServiceResult> DeactivateUserAsync(Guid currentUserId, Guid userId, CancellationToken ct)
+        public async Task<ServiceResult> SetUserActiveAsync(Guid currentUserId, Guid userId, bool isActive, CancellationToken ct)
         {
             if (userId == Guid.Empty)
                 return ServiceResult.Fail(400, "Не указан пользователь.");
 
-            if (currentUserId == userId)
+            if (!isActive && currentUserId == userId)
                 return ServiceResult.Fail(400, "Нельзя деактивировать текущего пользователя.");
 
             User? user = await unitOfWork.User.GetItemByIdAsync(userId, asNoTracking: false, ct: ct);
             if (user == null)
                 return ServiceResult.Fail(404, "Пользователь не найден.");
 
-            if (!user.Active)
+            if (user.Active == isActive)
                 return ServiceResult.Ok();
 
-            user.Active = false;
+            user.Active = isActive;
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult.Ok();
-        }
-
-        public bool IsAdmin(User user)
-        {
-            return user.Roles.Any(r => string.Equals(r.Name, RolesConstants.ADMIN, StringComparison.OrdinalIgnoreCase));
-        }
-
-        public sealed class CreateUserRequest
-        {
-            public string Name { get; set; } = string.Empty;
-            public string Login { get; set; } = string.Empty;
-            public string Password { get; set; } = string.Empty;
-            public List<Guid>? RoleIds { get; set; }
-        }
-
-        public sealed class UpdateUserRequest
-        {
-            public Guid UserId { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public string Login { get; set; } = string.Empty;
-            public string Password { get; set; } = string.Empty;
-            public List<Guid>? RoleIds { get; set; }
         }
     }
 }

@@ -9,11 +9,12 @@ let userModal = null;
 let isEditMode = false;
 
 document.addEventListener("DOMContentLoaded", () => {
-    antiForgeryToken = getRequestVerificationToken();
     initUsersPage();
 });
 
-function initUsersPage() {
+async function initUsersPage() {
+    antiForgeryToken = getRequestVerificationToken();
+
     const modalEl = document.getElementById("editUserModal");
     if (modalEl) userModal = new bootstrap.Modal(modalEl);
 
@@ -44,7 +45,7 @@ function initUsersPage() {
         });
     }
 
-    reloadUsers();
+    await reloadUsers();
 }
 
 async function ensureRolesLoaded() {
@@ -111,9 +112,7 @@ function renderUsers() {
 
         const tdStatus = document.createElement("td");
         tdStatus.className = "text-center";
-        tdStatus.innerHTML = user.active
-            ? '<span class="badge" style="background-color:#163D7A;color:#fff;">Активен</span>'
-            : '<span class="badge" style="background-color:#B42318;color:#fff;">Неактивен</span>';
+        tdStatus.appendChild(buildStatusBadge(Boolean(user.active)));
         tr.appendChild(tdStatus);
 
         const tdActions = document.createElement("td");
@@ -132,21 +131,30 @@ function renderUsers() {
             openEditModal(user);
         });
 
-        const btnDeactivate = document.createElement("button");
-        btnDeactivate.type = "button";
-        btnDeactivate.className = "btn btn-sm btn-outline-danger";
-        btnDeactivate.textContent = "Деактивировать";
-        btnDeactivate.disabled = !user.active || isSaving;
-        btnDeactivate.addEventListener("click", async () => {
-            await deactivateUser(String(user.id || ""));
-        });
+        const btnToggleActive = buildToggleActiveButton(user);
 
         tdActions.appendChild(btnEdit);
-        tdActions.appendChild(btnDeactivate);
+        tdActions.appendChild(btnToggleActive);
         tr.appendChild(tdActions);
 
         tbody.appendChild(tr);
     }
+}
+
+function buildStatusBadge(isActive) {
+    const badge = document.createElement("span");
+    badge.classList.add("badge");
+    badge.style.color = "#fff";
+
+    if (isActive) {
+        badge.style.backgroundColor = "#0D6EFD";
+        badge.textContent = "Активен";
+        return badge;
+    }
+
+    badge.style.backgroundColor = "#DC3545";
+    badge.textContent = "Неактивен";
+    return badge;
 }
 
 function openCreateModal() {
@@ -241,6 +249,11 @@ async function saveUser() {
         return;
     }
 
+    if (roleIds.length === 0) {
+        showModalError("Выберите хотя бы одну роль.");
+        return;
+    }
+
     try {
         isSaving = true;
         if (btnSave) btnSave.disabled = true;
@@ -263,6 +276,9 @@ async function saveUser() {
         unwrapOrThrow(resp, isEditMode ? "Ошибка обновления пользователя." : "Ошибка создания пользователя.");
 
         if (userModal) userModal.hide();
+        isSaving = false;
+        if (btnSave) btnSave.disabled = false;
+
         showPageSuccess(isEditMode ? "Пользователь обновлён." : "Пользователь создан.");
         await reloadUsers();
     } catch (e) {
@@ -274,28 +290,45 @@ async function saveUser() {
     }
 }
 
-async function deactivateUser(userId) {
+function buildToggleActiveButton(user) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = user.active ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-outline-success";
+    btn.textContent = user.active ? "Деактивировать" : "Восстановить";
+    btn.disabled = isSaving;
+    btn.addEventListener("click", async () => {
+        await setUserActive(String(user.id || ""), !Boolean(user.active));
+    });
+    return btn;
+}
+
+async function setUserActive(userId, isActive) {
     if (!userId) return;
 
-    if (!confirm("Пометить пользователя как неактивного?")) return;
+    const actionText = isActive ? "восстановить" : "деактивировать";
+    if (!confirm(`Подтвердите действие: ${actionText} пользователя?`)) return;
 
     try {
+        isSaving = true;
         clearPageMessages();
 
         const resp = await sendJsonRequest(
-            "?handler=Deactivate",
+            "?handler=SetActive",
             "POST",
             buildJsonHeaders(antiForgeryToken),
-            { userId }
+            { userId, isActive }
         );
 
-        unwrapOrThrow(resp, "Ошибка деактивации пользователя.");
+        unwrapOrThrow(resp, isActive ? "Ошибка восстановления пользователя." : "Ошибка деактивации пользователя.");
 
-        showPageSuccess("Пользователь деактивирован.");
+        isSaving = false;
+        showPageSuccess(isActive ? "Пользователь восстановлен." : "Пользователь деактивирован.");
         await reloadUsers();
     } catch (e) {
         console.error(e);
-        showPageError(e.message || "Ошибка деактивации пользователя.");
+        showPageError(e.message || (isActive ? "Ошибка восстановления пользователя." : "Ошибка деактивации пользователя."));
+    } finally {
+        isSaving = false;
     }
 }
 

@@ -90,6 +90,7 @@ namespace CRMService.Core
             {
                 options.Cookie.Name = ".CRMService.Cookies";
                 options.LoginPath = "/login";
+                options.AccessDeniedPath = "/accessdenied";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromDays(14);
 
@@ -210,7 +211,7 @@ namespace CRMService.Core
             services.AddScoped<MaintenanceEntityService>();
             services.AddScoped<ManufacturerService>();
             services.AddScoped<ModelService>();
-            services.AddScoped<RoleService>();
+            services.AddScoped<CRMService.Service.OkdeskEntity.RoleService>();
             services.AddScoped<TimeEntryService>();
 
             services.AddScoped<IReportService, ReportService>();
@@ -219,6 +220,8 @@ namespace CRMService.Core
             services.AddScoped<GetOkdeskEntityService>();
             services.AddScoped<UpdateDirectoriesService>();
             services.AddScoped<Hasher>();
+            services.AddScoped<UserService>();
+            services.AddScoped<CRMService.Service.Authorization.RoleService>();
             services.AddScoped<TelegramNotification>();
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();

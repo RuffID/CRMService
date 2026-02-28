@@ -16,6 +16,7 @@ namespace CRMService.Models.Dto.Mappers.Authorize
             return new UserDto()
             {
                 Id = user.Id,
+                Name = user.Name,
                 Login = user.Login,
                 Active = user.Active,
                 Roles = user.Roles.Select(r => new CrmRoleDto()

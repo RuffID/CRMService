@@ -1,4 +1,4 @@
-using CRMService.Abstractions.Database.Repository;
+п»їusing CRMService.Abstractions.Database.Repository;
 using CRMService.Models.Authorization;
 using CRMService.Models.Request;
 using CRMService.Service.Authorization;
@@ -25,7 +25,7 @@ namespace CRMService.Pages
 
             if (user is null || !user.Active || !hash.Verify(UserPage.Password, user.Password))
             {
-                ModelState.AddModelError(string.Empty, "Неправильный логин или пароль.");
+                ModelState.AddModelError(string.Empty, "РќРµРїСЂР°РІРёР»СЊРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ.");
                 return Page();
             }
 

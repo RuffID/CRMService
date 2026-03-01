@@ -8,16 +8,18 @@ namespace CRMService.DataBase.ModelsConfigure.CrmEntity
     {
         public void Configure(EntityTypeBuilder<PlanSetting> builder)
         {
-            builder.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasDefaultValueSql("NEWSEQUENTIALID()");
-
-            builder.HasIndex(p => p.EmployeeId).IsUnique();
+            builder.HasKey(p => new { p.PlanId, p.EmployeeId });
 
             builder
                 .HasOne(p => p.Employee)
-                .WithOne(e => e.PlanSetting)
-                .HasForeignKey<PlanSetting>(p => p.EmployeeId)
+                .WithMany(e => e.PlanSettings)
+                .HasForeignKey(p => p.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder
+                .HasOne(p => p.Plan)
+                .WithMany(p => p.PlanSettings)
+                .HasForeignKey(p => p.PlanId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

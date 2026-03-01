@@ -3,13 +3,15 @@ const storageKey = "crm_report_filters_v1";
 
 const reportEoModeKey = "crm_report_eo_mode_v1";
 const reportPlanModeKey = "crm_report_plan_mode_v1";
+const reportSelectedPlanKey = "crm_report_selected_plan_v1";
 
 const reportAutoReloadMs = 5 * 60 * 1000;
-const reportSwitchReloadMs = 10 * 1000;
 
 let allEmployees = [];
 let reportAutoReloadTimerId = null;
 let reportPlanSwitchTimerId = null;
+let reportPlanSwitchDelayMs = 10 * 1000;
+let reportPlans = [];
 
 let isAutoReloadInProgress = false;
 
@@ -48,6 +50,7 @@ async function initReportFiltersState() {
     if (!panel || !window.bootstrap) return;
 
     await loadAndRenderDictionaries();
+    await loadPlanSettingsAndRenderSelect();
 
     ensureDefaultMonthDates(storageKey);
     restoreFilters(storageKey);
@@ -72,6 +75,31 @@ async function initReportFiltersState() {
 function wireExpandedPersistence(expandedKey, panel) {
     panel.addEventListener("shown.bs.collapse", () => localStorage.setItem(expandedKey, "1"));
     panel.addEventListener("hidden.bs.collapse", () => localStorage.setItem(expandedKey, "0"));
+}
+
+async function loadPlanSettingsAndRenderSelect() {
+    try {
+        const [plansResponse, settingsResponse] = await Promise.all([
+            sendJsonRequest("?handler=Plans", "GET"),
+            sendJsonRequest("?handler=GeneralSettings", "GET")
+        ]);
+
+        const plansData = unwrapOrThrow(plansResponse, "Не удалось загрузить планы.");
+        const settingsData = unwrapOrThrow(settingsResponse, "Не удалось загрузить общие настройки.");
+
+        reportPlans = Array.isArray(plansData) ? plansData : [];
+
+        const switchSeconds = Number(settingsData?.planSwitchSeconds ?? 10);
+        reportPlanSwitchDelayMs = Number.isFinite(switchSeconds) && switchSeconds >= 10
+            ? switchSeconds * 1000
+            : 10 * 1000;
+    } catch (error) {
+        console.error(error);
+        reportPlans = [];
+        reportPlanSwitchDelayMs = 10 * 1000;
+    }
+
+    renderPlanSelect();
 }
 
 function wireFiltersPersistence(storageKey) {
@@ -132,6 +160,62 @@ function wireFiltersPersistence(storageKey) {
     wireSelectButtons("prioritiesSelectAll", "prioritiesClearAll", "listPriorities", "input.filter-priorities");
     wireSelectButtons("statusesSelectAll", "statusesClearAll", "listStatuses", "input.filter-statuses");
     wireSelectButtons("typesSelectAll", "typesClearAll", "listTypes", "input.filter-types");
+
+    getEl("reportPlanSelect")?.addEventListener("change", async (event) => {
+        const select = event.target;
+        localStorage.setItem(reportSelectedPlanKey, select?.value || "");
+
+        saveFilters(storageKey);
+
+        if (typeof window.loadPerformanceReport === "function") {
+            await window.loadPerformanceReport();
+        }
+    });
+
+}
+
+function renderPlanSelect() {
+    const select = getEl("reportPlanSelect");
+    if (!select) return;
+
+    const hasSaved = localStorage.getItem(reportSelectedPlanKey) !== null;
+    const savedRaw = localStorage.getItem(reportSelectedPlanKey); // может быть ""
+    const savedPlanId = normalizePlanId(savedRaw); // null для ""
+
+    select.textContent = "";
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "Без плана";
+    select.appendChild(emptyOption);
+
+    for (const plan of reportPlans) {
+        const planId = normalizePlanId(plan?.id ?? plan?.Id);
+        if (!planId) continue;
+
+        const option = document.createElement("option");
+        option.value = planId;
+        option.textContent = String(plan?.name ?? plan?.Name ?? "").trim();
+        select.appendChild(option);
+    }
+
+    const planIds = reportPlans
+        .map((plan) => normalizePlanId(plan?.id ?? plan?.Id))
+        .filter((id) => !!id);
+
+    if (hasSaved) {
+        if (savedRaw === "") {
+            select.value = ""; // явно сохраняем "Без плана"
+        } else if (savedPlanId && planIds.includes(savedPlanId)) {
+            select.value = savedPlanId;
+        } else {
+            select.value = "";
+        }
+    } else {
+        select.value = planIds.length > 0 ? planIds[0] : "";
+    }
+
+    localStorage.setItem(reportSelectedPlanKey, select.value || "");
 }
 
 function wirePeriodModes() {
@@ -160,17 +244,11 @@ function wirePeriodModes() {
         saveModeFlags();
         applyPeriodModesUi();
 
-        if (pm.checked && typeof window.setPlanModePeriod === "function")
-            window.setPlanModePeriod("month");
-
-        enforceModeDates();
-
         await restartAutoReload(true);
 
         saveFilters(storageKey);
 
-        if (typeof window.applySortAndRender === "function")
-            window.applySortAndRender();
+        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
     });
 }
 
@@ -185,6 +263,7 @@ function scheduleNextPlanSwitch() {
     stopPlanSwitchTimer();
 
     if (!isPlanModeOn()) return;
+    if (reportPlans.length <= 1) return;
 
     reportPlanSwitchTimerId = setTimeout(() => {
         if (!isPlanModeOn()) return;
@@ -193,15 +272,33 @@ function scheduleNextPlanSwitch() {
             return;
         }
 
-        const cur = (typeof window.getPlanModePeriod === "function") ? window.getPlanModePeriod() : "month";
-        const next = (cur === "month") ? "day" : "month";
+        const select = getEl("reportPlanSelect");
+        if (!select) return;
 
-        if (typeof window.setPlanModePeriod === "function") window.setPlanModePeriod(next);
+        const planIds = reportPlans
+            .map((plan) => normalizePlanId(plan?.id ?? plan?.Id))
+            .filter((id) => !!id);
 
-        if (typeof window.applySortAndRender === "function") window.applySortAndRender();
+        if (planIds.length <= 1) return;
+
+        const current = normalizePlanId(select.value);
+        let currentIndex = planIds.indexOf(current);
+        if (currentIndex < 0) currentIndex = 0;
+
+        const nextIndex = (currentIndex + 1) % planIds.length;
+        select.value = planIds[nextIndex];
+        localStorage.setItem(reportSelectedPlanKey, select.value || "");
+        saveFilters(storageKey);
+
+        if (typeof window.loadPerformanceReport === "function") {
+            window.loadPerformanceReport().finally(() => {
+                scheduleNextPlanSwitch();
+            });
+            return;
+        }
 
         scheduleNextPlanSwitch();
-    }, reportSwitchReloadMs);
+    }, reportPlanSwitchDelayMs);
 }
 
 async function restartAutoReload(forceNow = false) {
@@ -234,6 +331,7 @@ async function restartAutoReload(forceNow = false) {
 function applyPeriodModesUi() {
     const eo = getEl("eoMode");
     const pm = getEl("planMode");
+    const planSelect = getEl("reportPlanSelect");
     if (!eo || !pm) return;
 
     if (eo.checked) {
@@ -249,6 +347,10 @@ function applyPeriodModesUi() {
         pm.disabled = false;
     }
 
+    if (planSelect) {
+        planSelect.disabled = pm.checked === true;
+    }
+
     syncDateInputsLock();
 }
 
@@ -257,7 +359,7 @@ function syncDateInputsLock() {
     const dt = getEl("dateTo");
     if (!df || !dt) return;
 
-    const locked = isEoModeOn() || isPlanModeOn();
+    const locked = isEoModeOn();
 
     df.disabled = locked;
     dt.disabled = locked;
@@ -266,13 +368,6 @@ function syncDateInputsLock() {
 function enforceModeDates() {
     if (isEoModeOn()) {
         setTodayRange();
-        return;
-    }
-
-    if (isPlanModeOn()) {
-        const p = (typeof window.getPlanModePeriod === "function") ? window.getPlanModePeriod() : "month";
-        if (p === "day") setTodayRange();
-        else setCurrentMonthRange();
     }
 }
 
@@ -387,6 +482,23 @@ function restoreFilters(storageKey) {
 
     setValue("dateFrom", state.dateFrom);
     setValue("dateTo", state.dateTo);
+
+    const planSelect = getEl("reportPlanSelect");
+    if (planSelect && Object.prototype.hasOwnProperty.call(state, "selectedPlanId")) {
+        const savedPlanId = normalizePlanId(state.selectedPlanId);
+
+        if (!savedPlanId) {
+            planSelect.value = "";
+            localStorage.setItem(reportSelectedPlanKey, "");
+        } else {
+            const exists = Array.from(planSelect.options).some(
+                (opt) => normalizePlanId(opt.value) === savedPlanId
+            );
+
+            planSelect.value = exists ? savedPlanId : "";
+            localStorage.setItem(reportSelectedPlanKey, planSelect.value || "");
+        }
+    }
 }
 
 function resetFilters() {
@@ -409,6 +521,13 @@ function resetFilters() {
     if (eo) eo.checked = false;
     if (pm) pm.checked = false;
 
+    const planSelect = getEl("reportPlanSelect");
+    if (planSelect) {
+        const firstOption = Array.from(planSelect.options).find((opt) => normalizePlanId(opt.value));
+        planSelect.value = firstOption ? firstOption.value : "";
+        localStorage.setItem(reportSelectedPlanKey, planSelect.value || "");
+    }
+
     saveModeFlags();
     applyPeriodModesUi();
 
@@ -430,12 +549,32 @@ function readState() {
         hideWithoutTime: getBool("hideWithoutTime"),
         eoMode: getBool("eoMode"),
         planMode: getBool("planMode"),
+        selectedPlanId: getValue("reportPlanSelect") ?? "",
         dateFrom: getValue("dateFrom"),
         dateTo: getValue("dateTo")
     };
 }
 
 window.readState = readState;
+window.getSelectedReportPlanId = () => normalizePlanId(getValue("reportPlanSelect"));
+window.hasReportPlans = () => reportPlans.length > 0;
+window.getSelectedReportPlanMeta = () => {
+    const selectedId = normalizePlanId(getValue("reportPlanSelect"));
+    if (!selectedId) return null;
+
+    for (const plan of reportPlans) {
+        const id = normalizePlanId(plan?.id ?? plan?.Id);
+        if (id !== selectedId) continue;
+
+        const name = String(plan?.name ?? plan?.Name ?? "").trim();
+        const colorRaw = String(plan?.planColor ?? plan?.PlanColor ?? "").trim().toUpperCase();
+        const color = /^#([0-9A-F]{6})$/.test(colorRaw) ? colorRaw : null;
+
+        return { id, name, color };
+    }
+
+    return null;
+};
 
 function getChecked(selector) {
     return Array.from(document.querySelectorAll(selector))
@@ -489,6 +628,11 @@ function initSearch(searchId, listId) {
 
 function getEl(id) {
     return document.getElementById(id);
+}
+
+function normalizePlanId(value) {
+    const text = String(value || "").trim();
+    return text.length > 0 ? text : null;
 }
 
 function getBool(id) {

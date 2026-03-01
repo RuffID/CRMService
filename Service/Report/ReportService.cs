@@ -36,9 +36,26 @@ namespace CRMService.Service.Report
 
             Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
 
-            List<PlanSetting> planSettings = await unitOfWork.PlanSetting.GetItemsByPredicateAsync(x => employeeIds.Contains(x.EmployeeId), asNoTracking: true, ct: ct);
+            Dictionary<int, PlanSetting> planMap = new ();
+            string? planColor = null;
 
-            Dictionary<int, PlanSetting> planMap = planSettings.ToDictionary(x => x.EmployeeId, x => x);
+            if (filters.PlanId.HasValue && filters.PlanId.Value != Guid.Empty)
+            {
+                Guid planId = filters.PlanId.Value;
+
+                Plan? plan = await unitOfWork.Plan.GetItemByIdAsync(planId, asNoTracking: true, ct: ct);
+                if (plan != null)
+                {
+                    planColor = plan.PlanColor;
+
+                    List<PlanSetting> planSettings = await unitOfWork.PlanSetting.GetItemsByPredicateAsync(
+                        x => x.PlanId == planId && employeeIds.Contains(x.EmployeeId),
+                        asNoTracking: true,
+                        ct: ct);
+
+                    planMap = planSettings.ToDictionary(x => x.EmployeeId, x => x);
+                }
+            }
 
             ReportRequest effectiveFilters = new()
             {
@@ -96,8 +113,9 @@ namespace CRMService.Service.Report
                     Issues = issues ?? [],
                     SolvedIssues = solved,
                     SpentedTime = spent,
-                    MonthPlan = ps?.MonthPlan,
-                    DayPlan = ps?.DayPlan
+                    PlanId = filters.PlanId,
+                    PlanValue = ps?.PlanValue,
+                    PlanColor = planColor
                 });
             }
 

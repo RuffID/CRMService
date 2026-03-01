@@ -203,7 +203,7 @@
 
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="planMode">
-                                                        <label class="form-check-label" for="planMode">Показ дневного и месячного плана</label>
+                                                        <label class="form-check-label" for="planMode">Режим переключения планов</label>
 
                                                         <i class="bi bi-question-circle text-primary"
                                                            role="button"
@@ -212,21 +212,30 @@
                                                            data-bs-placement="right"
                                                            data-bs-html="true"
                                                            data-bs-custom-class="tooltip-light"
-                                                           title="Включает переключение отчёта: 10 секунд показывается текущий месяц, затем 10 секунд текущий день (и так по кругу). Также отображается колонка «План».">
+                                                           title="Включает циклическое переключение отчёта между всеми планами с задержкой из общих настроек. Выбор плана вручную в этом режиме недоступен.">
                                                         </i>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-lg-6 d-flex align-items-center gap-2">
-                                                <span class="form-label mb-1">Размер шрифта</span>
+                                            <div class="col-12 col-lg-6">
+                                                <div class="d-flex align-items-center gap-2 mb-3">
+                                                    <span class="form-label mb-1">Размер шрифта</span>
 
-                                                <div class="btn-group" role="group" aria-label="Увеличение или уменьшение шрифта">
-                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="fontMinus">−</button>
-                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="fontPlus">+</button>
+                                                    <div class="btn-group" role="group" aria-label="Увеличение или уменьшение шрифта">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="fontMinus">−</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="fontPlus">+</button>
+                                                    </div>
+
+                                                    <span class="text-muted small mb-0" id="fontScaleLabel">(1.0)</span>
                                                 </div>
 
-                                                <span class="text-muted small mb-0" id="fontScaleLabel">(1.0)</span>
+                                                <div>
+                                                    <label class="form-label mb-1" for="reportPlanSelect">План</label>
+                                                    <select id="reportPlanSelect" class="form-select form-select-sm">
+                                                        <option value="">Без плана</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

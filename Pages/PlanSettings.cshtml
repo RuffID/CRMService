@@ -8,155 +8,192 @@
     <div id="pageError" class="alert alert-danger d-none mb-3"></div>
 
     <div class="bg-white border rounded-3 shadow-sm p-3">
-
         <div class="d-flex flex-wrap gap-2 justify-content-end mb-3">
-            <button type="button" class="btn btn-primary" id="btnReloadEmployees">Обновить список сотрудников</button>
-            <button type="button" class="btn btn-success" id="btnSavePlans">Сохранить</button>
+            <button type="button" class="btn btn-primary" id="btnReloadEmployees">Обновить</button>
+            <button type="button" class="btn btn-success" id="btnSaveAll">Сохранить</button>
         </div>
 
-        <div class="border rounded-3 mb-4">
-            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                <div class="fw-semibold">Цветовая схема плана</div>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnToggleColorRules">—</button>
+        <div class="border rounded-3 p-3 mb-3">
+            <div class="fw-semibold mb-2">Общие настройки</div>
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1" for="planSwitchSecondsInput">Интервал переключения планов
+                        (сек.)</label>
+                        <input id="planSwitchSecondsInput" type="text" inputmode="numeric" class="form-control" />
+                        <div class="form-text">Минимум: 10 секунд.</div>
+                    </div>
+                </div>
             </div>
 
-            <div id="colorRulesBody">
+            <div class="border rounded-3 p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold">Планы</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddPlan">Добавить план</button>
+                        <button type="button" id="btnTogglePlansSection" class="btn btn-outline-secondary btn-sm"
+                                data-bs-toggle="collapse" data-bs-target="#plansSectionBody" aria-expanded="true"
+                                aria-controls="plansSectionBody">Свернуть</button>
+                    </div>
+                </div>
 
-                <div class="px-3 pt-3 pb-2">
-                    <div class="d-flex align-items-center flex-wrap" style="gap:10px;">
-                        <div class="fw-semibold">Цвет цифр в колонке «План»</div>
+                <div class="collapse show" id="plansSectionBody">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle mb-0" id="plansTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Цвет плана</th>
+                                    <th class="text-end">Действие</th>
+                                </tr>
+                            </thead>
+                            <tbody id="plansTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-                        <div class="d-flex align-items-center" style="gap:6px;">
-                            <div id="planTextColorPreview" style="width:18px;height:18px;border-radius:4px;border:1px solid #ced4da;"></div>
-                            <input id="planTextColorInput" type="text" class="form-control form-control-sm" style="max-width:120px;" />
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="planTextColorPick">🎨</button>
+            <div class="border border-dark rounded-3 p-3 mb-3">
+                <div class="fw-semibold mb-2">Настройка выбранного плана</div>
+                <div class="bg-light rounded-3 p-3 mb-3">
+                    <div class="row g-2">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label mb-1" for="activePlanSelect">Выбранный план</label>
+                            <select id="activePlanSelect" name="activePlanSelect" class="form-select"></select>
                         </div>
                     </div>
                 </div>
 
-                <div class="px-3 pb-3">
-                    <div class="border-top"></div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="fw-semibold">Цветовая схема процентов</div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddColorRule">Добавить
+                                правило</button>
+                            <button type="button" id="btnToggleColorRulesSection" class="btn btn-outline-secondary btn-sm"
+                                    data-bs-toggle="collapse" data-bs-target="#colorRulesSectionBody" aria-expanded="true"
+                                    aria-controls="colorRulesSectionBody">Свернуть</button>
+                        </div>
+                    </div>
+
+                    <div class="collapse show" id="colorRulesSectionBody">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped align-middle mb-0" id="colorRulesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>От %</th>
+                                        <th>До %</th>
+                                        <th>Цвет</th>
+                                        <th class="text-end">Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="colorRulesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped align-middle mb-0" id="colorRulesGrid">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="text-nowrap">От %</th>
-                                <th class="text-nowrap">До %</th>
-                                <th class="text-nowrap">Цвет</th>
-                                <th class="text-nowrap"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="colorRulesRows"></tbody>
-                    </table>
-                </div>
+                <hr class="my-3" />
 
-                <div class="border-top px-3 py-2 d-flex justify-content-start">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddColorRule">+</button>
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="fw-semibold">Планы сотрудников</div>
+                        </div>
+                        <button type="button" id="btnToggleEmployeePlansSection" class="btn btn-outline-secondary btn-sm ms-1"
+                                data-bs-toggle="collapse" data-bs-target="#employeePlansSectionBody" aria-expanded="true"
+                                aria-controls="employeePlansSectionBody">Свернуть</button>
+                    </div>
+
+                    <div class="collapse show" id="employeePlansSectionBody">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0" id="employeePlansTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span>ФИО</span>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm ms-1"
+                                                        id="btnNameFilter" title="Фильтр по ФИО">⌕</button>
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span>Группы</span>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        id="btnGroupFilter" title="Фильтр по группам">⌕</button>
+                                            </div>
+                                        </th>
+                                        <th class="text-center">План</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeePlansBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="border rounded-3">
-            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                <div class="fw-semibold">Планы сотрудников</div>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTogglePlans">—</button>
-            </div>
+        <div class="modal fade" id="nameFilterModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title fw-semibold">Фильтр сотрудников</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
 
-            <div id="plansBody">
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped align-middle mb-0" id="plansGrid">
-                        <thead class="table-light">
-                            <tr>
-                                <th data-sort-key="name" class="user-select-none">
-                                    <div class="d-flex align-items-center justify-content-start" style="gap:10px;">
-                                        <span>ФИО</span>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnNameFilter" title="Фильтр">⌕</button>
+                    <div class="modal-body">
+                        <input id="nameFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО" />
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="nameFilterSelectAll">Выбрать
+                                всё</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="nameFilterClearAll">Снять
+                                    выделения</button>
+                                </div>
+                                <div class="text-muted small mb-2 d-none" id="nameFilterHint"></div>
+                                <div class="overflow-auto" style="max-height: 420px;">
+                                    <div id="nameFilterList"></div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" id="nameFilterApply"
+                                        data-bs-dismiss="modal">Применить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="groupFilterModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <div class="modal-title fw-semibold">Фильтр групп</div>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+
+                            <div class="modal-body">
+                                <input id="groupFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по группе" />
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="groupFilterSelectAll">Выбрать
+                                        всё</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="groupFilterClearAll">Снять
+                                            выделения</button>
+                                        </div>
+                                        <div class="text-muted small mb-2 d-none" id="groupFilterHint"></div>
+                                        <div class="overflow-auto" style="max-height: 420px;">
+                                            <div id="groupFilterList"></div>
+                                        </div>
                                     </div>
-                                </th>
-                                <th data-sort-key="groups" class="user-select-none">
-                                    <div class="d-flex align-items-center justify-content-start" style="gap:10px;">
-                                        <span>Группы</span>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnGroupFilter" title="Фильтр">⌕</button>
+
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-primary" id="groupFilterApply"
+                                                data-bs-dismiss="modal">Применить</button>
                                     </div>
-                                </th>
-                                <th data-sort-key="month" class="user-select-none">
-                                    <div class="d-flex justify-content-center">План на месяц</div>
-                                </th>
-                                <th data-sort-key="day" class="user-select-none">
-                                    <div class="d-flex justify-content-center">План на день</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="plansRows"></tbody>
-                    </table>
-                </div>
+                                </div>
+                            </div>
+                        </div>
 
-                <div class="bg-white border-top px-3 py-2 d-flex justify-content-between align-items-center">
-                    <div class="fw-semibold" id="plansSummaryLeft">—</div>
-                    <div class="text-muted small" id="plansSummaryRight">—</div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<div class="modal fade" id="nameFilterModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title fw-semibold">Фильтр сотрудников</div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body">
-                <input id="nameFilterSearch" name="nameFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО" />
-                <div class="d-flex gap-2 mb-2">
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="nameFilterSelectAll">Выбрать всё</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="nameFilterClearAll">Снять выделения</button>
-                </div>
-                <div class="text-muted small mb-2 d-none" id="nameFilterHint"></div>
-                <div class="overflow-auto" style="max-height: 420px;">
-                    <div id="nameFilterList"></div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="nameFilterApply" data-bs-dismiss="modal">Применить</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="groupFilterModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title fw-semibold">Фильтр групп</div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body">
-                <input id="groupFilterSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по группе" />
-                <div class="d-flex gap-2 mb-2">
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="groupFilterSelectAll">Выбрать всё</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="groupFilterClearAll">Снять выделения</button>
-                </div>
-                <div class="text-muted small mb-2 d-none" id="groupFilterHint"></div>
-                <div class="overflow-auto" style="max-height: 420px;">
-                    <div id="groupFilterList"></div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="groupFilterApply" data-bs-dismiss="modal">Применить</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="~/js/helpers/http.js" asp-append-version="true"></script>
-<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
-<script src="~/js/settings/planSettings.js" asp-append-version="true"></script>
+                        <script src="~/js/helpers/http.js" asp-append-version="true"></script>
+                        <script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
+                        <script src="~/js/settings/planSettings.js" asp-append-version="true"></script>

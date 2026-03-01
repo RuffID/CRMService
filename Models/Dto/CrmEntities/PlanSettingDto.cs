@@ -2,8 +2,8 @@
 {
     public class PlanSettingDto
     {
+        public Guid PlanId { get; set; }
         public int EmployeeId { get; set; }
-        public int? MonthPlan { get; set; }
-        public int? DayPlan { get; set; }
+        public int? PlanValue { get; set; }
     }
 }

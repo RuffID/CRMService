@@ -1,417 +1,773 @@
-﻿const psSortKey = "crm_plan_settings_sort_v1";
-const psFilterKey = "crm_plan_settings_filter_v1";
-const psGroupFilterKey = "crm_plan_settings_group_filter_v1";
-const reportPlanTextColorKey = "crm_report_plan_text_color_v1";
-let sharedColorPicker = null;
-let sharedColorPickerOnPick = null;
-let selectedGroupIds = null;
+﻿const planSettingsSelectedPlanKey = "crm_plan_settings_selected_plan_v2";
+const planSettingsNameFilterKey = "crm_plan_settings_name_filter_v1";
+const planSettingsGroupFilterKey = "crm_plan_settings_group_filter_v1";
+const defaultPickerColor = "#000000";
+
 let antiForgeryToken = null;
-let isColorRulesCollapsed = false;
-let isPlansCollapsed = false;
-
-let allRows = [];
-let visibleRows = [];
-
-let sortState = { key: "name", dir: "asc" };
-let selectedEmployeeIds = null;
-
-let isReloading = false;
 let isSaving = false;
+let isReloading = false;
 
+let plans = [];
+let selectedPlanId = null;
+let generalSettings = null;
+let employeeRows = [];
 let colorRules = [];
-const maxPercent = 999;
+let selectedEmployeeIds = null;
+let selectedGroupIds = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     antiForgeryToken = getRequestVerificationToken();
 
-    initSorting();
     initButtons();
+    initInputs();
     initNameFilter();
     initGroupFilter();
-
     loadInitial();
+    initCollapseToggleButtons();
 });
-
-async function loadInitial() {
-    loadSavedState();
-    initPlanTextColorUi();
-    await reloadEmployees();
-    await reloadColorRules();
-    applyCollapseState();
-}
 
 function initButtons() {
     const btnReload = document.getElementById("btnReloadEmployees");
-    const btnSave = document.getElementById("btnSavePlans");
-    const btnAddRule = document.getElementById("btnAddColorRule");
+    const btnSaveAll = document.getElementById("btnSaveAll");
+    const btnAddPlan = document.getElementById("btnAddPlan");
+    const btnAddColorRule = document.getElementById("btnAddColorRule");
+    const selectPlan = document.getElementById("activePlanSelect");
 
-    btnReload.addEventListener("click", async () => {
-        if (isReloading || isSaving) return;
-        isReloading = true;
-        btnReload.disabled = true;
+    if (btnReload) {
+        btnReload.addEventListener("click", async () => {
+            if (isReloading || isSaving) return;
+            await reloadCurrentPlanData();
+        });
+    }
 
-        await reloadEmployees();
+    if (btnSaveAll) {
+        btnSaveAll.addEventListener("click", async () => {
+            if (isSaving || isReloading) return;
+            await saveAll();
+        });
+    }
 
-        btnReload.disabled = false;
+    if (btnAddPlan) {
+        btnAddPlan.addEventListener("click", () => {
+            plans.push({ id: null, name: "", planColor: "" });
+            renderPlansTable();
+            renderPlanSelect();
+        });
+    }
+
+    if (btnAddColorRule) {
+        btnAddColorRule.addEventListener("click", () => {
+            if (!selectedPlanId) return;
+
+            colorRules.push({
+                id: null,
+                planId: selectedPlanId,
+                fromPercent: 0,
+                toPercent: null,
+                color: "#198754"
+            });
+
+            renderColorRulesTable();
+        });
+    }
+
+    if (selectPlan) {
+        selectPlan.addEventListener("change", async () => {
+            selectedPlanId = normalizeGuid(selectPlan.value);
+            saveSelectedPlanState();
+            await reloadCurrentPlanData();
+        });
+    }
+}
+
+function initInputs() {
+    const inputSeconds = document.getElementById("planSwitchSecondsInput");
+    if (!inputSeconds) return;
+
+    inputSeconds.addEventListener("input", () => {
+        inputSeconds.value = (inputSeconds.value || "").replace(/[^\d]/g, "");
+    });
+}
+
+function initCollapseToggleButtons() {
+    bindCollapseToggleText("plansSectionBody", "btnTogglePlansSection");
+    bindCollapseToggleText("colorRulesSectionBody", "btnToggleColorRulesSection");
+    bindCollapseToggleText("employeePlansSectionBody", "btnToggleEmployeePlansSection");
+}
+
+function bindCollapseToggleText(collapseId, buttonId) {
+    const collapseEl = document.getElementById(collapseId);
+    const buttonEl = document.getElementById(buttonId);
+    if (!collapseEl || !buttonEl) return;
+
+    const applyText = () => {
+        buttonEl.textContent = collapseEl.classList.contains("show")
+            ? "Свернуть"
+            : "Развернуть";
+    };
+
+    collapseEl.addEventListener("shown.bs.collapse", applyText);
+    collapseEl.addEventListener("hidden.bs.collapse", applyText);
+
+    applyText();
+}
+
+async function loadInitial() {
+    clearPageError();
+    loadFilterState();
+
+    const okGeneral = await reloadGeneralSettings();
+    const okPlans = await reloadPlans();
+
+    if (!okGeneral || !okPlans) return;
+
+    applySelectedPlanFromState();
+    await reloadCurrentPlanData();
+}
+
+async function reloadGeneralSettings() {
+    try {
+        const response = await sendJsonRequest("?handler=GeneralSettings", "GET", buildJsonHeaders(antiForgeryToken));
+        const data = unwrapOrThrow(response, "Ошибка загрузки общих настроек.");
+
+        generalSettings = data;
+        const inputSeconds = document.getElementById("planSwitchSecondsInput");
+        if (inputSeconds) {
+            inputSeconds.value = data && Number.isInteger(Number(data.planSwitchSeconds))
+                ? String(data.planSwitchSeconds)
+                : "10";
+        }
+
+        return true;
+    } catch (error) {
+        showPageError(error?.message || "Ошибка загрузки общих настроек.");
+        return false;
+    }
+}
+
+async function reloadPlans() {
+    try {
+        const response = await sendJsonRequest("?handler=Plans", "GET", buildJsonHeaders(antiForgeryToken));
+        const data = unwrapOrThrow(response, "Ошибка загрузки планов.");
+        plans = Array.isArray(data) ? data.map(mapPlanItem) : [];
+
+        renderPlansTable();
+        renderPlanSelect();
+        return true;
+    } catch (error) {
+        showPageError(error?.message || "Ошибка загрузки планов.");
+        return false;
+    }
+}
+
+async function reloadCurrentPlanData() {
+    if (isReloading) return;
+
+    isReloading = true;
+    clearPageError();
+
+    if (!selectedPlanId) {
+        employeeRows = [];
+        colorRules = [];
+        renderEmployeeRowsTable();
+        renderColorRulesTable();
         isReloading = false;
-    });
-
-    btnSave.addEventListener("click", async () => {
-        if (isSaving || isReloading) return;
-        isSaving = true;
-        btnSave.disabled = true;
-
-        clearPageError();
-
-        const okUi = validateColorRulesBeforeSave();
-        if (!okUi) {
-            btnSave.disabled = false;
-            isSaving = false;
-            return;
-        }
-
-        const okPlanColor = savePlanTextColorToStorage();
-        if (!okPlanColor) {
-            btnSave.disabled = false;
-            isSaving = false;
-            return;
-        }
-
-        const okPlans = await savePlanSettings();
-        const okColors = await saveColorRules();
-
-        if (okPlans && okColors) {
-            await reloadEmployees();
-            await reloadColorRules();
-        }
-
-        btnSave.disabled = false;
-        isSaving = false;
-    });
-
-    btnAddRule.addEventListener("click", () => {
-        colorRules.push({
-            id: null,
-            fromPercent: 0,
-            toPercent: 0,
-            color: null
-        });
-        renderColorRules();
-    });
-
-    const btnToggleColors = document.getElementById("btnToggleColorRules");
-    if (btnToggleColors) {
-        btnToggleColors.addEventListener("click", () => {
-            isColorRulesCollapsed = !isColorRulesCollapsed;
-            applyCollapseState();
-        });
+        return;
     }
 
-    const btnTogglePlans = document.getElementById("btnTogglePlans");
-    if (btnTogglePlans) {
-        btnTogglePlans.addEventListener("click", () => {
-            isPlansCollapsed = !isPlansCollapsed;
-            applyCollapseState();
-        });
-    }
-}
-
-async function reloadEmployees() {
     try {
-        const resp = await sendJsonRequest("?handler=EmployeePlanRows", "GET", buildJsonHeaders(antiForgeryToken));
-        const data = unwrapOrThrow(resp, "Ошибка загрузки сотрудников.");
-        allRows = Array.isArray(data) ? data : [];
-        applyFilterSortRender();
-        return true;
-    } catch (e) {
-        console.error(e);
-        return false;
+        const employeeResponse = await sendJsonRequest(
+            `?handler=EmployeePlanRows&planId=${encodeURIComponent(selectedPlanId)}`,
+            "GET",
+            buildJsonHeaders(antiForgeryToken)
+        );
+
+        const employeeData = unwrapOrThrow(employeeResponse, "Ошибка загрузки планов сотрудников.");
+        employeeRows = Array.isArray(employeeData) ? employeeData : [];
+
+        const rulesResponse = await sendJsonRequest(
+            `?handler=PlanColorRules&planId=${encodeURIComponent(selectedPlanId)}`,
+            "GET",
+            buildJsonHeaders(antiForgeryToken)
+        );
+
+        const rulesData = unwrapOrThrow(rulesResponse, "Ошибка загрузки цветовых правил.");
+        colorRules = Array.isArray(rulesData) ? rulesData.map(mapColorRuleItem) : [];
+
+        renderEmployeeRowsTable();
+        renderColorRulesTable();
+    } catch (error) {
+        showPageError(error?.message || "Ошибка загрузки данных плана.");
+    } finally {
+        isReloading = false;
     }
 }
 
-async function reloadColorRules() {
-    try {
-        const resp = await sendJsonRequest("?handler=PlanColorRules", "GET", buildJsonHeaders(antiForgeryToken));
-        const data = unwrapOrThrow(resp, "Ошибка загрузки цветовой схемы.");
-        colorRules = Array.isArray(data) ? data : [];
-        sortColorRules();
-        renderColorRules();
-        return true;
-    } catch (e) {
-        console.error(e);
-        return false;
-    }
-}
-
-function initSorting() {
-    const grid = document.getElementById("plansGrid");
-    if (!grid) return;
-
-    grid.querySelectorAll("th[data-sort-key]").forEach(th => {
-        th.style.cursor = "pointer";
-        th.addEventListener("click", () => {
-            const key = th.dataset.sortKey;
-            if (!key) return;
-
-            if (sortState.key === key) sortState.dir = (sortState.dir === "asc") ? "desc" : "asc";
-            else {
-                sortState.key = key;
-                sortState.dir = "asc";
-            }
-
-            saveState();
-            applyFilterSortRender();
-        });
-    });
-}
-
-function initGroupFilter() {
-    const btn = document.getElementById("btnGroupFilter");
-    const modalEl = document.getElementById("groupFilterModal");
-    if (!btn || !modalEl) return;
-
-    const modal = new bootstrap.Modal(modalEl);
-
-    btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        rebuildGroupFilterList();
-        const locked = hasActiveNameFilter();
-        setFilterModalLocked("group", locked);
-        modal.show();
-    });
-
-    const search = document.getElementById("groupFilterSearch");
-    if (search) {
-        search.addEventListener("input", () => rebuildGroupFilterList());
-    }
-
-    const selAll = document.getElementById("groupFilterSelectAll");
-    if (selAll) {
-        selAll.addEventListener("click", () => {
-            selectedGroupIds = getAllGroupIds();
-            saveState();
-            rebuildGroupFilterList();
-        });
-    }
-
-    const clrAll = document.getElementById("groupFilterClearAll");
-    if (clrAll) {
-        clrAll.addEventListener("click", () => {
-            selectedGroupIds = null;
-            saveState();
-            rebuildGroupFilterList();
-        });
-    }
-
-    const apply = document.getElementById("groupFilterApply");
-    if (apply) {
-        apply.addEventListener("click", () => {
-            applyFilterSortRender();
-        });
-    }
-}
-
-function applyFilterSortRender() {
-    visibleRows = applyEmployeeFilter(allRows);
-    sortRows(visibleRows);
-    renderPlanRows(visibleRows);
-    renderPlanSummary(visibleRows);
-    renderPlansHint();
-    rebuildNameFilterList();
-    loadSavedState();
-}
-
-function applyEmployeeFilter(rows) {
-    let res = rows;
-
-    if (Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0) {
-        const set = new Set(selectedEmployeeIds.map(Number));
-        res = res.filter(x => set.has(Number(x.employeeId)));
-    }
-
-    if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
-        const gs = new Set(selectedGroupIds.map(Number));
-        res = res.filter(x => {
-            if (!Array.isArray(x.groups) || x.groups.length === 0) return false;
-            return x.groups.some(g => gs.has(Number(g.id)));
-        });
-    }
-
-    return res;
-}
-
-function sortRows(rows) {
-    const sign = (sortState.dir === "desc") ? -1 : 1;
-
-    const name = (x) => String(x.fullName || "").trim().toLowerCase();
-    const groupsKey = (x) => formatGroups(x.groups).toLowerCase();
-    const m = (x) => (x.monthPlan === null || x.monthPlan === undefined) ? -1 : Number(x.monthPlan);
-    const d = (x) => (x.dayPlan === null || x.dayPlan === undefined) ? -1 : Number(x.dayPlan);
-
-    rows.sort((a, b) => {
-        let r = 0;
-
-        if (sortState.key === "name") r = name(a).localeCompare(name(b), "ru");
-        else if (sortState.key === "groups") r = groupsKey(a).localeCompare(groupsKey(b), "ru");
-        else if (sortState.key === "month") r = (m(a) === m(b)) ? 0 : (m(a) < m(b) ? -1 : 1);
-        else if (sortState.key === "day") r = (d(a) === d(b)) ? 0 : (d(a) < d(b) ? -1 : 1);
-
-        if (r === 0 && sortState.key !== "name") r = name(a).localeCompare(name(b), "ru");
-        return r * sign;
-    });
-}
-
-function renderPlanRows(rows) {
-    const tbody = document.getElementById("plansRows");
+function renderPlansTable() {
+    const tbody = document.getElementById("plansTableBody");
     if (!tbody) return;
 
     tbody.textContent = "";
 
-    if (!rows || rows.length === 0) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 4;
-        td.className = "text-center text-muted py-4";
-        td.textContent = "Нет данных";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+    if (!Array.isArray(plans) || plans.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.className = "text-center text-muted py-3";
+        cell.textContent = "Планы не добавлены";
+        row.appendChild(cell);
+        tbody.appendChild(row);
         return;
     }
 
-    for (const r of rows) {
-        const tr = document.createElement("tr");
+    for (let index = 0; index < plans.length; index++) {
+        const plan = plans[index];
+        const row = document.createElement("tr");
 
-        const tdName = document.createElement("td");
-        tdName.textContent = r.fullName || "";
-        tr.appendChild(tdName);
+        const nameCell = document.createElement("td");
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.id = `plan_name_${index}`;
+        nameInput.name = `plan_name_${index}`;
+        nameInput.className = "form-control form-control-sm";
+        nameInput.value = String(plan.name || "");
+        nameInput.addEventListener("input", () => {
+            plan.name = nameInput.value;
+        });
+        nameCell.appendChild(nameInput);
 
-        const tdGroups = document.createElement("td");
-        tdGroups.textContent = formatGroups(r.groups);
-        tr.appendChild(tdGroups);
+        const colorCell = document.createElement("td");
+        const colorWrap = document.createElement("div");
+        colorWrap.className = "d-flex align-items-center gap-2";
 
-        const tdMonth = document.createElement("td");
-        tdMonth.className = "text-center";
-        tdMonth.appendChild(buildPlanInput(r.employeeId, "month", r.monthPlan));
-        tr.appendChild(tdMonth);
+        const colorInput = document.createElement("input");
+        colorInput.type = "text";
+        colorInput.id = `plan_color_${index}`;
+        colorInput.name = `plan_color_${index}`;
+        colorInput.className = "form-control form-control-sm";
+        colorInput.style.maxWidth = "130px";
+        colorInput.value = String(plan.planColor || "");
+        colorInput.addEventListener("input", () => {
+            const normalized = sanitizeHex(colorInput.value);
+            colorInput.value = normalized;
+            plan.planColor = normalized;
+            const isHex = normalized !== "" && isValidHex(normalized);
+            if (isHex) {
+                picker.value = normalized;
+            } else if (normalized === "") {
+                picker.value = defaultPickerColor;
+            }
+            setInvalid(colorInput, normalized !== "" && !isValidHex(normalized));
+        });
 
-        const tdDay = document.createElement("td");
-        tdDay.className = "text-center";
-        tdDay.appendChild(buildPlanInput(r.employeeId, "day", r.dayPlan));
-        tr.appendChild(tdDay);
+        const picker = document.createElement("input");
+        picker.type = "color";
+        picker.id = `plan_color_picker_${index}`;
+        picker.name = `plan_color_picker_${index}`;
+        picker.className = "form-control form-control-color p-1";
+        picker.value = isValidHex(plan.planColor) ? String(plan.planColor).toUpperCase() : defaultPickerColor;
+        picker.addEventListener("input", () => {
+            const value = String(picker.value || "").toUpperCase();
+            colorInput.value = value;
+            plan.planColor = value;
+            setInvalid(colorInput, false);
+        });
 
-        tbody.appendChild(tr);
+        colorWrap.append(colorInput, picker);
+        colorCell.appendChild(colorWrap);
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "text-end";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn btn-outline-danger btn-sm";
+        deleteBtn.textContent = "Удалить";
+        deleteBtn.addEventListener("click", () => {
+            const removedId = normalizeGuid(plan.id);
+            plans.splice(index, 1);
+
+            if (removedId && selectedPlanId === removedId) {
+                selectedPlanId = null;
+            }
+
+            renderPlansTable();
+            renderPlanSelect();
+            if (!selectedPlanId) {
+                employeeRows = [];
+                colorRules = [];
+                renderEmployeeRowsTable();
+                renderColorRulesTable();
+            }
+        });
+        actionCell.appendChild(deleteBtn);
+
+        row.append(nameCell, colorCell, actionCell);
+        tbody.appendChild(row);
     }
 }
 
-function buildPlanInput(employeeId, kind, value) {
+function renderPlanSelect() {
+    const select = document.getElementById("activePlanSelect");
+    if (!select) return;
+
+    const previousValue = selectedPlanId;
+    select.textContent = "";
+
+    for (const plan of plans) {
+        const planId = normalizeGuid(plan.id);
+        if (!planId) continue;
+
+        const option = document.createElement("option");
+        option.value = planId;
+        option.textContent = String(plan.name || "");
+        select.appendChild(option);
+    }
+
+    if (previousValue && plans.some(x => normalizeGuid(x.id) === previousValue)) {
+        selectedPlanId = previousValue;
+    } else {
+        const firstPlan = plans.find(x => !!normalizeGuid(x.id));
+        selectedPlanId = firstPlan ? normalizeGuid(firstPlan.id) : null;
+    }
+
+    select.value = selectedPlanId || "";
+    saveSelectedPlanState();
+}
+
+function renderEmployeeRowsTable() {
+    const tbody = document.getElementById("employeePlansBody");
+    if (!tbody) return;
+
+    tbody.textContent = "";
+
+    if (!selectedPlanId) {
+        appendEmptyRow(tbody, 3, "Сначала выберите план");
+        updateFilterButtonsState();
+        rebuildNameFilterList();
+        rebuildGroupFilterList();
+        return;
+    }
+
+    if (!Array.isArray(employeeRows) || employeeRows.length === 0) {
+        appendEmptyRow(tbody, 3, "Нет данных");
+        updateFilterButtonsState();
+        rebuildNameFilterList();
+        rebuildGroupFilterList();
+        return;
+    }
+
+    const filteredRows = getFilteredEmployeeRows(employeeRows);
+    const sortedRows = [...filteredRows].sort((a, b) =>
+        String(a.fullName || "").localeCompare(String(b.fullName || ""), "ru")
+    );
+
+    if (sortedRows.length === 0) {
+        appendEmptyRow(tbody, 3, "Нет данных по выбранным фильтрам");
+        updateFilterButtonsState();
+        rebuildNameFilterList();
+        rebuildGroupFilterList();
+        return;
+    }
+
+    for (const rowData of sortedRows) {
+        const row = document.createElement("tr");
+
+        const nameCell = document.createElement("td");
+        nameCell.textContent = String(rowData.fullName || "");
+
+        const groupsCell = document.createElement("td");
+        groupsCell.textContent = formatGroups(rowData.groups);
+
+        const planCell = document.createElement("td");
+        planCell.className = "text-center";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.id = `employee_plan_${rowData.employeeId}`;
+        input.name = `employee_plan_${rowData.employeeId}`;
+        input.inputMode = "numeric";
+        input.className = "form-control form-control-sm text-center";
+        input.style.maxWidth = "140px";
+        input.style.margin = "0 auto";
+        input.value = rowData.planValue === null || rowData.planValue === undefined ? "" : String(rowData.planValue);
+        input.addEventListener("input", () => {
+            const cleaned = (input.value || "").replace(/[^\d]/g, "");
+            input.value = cleaned;
+            rowData.planValue = cleaned === "" ? null : Number(cleaned);
+        });
+
+        planCell.appendChild(input);
+        row.append(nameCell, groupsCell, planCell);
+        tbody.appendChild(row);
+    }
+
+    updateFilterButtonsState();
+    rebuildNameFilterList();
+    rebuildGroupFilterList();
+}
+
+function renderColorRulesTable() {
+    const tbody = document.getElementById("colorRulesBody");
+    if (!tbody) return;
+
+    tbody.textContent = "";
+
+    if (!selectedPlanId) {
+        appendEmptyRow(tbody, 4, "Сначала выберите план");
+        return;
+    }
+
+    if (!Array.isArray(colorRules) || colorRules.length === 0) {
+        appendEmptyRow(tbody, 4, "Правила не добавлены");
+        return;
+    }
+
+    for (let index = 0; index < colorRules.length; index++) {
+        const rule = colorRules[index];
+        const row = document.createElement("tr");
+
+        const fromCell = document.createElement("td");
+        fromCell.appendChild(buildPercentInput(rule.fromPercent, (val) => { rule.fromPercent = val; }, `rule_from_${index}`));
+
+        const toCell = document.createElement("td");
+        toCell.appendChild(buildNullablePercentInput(rule.toPercent, (val) => { rule.toPercent = val; }, `rule_to_${index}`));
+
+        const colorCell = document.createElement("td");
+        colorCell.appendChild(buildRuleColorEditor(rule, index));
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "text-end";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn btn-outline-danger btn-sm";
+        deleteBtn.textContent = "Удалить";
+        deleteBtn.addEventListener("click", () => {
+            colorRules.splice(index, 1);
+            renderColorRulesTable();
+        });
+        actionCell.appendChild(deleteBtn);
+
+        row.append(fromCell, toCell, colorCell, actionCell);
+        tbody.appendChild(row);
+    }
+}
+
+async function saveAll() {
+    isSaving = true;
+    clearPageError();
+
+    const saveBtn = document.getElementById("btnSaveAll");
+    if (saveBtn) saveBtn.disabled = true;
+
+    try {
+        const generalSettingsPayload = buildGeneralSettingsPayload();
+        if (!generalSettingsPayload) {
+            throw new Error("Укажите корректный интервал переключения планов (минимум 10 секунд).");
+        }
+
+        const plansPayload = buildPlansPayload();
+        await savePlans(plansPayload);
+
+        const selectedBeforeReload = selectedPlanId;
+        await reloadPlans();
+
+        selectedPlanId = selectedBeforeReload && plans.some(x => normalizeGuid(x.id) === selectedBeforeReload)
+            ? selectedBeforeReload
+            : (plans.length > 0 ? normalizeGuid(plans[0].id) : null);
+        renderPlanSelect();
+
+        await saveGeneralSettings(generalSettingsPayload);
+
+        if (selectedPlanId) {
+            await saveEmployeePlanValues(buildPlanSettingsPayload());
+            await saveColorRules(buildColorRulesPayload());
+            await reloadCurrentPlanData();
+        }
+    } catch (error) {
+        showPageError(error?.message || "Ошибка сохранения.");
+    } finally {
+        isSaving = false;
+        if (saveBtn) saveBtn.disabled = false;
+    }
+}
+
+function buildGeneralSettingsPayload() {
+    const inputSeconds = document.getElementById("planSwitchSecondsInput");
+    const seconds = Number((inputSeconds ? inputSeconds.value : "").trim());
+
+    if (!Number.isInteger(seconds) || seconds < 10) {
+        if (inputSeconds) setInvalid(inputSeconds, true);
+        return null;
+    }
+
+    if (inputSeconds) setInvalid(inputSeconds, false);
+
+    return {
+        item: {
+            id: generalSettings && generalSettings.id ? String(generalSettings.id) : null,
+            planSwitchSeconds: seconds
+        }
+    };
+}
+
+function buildPlansPayload() {
+    const normalized = [];
+
+    for (const plan of plans) {
+        const trimmedName = String(plan.name || "").trim();
+        if (trimmedName.length === 0) {
+            throw new Error("Название плана не может быть пустым.");
+        }
+
+        const normalizedColor = String(plan.planColor || "").trim().toUpperCase();
+        if (normalizedColor !== "" && !isValidHex(normalizedColor)) {
+            throw new Error(`РЈРєР°Р¶РёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ С†РІРµС‚ РїР»Р°РЅР° (${trimmedName}) РІ С„РѕСЂРјР°С‚Рµ #RRGGBB.`);
+        }
+
+        normalized.push({
+            id: normalizeGuid(plan.id),
+            name: trimmedName,
+            planColor: normalizedColor === "" ? null : normalizedColor
+        });
+    }
+
+    const duplicates = hasDuplicateNames(normalized.map(x => x.name));
+    if (duplicates) {
+        throw new Error("Названия планов должны быть уникальными.");
+    }
+
+    return { items: normalized };
+}
+
+function buildPlanSettingsPayload() {
+    if (!selectedPlanId) return { items: [] };
+
+    const items = [];
+    for (const rowData of employeeRows) {
+        items.push({
+            planId: selectedPlanId,
+            employeeId: Number(rowData.employeeId),
+            planValue: rowData.planValue === null || rowData.planValue === undefined ? null : Number(rowData.planValue)
+        });
+    }
+
+    return { items };
+}
+
+function buildColorRulesPayload() {
+    if (!selectedPlanId) return { planId: null, items: [] };
+
+    validateColorRulesOrThrow();
+
+    const items = colorRules.map((rule) => ({
+        id: normalizeGuid(rule.id),
+        planId: selectedPlanId,
+        fromPercent: Number(rule.fromPercent),
+        toPercent: rule.toPercent === null || rule.toPercent === undefined || rule.toPercent === "" ? null : Number(rule.toPercent),
+        color: String(rule.color || "").trim().toUpperCase()
+    }));
+
+    return {
+        planId: selectedPlanId,
+        items
+    };
+}
+
+async function savePlans(payload) {
+    const response = await sendJsonRequest("?handler=SavePlans", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    unwrapOrThrow(response, "Ошибка сохранения планов.");
+}
+
+async function saveGeneralSettings(payload) {
+    const response = await sendJsonRequest("?handler=SaveGeneralSettings", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    unwrapOrThrow(response, "Ошибка сохранения общих настроек.");
+}
+
+async function saveEmployeePlanValues(payload) {
+    const response = await sendJsonRequest("?handler=SavePlanSettings", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    unwrapOrThrow(response, "Ошибка сохранения значений плана сотрудников.");
+}
+
+async function saveColorRules(payload) {
+    const response = await sendJsonRequest("?handler=SavePlanColorRules", "POST", buildJsonHeaders(antiForgeryToken), payload);
+    unwrapOrThrow(response, "Ошибка сохранения цветовых правил.");
+}
+
+function validateColorRulesOrThrow() {
+    const normalizedRules = [];
+
+    for (const rule of colorRules) {
+        const from = Number(rule.fromPercent);
+        const to = rule.toPercent === null || rule.toPercent === undefined || rule.toPercent === ""
+            ? null
+            : Number(rule.toPercent);
+        const color = String(rule.color || "").trim().toUpperCase();
+
+        if (!Number.isInteger(from) || from < 0) {
+            throw new Error("Поле «От %» должно быть целым числом >= 0.");
+        }
+
+        if (to !== null && (!Number.isInteger(to) || to < from)) {
+            throw new Error("Поле «До %» должно быть пустым или целым числом >= «От %».");
+        }
+
+        if (!isValidHex(color)) {
+            throw new Error("Цвет правила должен быть в формате #RRGGBB.");
+        }
+
+        normalizedRules.push({
+            from,
+            to: to === null ? Number.MAX_SAFE_INTEGER : to
+        });
+    }
+
+    normalizedRules.sort((a, b) => {
+        if (a.from !== b.from) return a.from - b.from;
+        return a.to - b.to;
+    });
+
+    for (let index = 0; index < normalizedRules.length - 1; index++) {
+        const current = normalizedRules[index];
+        const next = normalizedRules[index + 1];
+        if (next.from <= current.to) {
+            throw new Error("Диапазоны процентов не должны пересекаться.");
+        }
+    }
+}
+
+function buildPercentInput(value, onChanged, key) {
     const input = document.createElement("input");
     input.type = "text";
+    input.id = key;
+    input.name = key;
     input.inputMode = "numeric";
     input.className = "form-control form-control-sm text-center";
-    input.style.maxWidth = "140px";
-    input.style.margin = "0 auto";
-    input.style.display = "block";
-    input.dataset.employeeId = String(employeeId);
-    input.dataset.kind = kind;
-    input.id = `plan_${employeeId}_${kind}`;
-    input.name = `plan_${employeeId}_${kind}`;
-    input.value = (value === null || value === undefined) ? "" : String(value);
-
+    input.value = value === null || value === undefined ? "0" : String(value);
     input.addEventListener("input", () => {
         const cleaned = (input.value || "").replace(/[^\d]/g, "");
         input.value = cleaned;
+        onChanged(cleaned === "" ? 0 : Number(cleaned));
     });
-
     return input;
 }
 
-function renderPlanSummary(rows) {
-    const left = document.getElementById("plansSummaryLeft");
-    const right = document.getElementById("plansSummaryRight");
-    if (!left || !right) return;
-
-    const cnt = Array.isArray(rows) ? rows.length : 0;
-
-    let filledMonth = 0;
-    let filledDay = 0;
-
-    for (const r of (rows || [])) {
-        if (r.monthPlan !== null && r.monthPlan !== undefined) filledMonth++;
-        if (r.dayPlan !== null && r.dayPlan !== undefined) filledDay++;
-    }
-
-    left.textContent = `Сотрудников: ${cnt}`;
-    right.textContent = `Заполнено: месяц ${filledMonth} • день ${filledDay}`;
+function buildNullablePercentInput(value, onChanged, key) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.id = key;
+    input.name = key;
+    input.inputMode = "numeric";
+    input.className = "form-control form-control-sm text-center";
+    input.placeholder = "Без ограничения";
+    input.value = value === null || value === undefined ? "" : String(value);
+    input.addEventListener("input", () => {
+        const cleaned = (input.value || "").replace(/[^\d]/g, "");
+        input.value = cleaned;
+        onChanged(cleaned === "" ? null : Number(cleaned));
+    });
+    return input;
 }
 
-function renderPlansHint() {
-    const el = document.getElementById("plansHint");
-    if (!el) return;
+function buildRuleColorEditor(rule, index) {
+    const wrap = document.createElement("div");
+    wrap.className = "d-flex align-items-center gap-2";
 
-    const parts = [];
-
-    if (Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0) {
-        parts.push(`сотрудники ${selectedEmployeeIds.length}`);
-    }
-
-    if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
-        parts.push(`группы ${selectedGroupIds.length}`);
-    }
-
-    el.textContent = parts.length > 0 ? `Фильтр: ${parts.join(" • ")}` : "—";
-}
-
-async function savePlanSettings() {
-    try {
-        const items = collectPlanInputs();
-        const payload = { items };
-
-        const resp = await sendJsonRequest("?handler=SavePlanSettings", "POST", buildJsonHeaders(antiForgeryToken), payload);
-        unwrapOrThrow(resp, "Ошибка сохранения планов.");
-        return true;
-    } catch (e) {
-        console.error(e);
-        return false;
-    }
-}
-
-function collectPlanInputs() {
-    const map = new Map();
-
-    document.querySelectorAll('#plansGrid input[data-employee-id][data-kind]').forEach(inp => {
-        const employeeId = Number(inp.dataset.employeeId);
-        if (!Number.isFinite(employeeId)) return;
-
-        if (!map.has(employeeId)) {
-            map.set(employeeId, { employeeId: employeeId, monthPlan: null, dayPlan: null });
-        }
-
-        const row = map.get(employeeId);
-        const kind = inp.dataset.kind;
-        const raw = (inp.value || "").trim();
-        const val = raw === "" ? null : Number(raw);
-
-        if (val !== null && (!Number.isInteger(val) || val < 0)) return;
-
-        if (kind === "month") row.monthPlan = val;
-        if (kind === "day") row.dayPlan = val;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.id = `rule_color_${index}`;
+    input.name = `rule_color_${index}`;
+    input.className = "form-control form-control-sm";
+    input.style.maxWidth = "130px";
+    input.value = String(rule.color || "#198754");
+    input.addEventListener("input", () => {
+        const normalized = sanitizeHex(input.value);
+        input.value = normalized;
+        rule.color = normalized;
+        setInvalid(input, normalized !== "" && !isValidHex(normalized));
     });
 
-    return Array.from(map.values());
+    const picker = document.createElement("input");
+    picker.type = "color";
+    picker.id = `rule_color_picker_${index}`;
+    picker.name = `rule_color_picker_${index}`;
+    picker.className = "form-control form-control-color p-1";
+    picker.value = isValidHex(rule.color) ? String(rule.color) : "#198754";
+    picker.addEventListener("input", () => {
+        const value = String(picker.value || "").toUpperCase();
+        input.value = value;
+        rule.color = value;
+        setInvalid(input, false);
+    });
+
+    wrap.append(input, picker);
+    return wrap;
+}
+
+function applySelectedPlanFromState() {
+    const savedPlanId = normalizeGuid(localStorage.getItem(planSettingsSelectedPlanKey));
+    if (savedPlanId && plans.some(x => normalizeGuid(x.id) === savedPlanId)) {
+        selectedPlanId = savedPlanId;
+    } else {
+        const firstPlan = plans.find(x => !!normalizeGuid(x.id));
+        selectedPlanId = firstPlan ? normalizeGuid(firstPlan.id) : null;
+    }
+
+    const select = document.getElementById("activePlanSelect");
+    if (select) {
+        select.value = selectedPlanId || "";
+    }
+}
+
+function saveSelectedPlanState() {
+    if (selectedPlanId) {
+        localStorage.setItem(planSettingsSelectedPlanKey, selectedPlanId);
+    } else {
+        localStorage.removeItem(planSettingsSelectedPlanKey);
+    }
+}
+
+function mapPlanItem(item) {
+    return {
+        id: normalizeGuid(item?.id),
+        name: String(item?.name || ""),
+        planColor: String(item?.planColor || "").toUpperCase()
+    };
+}
+
+function mapColorRuleItem(item) {
+    return {
+        id: normalizeGuid(item?.id),
+        planId: normalizeGuid(item?.planId),
+        fromPercent: Number(item?.fromPercent || 0),
+        toPercent: item?.toPercent === null || item?.toPercent === undefined ? null : Number(item.toPercent),
+        color: String(item?.color || "#198754").toUpperCase()
+    };
+}
+
+function normalizeGuid(value) {
+    const text = String(value || "").trim();
+    if (text.length === 0) return null;
+    return text;
+}
+
+function formatGroups(groups) {
+    if (!Array.isArray(groups) || groups.length === 0) return "";
+    return groups
+        .map((group) => String(group?.name || "").trim())
+        .filter((name) => name.length > 0)
+        .join(", ");
 }
 
 function initNameFilter() {
     const btn = document.getElementById("btnNameFilter");
     const modalEl = document.getElementById("nameFilterModal");
-    if (!btn || !modalEl) return;
+    if (!btn || !modalEl || !window.bootstrap) return;
 
     const modal = new bootstrap.Modal(modalEl);
 
-    btn.addEventListener("click", (e) => {
-        e.stopPropagation();
+    btn.addEventListener("click", (event) => {
+        event.stopPropagation();
         rebuildNameFilterList();
-        const locked = hasActiveGroupFilter();
-        setFilterModalLocked("name", locked);
         modal.show();
     });
 
@@ -420,29 +776,112 @@ function initNameFilter() {
         search.addEventListener("input", () => rebuildNameFilterList());
     }
 
-    const selAll = document.getElementById("nameFilterSelectAll");
-    if (selAll) {
-        selAll.addEventListener("click", () => {
-            selectedEmployeeIds = allRows.map(x => Number(x.employeeId));
-            saveState();
+    const selectAll = document.getElementById("nameFilterSelectAll");
+    if (selectAll) {
+        selectAll.addEventListener("click", () => {
+            selectedEmployeeIds = employeeRows.map((row) => Number(row.employeeId));
+            saveFilterState();
             rebuildNameFilterList();
+            updateFilterButtonsState();
         });
     }
 
-    const clrAll = document.getElementById("nameFilterClearAll");
-    if (clrAll) {
-        clrAll.addEventListener("click", () => {
+    const clearAll = document.getElementById("nameFilterClearAll");
+    if (clearAll) {
+        clearAll.addEventListener("click", () => {
             selectedEmployeeIds = null;
-            saveState();
+            saveFilterState();
             rebuildNameFilterList();
+            updateFilterButtonsState();
         });
     }
 
     const apply = document.getElementById("nameFilterApply");
     if (apply) {
         apply.addEventListener("click", () => {
-            applyFilterSortRender();
+            renderEmployeeRowsTable();
         });
+    }
+}
+
+function initGroupFilter() {
+    const btn = document.getElementById("btnGroupFilter");
+    const modalEl = document.getElementById("groupFilterModal");
+    if (!btn || !modalEl || !window.bootstrap) return;
+
+    const modal = new bootstrap.Modal(modalEl);
+
+    btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        rebuildGroupFilterList();
+        modal.show();
+    });
+
+    const search = document.getElementById("groupFilterSearch");
+    if (search) {
+        search.addEventListener("input", () => rebuildGroupFilterList());
+    }
+
+    const selectAll = document.getElementById("groupFilterSelectAll");
+    if (selectAll) {
+        selectAll.addEventListener("click", () => {
+            selectedGroupIds = getAllGroupIds();
+            saveFilterState();
+            rebuildGroupFilterList();
+            updateFilterButtonsState();
+        });
+    }
+
+    const clearAll = document.getElementById("groupFilterClearAll");
+    if (clearAll) {
+        clearAll.addEventListener("click", () => {
+            selectedGroupIds = null;
+            saveFilterState();
+            rebuildGroupFilterList();
+            updateFilterButtonsState();
+        });
+    }
+
+    const apply = document.getElementById("groupFilterApply");
+    if (apply) {
+        apply.addEventListener("click", () => {
+            renderEmployeeRowsTable();
+        });
+    }
+}
+
+function getFilteredEmployeeRows(rows) {
+    let filteredRows = Array.isArray(rows) ? rows : [];
+
+    if (Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0) {
+        const selectedEmployeesSet = new Set(selectedEmployeeIds.map((id) => Number(id)));
+        filteredRows = filteredRows.filter((row) => selectedEmployeesSet.has(Number(row.employeeId)));
+    }
+
+    if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
+        const selectedGroupsSet = new Set(selectedGroupIds.map((id) => Number(id)));
+        filteredRows = filteredRows.filter((row) => {
+            if (!Array.isArray(row.groups) || row.groups.length === 0) return false;
+            return row.groups.some((group) => selectedGroupsSet.has(Number(group?.id)));
+        });
+    }
+
+    return filteredRows;
+}
+
+function updateFilterButtonsState() {
+    const nameFilterButton = document.getElementById("btnNameFilter");
+    if (nameFilterButton) {
+        const isNameFilterActive = Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0;
+        nameFilterButton.classList.toggle("btn-secondary", isNameFilterActive);
+        nameFilterButton.classList.toggle("btn-outline-secondary", !isNameFilterActive);
+    }
+
+    const groupFilterButton = document.getElementById("btnGroupFilter");
+    if (groupFilterButton) {
+        const isGroupFilterActive = Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0;
+        groupFilterButton.classList.toggle("btn-secondary", isGroupFilterActive);
+        groupFilterButton.classList.toggle("btn-outline-secondary", !isGroupFilterActive);
     }
 }
 
@@ -452,255 +891,246 @@ function rebuildNameFilterList() {
 
     host.textContent = "";
 
-    const qEl = document.getElementById("nameFilterSearch");
-    const q = (qEl ? qEl.value : "").trim().toLowerCase();
+    const searchInput = document.getElementById("nameFilterSearch");
+    const query = String(searchInput?.value || "").trim().toLowerCase();
 
-    const set = Array.isArray(selectedEmployeeIds) ? new Set(selectedEmployeeIds.map(Number)) : null;
+    const selectedSet = Array.isArray(selectedEmployeeIds)
+        ? new Set(selectedEmployeeIds.map((id) => Number(id)))
+        : null;
 
-    const rows = Array.isArray(allRows) ? [...allRows] : [];
-    rows.sort((a, b) => String(a.fullName || "").localeCompare(String(b.fullName || ""), "ru"));
+    const rows = Array.isArray(employeeRows) ? [...employeeRows] : [];
+    rows.sort((left, right) => String(left.fullName || "").localeCompare(String(right.fullName || ""), "ru"));
 
-    const filtered = q ? rows.filter(x => String(x.fullName || "").toLowerCase().includes(q)) : rows;
+    const filteredRows = query
+        ? rows.filter((row) => String(row.fullName || "").toLowerCase().includes(query))
+        : rows;
 
     const hint = document.getElementById("nameFilterHint");
     if (hint) {
         hint.classList.add("d-none");
         hint.textContent = "";
-        if (q && filtered.length === 0) {
+        if (query && filteredRows.length === 0) {
             hint.textContent = "Ничего не найдено";
             hint.classList.remove("d-none");
         }
     }
 
-    for (const r of filtered) {
+    for (const row of filteredRows) {
         const wrap = document.createElement("div");
         wrap.className = "form-check";
-        wrap.style.marginLeft = "12px";
 
         const input = document.createElement("input");
         input.type = "checkbox";
         input.className = "form-check-input";
-        input.id = `empf_${r.employeeId}`;
-        input.checked = set ? set.has(Number(r.employeeId)) : false;
+        input.id = `empf_${row.employeeId}`;
+        input.name = `empf_${row.employeeId}`;
+        input.checked = selectedSet ? selectedSet.has(Number(row.employeeId)) : false;
 
         input.addEventListener("change", () => {
-            const id = Number(r.employeeId);
-            if (!Number.isFinite(id)) return;
+            const employeeId = Number(row.employeeId);
+            if (!Number.isFinite(employeeId)) return;
 
-            let arr = Array.isArray(selectedEmployeeIds) ? [...selectedEmployeeIds] : [];
+            let selectedIds = Array.isArray(selectedEmployeeIds) ? [...selectedEmployeeIds] : [];
             if (input.checked) {
-                if (!arr.includes(id)) arr.push(id);
+                if (!selectedIds.includes(employeeId)) {
+                    selectedIds.push(employeeId);
+                }
             } else {
-                arr = arr.filter(x => x !== id);
+                selectedIds = selectedIds.filter((id) => id !== employeeId);
             }
 
-            selectedEmployeeIds = arr.length > 0 ? arr : null;
-            saveState();
+            selectedEmployeeIds = selectedIds.length > 0 ? selectedIds : null;
+            saveFilterState();
+            updateFilterButtonsState();
         });
 
         const label = document.createElement("label");
         label.className = "form-check-label";
         label.htmlFor = input.id;
-        label.textContent = r.fullName || "";
+        label.textContent = String(row.fullName || "");
 
         wrap.append(input, label);
         host.appendChild(wrap);
     }
 }
 
-function loadSavedState() {
-    const s1 = localStorage.getItem(psSortKey);
-    if (s1) {
-        try {
-            const st = JSON.parse(s1);
-            if (st && st.key && st.dir) sortState = st;
-        } catch { }
+function getAllGroups() {
+    const groupsById = new Map();
+
+    for (const row of employeeRows) {
+        if (!Array.isArray(row.groups)) continue;
+
+        for (const group of row.groups) {
+            const groupId = Number(group?.id);
+            if (!Number.isFinite(groupId)) continue;
+
+            const groupName = String(group?.name || "").trim();
+            if (!groupsById.has(groupId)) {
+                groupsById.set(groupId, { id: groupId, name: groupName });
+            } else if (groupName && !groupsById.get(groupId).name) {
+                groupsById.get(groupId).name = groupName;
+            }
+        }
     }
 
-    const s2 = localStorage.getItem(psFilterKey);
-    if (s2) {
-        try {
-            const st = JSON.parse(s2);
-            if (Array.isArray(st)) selectedEmployeeIds = st;
-        } catch { }
+    return Array.from(groupsById.values())
+        .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "ru"));
+}
+
+function getAllGroupIds() {
+    return getAllGroups().map((group) => group.id);
+}
+
+function rebuildGroupFilterList() {
+    const host = document.getElementById("groupFilterList");
+    if (!host) return;
+
+    host.textContent = "";
+
+    const searchInput = document.getElementById("groupFilterSearch");
+    const query = String(searchInput?.value || "").trim().toLowerCase();
+
+    const selectedSet = Array.isArray(selectedGroupIds)
+        ? new Set(selectedGroupIds.map((id) => Number(id)))
+        : null;
+
+    const groups = getAllGroups();
+    const filteredGroups = query
+        ? groups.filter((group) => String(group.name || "").toLowerCase().includes(query))
+        : groups;
+
+    const hint = document.getElementById("groupFilterHint");
+    if (hint) {
+        hint.classList.add("d-none");
+        hint.textContent = "";
+        if (query && filteredGroups.length === 0) {
+            hint.textContent = "Ничего не найдено";
+            hint.classList.remove("d-none");
+        }
     }
 
-    const s3 = localStorage.getItem(psGroupFilterKey);
-    if (s3) {
-        try {
-            const st = JSON.parse(s3);
-            if (Array.isArray(st)) selectedGroupIds = st;
-        } catch { }
+    for (const group of filteredGroups) {
+        const wrap = document.createElement("div");
+        wrap.className = "form-check";
+
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.className = "form-check-input";
+        input.id = `grpf_${group.id}`;
+        input.name = `grpf_${group.id}`;
+        input.checked = selectedSet ? selectedSet.has(group.id) : false;
+
+        input.addEventListener("change", () => {
+            const groupId = Number(group.id);
+            if (!Number.isFinite(groupId)) return;
+
+            let selectedIds = Array.isArray(selectedGroupIds) ? [...selectedGroupIds] : [];
+            if (input.checked) {
+                if (!selectedIds.includes(groupId)) {
+                    selectedIds.push(groupId);
+                }
+            } else {
+                selectedIds = selectedIds.filter((id) => id !== groupId);
+            }
+
+            selectedGroupIds = selectedIds.length > 0 ? selectedIds : null;
+            saveFilterState();
+            updateFilterButtonsState();
+        });
+
+        const label = document.createElement("label");
+        label.className = "form-check-label";
+        label.htmlFor = input.id;
+        label.textContent = String(group.name || `(id:${group.id})`);
+
+        wrap.append(input, label);
+        host.appendChild(wrap);
     }
 }
 
-function saveState() {
-    localStorage.setItem(psSortKey, JSON.stringify(sortState));
+function loadFilterState() {
+    const nameFilterValue = localStorage.getItem(planSettingsNameFilterKey);
+    if (nameFilterValue) {
+        try {
+            const parsed = JSON.parse(nameFilterValue);
+            selectedEmployeeIds = Array.isArray(parsed) ? parsed : null;
+        } catch {
+            selectedEmployeeIds = null;
+        }
+    }
+
+    const groupFilterValue = localStorage.getItem(planSettingsGroupFilterKey);
+    if (groupFilterValue) {
+        try {
+            const parsed = JSON.parse(groupFilterValue);
+            selectedGroupIds = Array.isArray(parsed) ? parsed : null;
+        } catch {
+            selectedGroupIds = null;
+        }
+    }
+}
+
+function saveFilterState() {
     if (Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0) {
-        localStorage.setItem(psFilterKey, JSON.stringify(selectedEmployeeIds));
+        localStorage.setItem(planSettingsNameFilterKey, JSON.stringify(selectedEmployeeIds));
     } else {
-        localStorage.removeItem(psFilterKey);
+        localStorage.removeItem(planSettingsNameFilterKey);
     }
 
     if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
-        localStorage.setItem(psGroupFilterKey, JSON.stringify(selectedGroupIds));
+        localStorage.setItem(planSettingsGroupFilterKey, JSON.stringify(selectedGroupIds));
     } else {
-        localStorage.removeItem(psGroupFilterKey);
+        localStorage.removeItem(planSettingsGroupFilterKey);
     }
 }
+function hasDuplicateNames(names) {
+    const set = new Set();
+    for (const name of names) {
+        const key = String(name || "").trim().toLowerCase();
+        if (set.has(key)) return true;
+        set.add(key);
+    }
+    return false;
+}
 
-function renderColorRules() {
-    const tbody = document.getElementById("colorRulesRows");
-    if (!tbody) return;
+function sanitizeHex(raw) {
+    let value = String(raw || "").trim();
+    if (value === "") return "";
+    if (!value.startsWith("#")) value = `#${value}`;
 
-    tbody.textContent = "";
-
-    if (!colorRules || colorRules.length === 0) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 4;
-        td.className = "text-center text-muted py-3";
-        td.textContent = "Нет правил";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
+    let out = "#";
+    for (let index = 1; index < value.length && out.length < 7; index++) {
+        const symbol = value[index];
+        if (/[0-9a-fA-F]/.test(symbol)) out += symbol.toUpperCase();
     }
 
-    for (let i = 0; i < colorRules.length; i++) {
-        const r = colorRules[i];
-
-        const tr = document.createElement("tr");
-
-        const tdFrom = document.createElement("td");
-        tdFrom.appendChild(buildIntInput("from", r.fromPercent, v => { r.fromPercent = v; }, i));
-        tr.appendChild(tdFrom);
-
-        const tdTo = document.createElement("td");
-        tdTo.appendChild(buildIntInput("to", r.toPercent, v => { r.toPercent = v; }, i));
-        tr.appendChild(tdTo);
-
-        const tdColor = document.createElement("td");
-
-        const colorWrap = document.createElement("div");
-        colorWrap.className = "d-flex align-items-center";
-        colorWrap.style.gap = "6px";
-
-        const preview = document.createElement("div");
-        preview.style.width = "18px";
-        preview.style.height = "18px";
-        preview.style.borderRadius = "4px";
-        preview.style.border = "1px solid #ced4da";
-        preview.style.flexShrink = "0";
-
-        const inputColor = document.createElement("input");
-        inputColor.type = "text";
-        inputColor.className = "form-control form-control-sm";
-        inputColor.style.maxWidth = "120px";
-        inputColor.value = (r.color === null || r.color === undefined) ? "" : String(r.color);
-        inputColor.id = `colorRule_${i}_color`;
-        inputColor.name = `colorRule_${i}_color`;
-
-        inputColor.addEventListener("input", () => {
-            const sanitized = sanitizeHexColorInput(inputColor.value);
-            inputColor.value = sanitized;
-
-            r.color = sanitized === "" ? null : sanitized;
-
-            const invalid = sanitized !== "" && !isValidHexColor(sanitized);
-            setColorInvalid(inputColor, invalid);
-            updatePreview(preview, sanitized);
-        });
-
-        const btnPick = document.createElement("button");
-        btnPick.type = "button";
-        btnPick.className = "btn btn-outline-secondary btn-sm";
-        btnPick.textContent = "🎨";
-        btnPick.addEventListener("click", () => {
-            openSharedColorPicker(btnPick, inputColor.value, (v) => {
-                inputColor.value = v;
-                r.color = v;
-                setColorInvalid(inputColor, false);
-                updatePreview(preview, v);
-            });
-        });
-
-        colorWrap.append(preview, inputColor, btnPick);
-        updatePreview(preview, inputColor.value);
-        tdColor.appendChild(colorWrap);
-        tr.appendChild(tdColor);
-
-        const tdDel = document.createElement("td");
-        tdDel.className = "text-end";
-        const btnDel = document.createElement("button");
-        btnDel.type = "button";
-        btnDel.className = "btn btn-outline-danger btn-sm";
-        btnDel.textContent = "×";
-        btnDel.addEventListener("click", () => {
-            colorRules.splice(i, 1);
-            renderColorRules();
-        });
-        tdDel.appendChild(btnDel);
-        tr.appendChild(tdDel);
-
-        tbody.appendChild(tr);
-    }
+    return out;
 }
 
-function updatePreview(previewEl, val) {
-    if (!previewEl) return;
-
-    if (isValidHexColor(val)) {
-        previewEl.style.backgroundColor = val;
-    } else {
-        previewEl.style.backgroundColor = "transparent";
-    }
+function isValidHex(value) {
+    return /^#([0-9A-F]{6})$/.test(String(value || "").toUpperCase());
 }
 
-function buildIntInput(kind, value, onChange, rowIndex) {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.inputMode = "numeric";
-    input.className = "form-control form-control-sm text-center";
-    input.style.maxWidth = "120px";
-    input.id = `colorRule_${rowIndex}_${kind}`;
-    input.name = `colorRule_${rowIndex}_${kind}`;
-    input.value = (value === null || value === undefined) ? "" : String(value);
-
-    input.addEventListener("input", () => {
-        const cleaned = (input.value || "").replace(/[^\d]/g, "");
-        input.value = cleaned;
-        const v = cleaned === "" ? 0 : Number(cleaned);
-        if (Number.isInteger(v) && v >= 0) onChange(v);
-    });
-
-    return input;
+function setInvalid(input, isInvalid) {
+    if (!input) return;
+    if (isInvalid) input.classList.add("is-invalid");
+    else input.classList.remove("is-invalid");
 }
 
-async function saveColorRules() {
-    try {
-        const payload = { items: buildColorRulesPayload() };
-        const resp = await sendJsonRequest("?handler=SavePlanColorRules", "POST", buildJsonHeaders(antiForgeryToken), payload);
-        unwrapOrThrow(resp, "Ошибка сохранения цветовой схемы.");
-        return true;
-    } catch (e) {
-        console.error(e);
-        return false;
-    }
+function appendEmptyRow(tbody, colSpan, text) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = colSpan;
+    cell.className = "text-center text-muted py-3";
+    cell.textContent = text;
+    row.appendChild(cell);
+    tbody.appendChild(row);
 }
 
-function buildColorRulesPayload() {
-    return colorRules.map((x, idx) => ({
-        id: (x.id === null || x.id === undefined || x.id === "") ? null : String(x.id),
-        fromPercent: Number(x.fromPercent || 0),
-        toPercent: Number(x.toPercent || 0),
-        color: (x.color === null || x.color === undefined || String(x.color).trim() === "") ? null : String(x.color).trim()
-    }));
-}
-
-function showPageError(msg) {
+function showPageError(message) {
     const el = document.getElementById("pageError");
     if (!el) return;
-    el.textContent = msg || "Ошибка.";
+    el.textContent = String(message || "Ошибка.");
     el.classList.remove("d-none");
 }
 
@@ -711,400 +1141,3 @@ function clearPageError() {
     el.classList.add("d-none");
 }
 
-function isValidHexColor(v) {
-    return /^#([0-9a-fA-F]{6})$/.test(v);
-}
-
-function sanitizeHexColorInput(raw) {
-    let v = String(raw || "").trim();
-
-    if (v === "") return "";
-
-    if (v[0] !== "#") v = "#" + v;
-
-    let out = "#";
-    for (let i = 1; i < v.length && out.length < 7; i++) {
-        const ch = v[i];
-        if (/[0-9a-fA-F]/.test(ch)) out += ch.toUpperCase();
-    }
-
-    return out;
-}
-
-function setColorInvalid(input, isInvalid) {
-    if (!input) return;
-    if (isInvalid) input.classList.add("is-invalid");
-    else input.classList.remove("is-invalid");
-}
-
-function validateColorRulesBeforeSave() {
-    clearPageError();
-
-    let ok = true;
-
-    for (let i = 0; i < colorRules.length; i++) {
-        const r = colorRules[i];
-
-        const fromEl = document.getElementById(`colorRule_${i}_from`);
-        const toEl = document.getElementById(`colorRule_${i}_to`);
-        const colorEl = document.getElementById(`colorRule_${i}_color`);
-
-        const from = Number(r.fromPercent);
-        const to = Number(r.toPercent);        
-
-        const badFrom = !Number.isInteger(from) || from < 0 || from > maxPercent;
-        const badTo = !Number.isInteger(to) || to < 0 || to > maxPercent;
-
-        setInvalid(fromEl, badFrom);
-        setInvalid(toEl, badTo);
-
-        if (badFrom || badTo) ok = false;
-
-        if (!badFrom && !badTo) {
-            const badRange = to <= from;
-            setInvalid(fromEl, badRange);
-            setInvalid(toEl, badRange);
-            if (badRange) ok = false;
-        }
-
-        const colorRaw = colorEl ? (colorEl.value || "").trim() : "";
-        const badColor = (colorRaw !== "" && !isValidHexColor(colorRaw));
-        setColorInvalid(colorEl, badColor);
-        if (badColor) ok = false;
-
-        const missingColor = colorRaw === "";
-        setColorInvalid(colorEl, missingColor || badColor);
-        if (missingColor) ok = false;
-    }
-
-    const ranges = [];
-
-    for (let i = 0; i < colorRules.length; i++) {
-        const r = colorRules[i];
-        const from = Number(r.fromPercent);
-        const to = Number(r.toPercent);
-
-        const fromEl = document.getElementById(`colorRule_${i}_from`);
-        const toEl = document.getElementById(`colorRule_${i}_to`);
-
-        const baseOk =
-            Number.isInteger(from) && Number.isInteger(to) &&
-            from >= 0 && from <= maxPercent &&
-            to >= 0 && to <= maxPercent &&
-            to > from;
-
-        if (baseOk) ranges.push({ i, from, to });
-    }
-
-    ranges.sort((a, b) => (a.from === b.from) ? (a.to - b.to) : (a.from - b.from));
-
-    for (let k = 0; k < ranges.length - 1; k++) {
-        const a = ranges[k];
-        const b = ranges[k + 1];
-
-        if (b.from <= a.to) {
-            const aFromEl = document.getElementById(`colorRule_${a.i}_from`);
-            const aToEl = document.getElementById(`colorRule_${a.i}_to`);
-            const bFromEl = document.getElementById(`colorRule_${b.i}_from`);
-            const bToEl = document.getElementById(`colorRule_${b.i}_to`);
-
-            setInvalid(aFromEl, true);
-            setInvalid(aToEl, true);
-            setInvalid(bFromEl, true);
-            setInvalid(bToEl, true);
-
-            ok = false;
-        }
-    }
-
-    if (!ok) {
-        showPageError("Цветовая схема: проверьте проценты (0–999), диапазон (До % должен быть больше От %) и цвет (#RRGGBB). Диапазоны не должны пересекаться.");
-    }
-
-    return ok;
-}
-
-function formatGroups(groups) {
-    if (!Array.isArray(groups) || groups.length === 0) return "";
-    return groups
-        .map(g => (g && g.name) ? String(g.name).trim() : "")
-        .filter(x => x.length > 0)
-        .join(", ");
-}
-
-function getAllGroups() {
-    const map = new Map();
-
-    for (const r of (allRows || [])) {
-        if (!Array.isArray(r.groups)) continue;
-
-        for (const g of r.groups) {
-            const id = Number(g?.id);
-            if (!Number.isFinite(id)) continue;
-
-            const name = (g?.name ? String(g.name).trim() : "");
-            if (!map.has(id)) map.set(id, { id, name });
-            else if (name && !map.get(id).name) map.get(id).name = name;
-        }
-    }
-
-    return Array.from(map.values())
-        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
-}
-
-function getAllGroupIds() {
-    return getAllGroups().map(x => x.id);
-}
-
-function rebuildGroupFilterList() {
-    const host = document.getElementById("groupFilterList");
-    if (!host) return;
-
-    host.textContent = "";
-
-    const qEl = document.getElementById("groupFilterSearch");
-    const q = (qEl ? qEl.value : "").trim().toLowerCase();
-
-    const set = Array.isArray(selectedGroupIds) ? new Set(selectedGroupIds.map(Number)) : null;
-
-    const groups = getAllGroups();
-    const filtered = q
-        ? groups.filter(x => String(x.name || "").toLowerCase().includes(q))
-        : groups;
-
-    const hint = document.getElementById("groupFilterHint");
-    if (hint) {
-        hint.classList.add("d-none");
-        hint.textContent = "";
-        if (q && filtered.length === 0) {
-            hint.textContent = "Ничего не найдено";
-            hint.classList.remove("d-none");
-        }
-    }
-
-    for (const g of filtered) {
-        const wrap = document.createElement("div");
-        wrap.className = "form-check";
-        wrap.style.marginLeft = "12px";
-
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.className = "form-check-input";
-        input.id = `grpf_${g.id}`;
-        input.name = input.id;
-        input.checked = set ? set.has(g.id) : false;
-
-        input.addEventListener("change", () => {
-            const id = Number(g.id);
-
-            let arr = Array.isArray(selectedGroupIds) ? [...selectedGroupIds] : [];
-            if (input.checked) {
-                if (!arr.includes(id)) arr.push(id);
-            } else {
-                arr = arr.filter(x => x !== id);
-            }
-
-            selectedGroupIds = arr.length > 0 ? arr : null;
-            saveState();
-        });
-
-        const label = document.createElement("label");
-        label.className = "form-check-label";
-        label.htmlFor = input.id;
-        label.textContent = g.name || `(id:${g.id})`;
-
-        wrap.append(input, label);
-        host.appendChild(wrap);
-    }
-}
-
-function setInvalid(input, isInvalid) {
-    if (!input) return;
-    if (isInvalid) input.classList.add("is-invalid");
-    else input.classList.remove("is-invalid");
-}
-
-function sortColorRules() {
-    if (!Array.isArray(colorRules)) return;
-
-    colorRules.sort((a, b) => {
-        const af = Number(a?.fromPercent ?? 0);
-        const bf = Number(b?.fromPercent ?? 0);
-        if (af !== bf) return af - bf;
-
-        const at = Number(a?.toPercent ?? 0);
-        const bt = Number(b?.toPercent ?? 0);
-        return at - bt;
-    });
-}
-
-function applyCollapseState() {
-    const colorsBody = document.getElementById("colorRulesBody");
-    const plansBody = document.getElementById("plansBody");
-
-    const btnColors = document.getElementById("btnToggleColorRules");
-    const btnPlans = document.getElementById("btnTogglePlans");
-
-    if (colorsBody) colorsBody.classList.toggle("d-none", isColorRulesCollapsed);
-    if (plansBody) plansBody.classList.toggle("d-none", isPlansCollapsed);
-
-    if (btnColors) btnColors.textContent = isColorRulesCollapsed ? "+" : "—";
-    if (btnPlans) btnPlans.textContent = isPlansCollapsed ? "+" : "—";
-}
-
-function hasActiveNameFilter() {
-    return Array.isArray(selectedEmployeeIds) && selectedEmployeeIds.length > 0;
-}
-
-function hasActiveGroupFilter() {
-    return Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0;
-}
-
-function setFilterModalLocked(kind, locked) {
-    if (kind === "name") {
-        const hint = document.getElementById("nameFilterHint");
-        const search = document.getElementById("nameFilterSearch");
-        const selAll = document.getElementById("nameFilterSelectAll");
-        const clrAll = document.getElementById("nameFilterClearAll");
-        const host = document.getElementById("nameFilterList");
-
-        if (hint) {
-            if (locked) {
-                hint.textContent = "Сейчас используется фильтр по группам. Чтобы использовать фильтр по ФИО, сначала очистите фильтр по группам.";
-                hint.classList.remove("d-none");
-            } else {
-                hint.textContent = "";
-                hint.classList.add("d-none");
-            }
-        }
-
-        if (search) search.disabled = locked;
-        if (selAll) selAll.disabled = locked;
-        if (clrAll) clrAll.disabled = locked;
-
-        if (host) {
-            host.querySelectorAll("input[type='checkbox']").forEach(x => x.disabled = locked);
-        }
-    }
-
-    if (kind === "group") {
-        const hint = document.getElementById("groupFilterHint");
-        const search = document.getElementById("groupFilterSearch");
-        const selAll = document.getElementById("groupFilterSelectAll");
-        const clrAll = document.getElementById("groupFilterClearAll");
-        const host = document.getElementById("groupFilterList");
-
-        if (hint) {
-            if (locked) {
-                hint.textContent = "Сейчас используется фильтр по ФИО. Чтобы использовать фильтр по группам, сначала очистите фильтр по ФИО.";
-                hint.classList.remove("d-none");
-            } else {
-                hint.textContent = "";
-                hint.classList.add("d-none");
-            }
-        }
-
-        if (search) search.disabled = locked;
-        if (selAll) selAll.disabled = locked;
-        if (clrAll) clrAll.disabled = locked;
-
-        if (host) {
-            host.querySelectorAll("input[type='checkbox']").forEach(x => x.disabled = locked);
-        }
-    }
-}
-
-function initPlanTextColorUi() {
-    const input = document.getElementById("planTextColorInput");
-    const preview = document.getElementById("planTextColorPreview");
-    const btnPick = document.getElementById("planTextColorPick");
-    if (!input || !preview || !btnPick) return;
-
-    const saved = String(localStorage.getItem(reportPlanTextColorKey) || "").trim();
-    const start = isValidHexColor(saved) ? saved.toUpperCase() : "#FFC107";
-
-    input.value = start;
-    updatePreview(preview, input.value);
-
-    input.addEventListener("input", () => {
-        const sanitized = sanitizeHexColorInput(input.value);
-        input.value = sanitized;
-
-        const ok = isValidHexColor(sanitized);
-        setColorInvalid(input, !ok);
-
-        if (ok) updatePreview(preview, sanitized.toUpperCase());
-        else updatePreview(preview, "");
-    });
-
-    btnPick.addEventListener("click", () => {
-        openSharedColorPicker(btnPick, input.value, (v) => {
-            input.value = v;
-            setColorInvalid(input, false);
-            updatePreview(preview, v);
-        });
-    });
-}
-
-function savePlanTextColorToStorage() {
-    const input = document.getElementById("planTextColorInput");
-    if (!input) return true;
-
-    const v = String(input.value || "").trim().toUpperCase();
-    if (!isValidHexColor(v)) {
-        setColorInvalid(input, true);
-        showPageError("Цвет колонки «План»: укажите #RRGGBB.");
-        return false;
-    }
-
-    setColorInvalid(input, false);
-    localStorage.setItem(reportPlanTextColorKey, v);
-    return true;
-}
-
-function ensureSharedColorPicker() {
-    if (sharedColorPicker) return sharedColorPicker;
-
-    const p = document.createElement("input");
-    p.type = "color";
-    p.style.position = "fixed";
-    p.style.left = "0px";
-    p.style.top = "0px";
-    p.style.width = "32px";
-    p.style.height = "32px";
-    p.style.opacity = "0.01";
-    p.style.pointerEvents = "none";
-    p.style.zIndex = "999999";
-    p.style.border = "0";
-    p.style.padding = "0";
-
-    p.addEventListener("input", () => {
-        const v = String(p.value || "").toUpperCase();
-        if (sharedColorPickerOnPick) sharedColorPickerOnPick(v);
-    });
-
-    document.body.appendChild(p);
-    sharedColorPicker = p;
-    return p;
-}
-
-function openSharedColorPicker(btnEl, initialHex, onPick) {
-    const p = ensureSharedColorPicker();
-
-    sharedColorPickerOnPick = onPick;
-
-    p.value = isValidHexColor(initialHex) ? initialHex.toUpperCase() : "#000000";
-
-    const rect = btnEl.getBoundingClientRect();
-
-    p.style.left = rect.left + "px";
-    p.style.top = rect.bottom + "px";
-    p.style.pointerEvents = "auto";
-
-    requestAnimationFrame(() => {
-        p.click();
-        setTimeout(() => {
-            p.style.pointerEvents = "none";
-        }, 300);
-    });
-}

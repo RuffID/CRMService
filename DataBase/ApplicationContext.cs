@@ -37,6 +37,8 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
     public virtual DbSet<UserRole> UserRoles { get; set; }
     public virtual DbSet<PlanColorScheme> PlanColorSchemes { get; set; }
     public virtual DbSet<PlanSetting> PlanSetting { get; set; }
+    public virtual DbSet<Plan> Plans { get; set; }
+    public virtual DbSet<GeneralSettings> GeneralSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +69,8 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
             .ApplyConfiguration(new BlockReasonConfigure())
             .ApplyConfiguration(new SessionConfigure())
             .ApplyConfiguration(new UserRoleConfigure())
+            .ApplyConfiguration(new PlanConfigure())
+            .ApplyConfiguration(new GeneralSettingsConfigure())
             .ApplyConfiguration(new PlanSettingsConfigure())
             .ApplyConfiguration(new PlanColorSchemeConfigure());
 

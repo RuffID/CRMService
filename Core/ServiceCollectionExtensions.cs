@@ -272,6 +272,8 @@ namespace CRMService.Core
             services.AddScoped<ITimeEntryRepository, TimeEntryRepository>();
 
             services.AddScoped<IReportRepository, ReportRepository>();
+            services.AddScoped<IPlanRepository, PlanRepository>();
+            services.AddScoped<IGeneralSettingsRepository, GeneralSettingsRepository>();
             services.AddScoped<IPlanSettingRepository, PlanSettingRepository>();
             services.AddScoped<IPlanColorSchemeRepository, PlanColorSchemeRepository>();
 

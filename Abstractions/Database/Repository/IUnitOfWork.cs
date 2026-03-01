@@ -39,6 +39,8 @@ namespace CRMService.Abstractions.Database.Repository
         ISessionRepository Session { get; }
         IUserRepository User { get; }
         IUserRoleRepository UserRole { get; }
+        IPlanRepository Plan { get; }
+        IGeneralSettingsRepository GeneralSettings { get; }
         IPlanSettingRepository PlanSetting { get; }
         IPlanColorSchemeRepository PlanColor { get; }
 

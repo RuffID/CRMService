@@ -5,14 +5,10 @@ using System.Linq.Expressions;
 
 namespace CRMService.DataBase.Repository.CrmEntity
 {
-    public class PlanSettingRepository(IGetItemByIdRepository<PlanSetting, Guid> getItemById, 
-        ICreateItemRepository<PlanSetting> create,
+    public class PlanSettingRepository(ICreateItemRepository<PlanSetting> create,
         IGetItemByPredicateRepository<PlanSetting> getItemByPredicate,
         IDeleteItemRepository<PlanSetting> delete) : IPlanSettingRepository
     {
-        public Task<PlanSetting?> GetItemByIdAsync(Guid id, bool asNoTracking = false, Func<IQueryable<PlanSetting>, IQueryable<PlanSetting>>? include = null, CancellationToken ct = default) 
-            => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
-
         public Task<PlanSetting?> GetItemByPredicateAsync(Expression<Func<PlanSetting, bool>> predicate, bool asNoTracking = false, Func<IQueryable<PlanSetting>, IQueryable<PlanSetting>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
 

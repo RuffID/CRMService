@@ -38,7 +38,7 @@ namespace CRMService.Models.OkdeskEntity
 
         public virtual ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
 
-        public virtual PlanSetting? PlanSetting { get; set; }
+        public virtual ICollection<PlanSetting> PlanSettings { get; set; } = new List<PlanSetting>();
 
         public void CopyData(Employee employee)
         {

@@ -4,6 +4,7 @@
     {
         public DateTime DateFrom { get; set; }
         public DateTime DateTo { get; set; }
+        public Guid? PlanId { get; set; }
         public IReadOnlyCollection<int>? EmployeeIds { get; init; }
         public IReadOnlyCollection<int>? StatusIds { get; init; }
         public IReadOnlyCollection<int>? PriorityIds { get; init; }

@@ -36,6 +36,8 @@ namespace CRMService.DataBase.Repository
         ISessionRepository session, 
         IUserRepository user, 
         IUserRoleRepository userRole,
+        IPlanRepository plan,
+        IGeneralSettingsRepository generalSettings,
         IPlanSettingRepository planSetting,
         IPlanColorSchemeRepository planColor) : IUnitOfWork
     {
@@ -67,6 +69,8 @@ namespace CRMService.DataBase.Repository
         public ISessionRepository Session { get; } = session;
         public IUserRepository User { get; } = user;
         public IUserRoleRepository UserRole { get; } = userRole;
+        public IPlanRepository Plan { get; } = plan;
+        public IGeneralSettingsRepository GeneralSettings { get; } = generalSettings;
         public IPlanSettingRepository PlanSetting { get; } = planSetting;
         public IPlanColorSchemeRepository PlanColor { get; set; } = planColor;
 

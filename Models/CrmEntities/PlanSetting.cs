@@ -1,21 +1,20 @@
-﻿using EFCoreLibrary.Abstractions.Entity;
+using EFCoreLibrary.Abstractions.Entity;
 using CRMService.Models.OkdeskEntity;
 
 namespace CRMService.Models.CrmEntities
 {
-    public class PlanSetting : IEntity<Guid>, ICopyable<PlanSetting>
+    public class PlanSetting : ICopyable<PlanSetting>
     {
-        public Guid Id { get; set; }
+        public Guid PlanId { get; set; }
         public int EmployeeId { get; set; }
-        public int? MonthPlan { get; set; }
-        public int? DayPlan { get; set; }
+        public int? PlanValue { get; set; }
 
+        public virtual Plan Plan { get; set; } = null!;
         public virtual Employee Employee { get; set; } = null!;
 
         public void CopyData(PlanSetting entity)
         {
-            MonthPlan = entity.MonthPlan;
-            DayPlan = entity.DayPlan;
+            PlanValue = entity.PlanValue;
         }
     }
 }

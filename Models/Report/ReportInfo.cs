@@ -9,8 +9,9 @@
         public int SolvedIssues { get; set; }     
         public double SpentedTime { get; set; }
 
-        public int? MonthPlan { get; set; }
-        public int? DayPlan { get; set; }
+        public Guid? PlanId { get; set; }
+        public int? PlanValue { get; set; }
+        public string? PlanColor { get; set; }
 
         public List<IssueInfo> Issues { get; set; } = new ();
     }

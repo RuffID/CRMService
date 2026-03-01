@@ -14,6 +14,14 @@ namespace CRMService.DataBase.ModelsConfigure.CrmEntity
 
             builder.Property(e => e.Color)
                 .HasMaxLength(50);
+
+            builder.HasIndex(e => new { e.PlanId, e.FromPercent, e.ToPercent });
+
+            builder
+                .HasOne(e => e.Plan)
+                .WithMany(p => p.PlanColorSchemes)
+                .HasForeignKey(e => e.PlanId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

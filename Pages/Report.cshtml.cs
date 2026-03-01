@@ -10,15 +10,12 @@ using CRMService.Service.Attributes;
 using CRMService.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using CRMService.Abstractions.Entity;
 
 namespace CRMService.Pages
 {
     [CookieAuthorize]
-    [LoadUser]
-    public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IPlanSettingsService planSettingsService, IReportService reportService) : PageModel, IHasCurrentUser
+    public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IPlanSettingsService planSettingsService, IReportService reportService) : PageModel
     {
-        public User CurrentUser { get; set; } = null!;
 
         public async Task<IActionResult> OnGetIssuePriorityListAsync(CancellationToken ct)
         {
@@ -56,9 +53,21 @@ namespace CRMService.Pages
             return JsonResultMapper.ToJsonResult(result);
         }
 
-        public async Task<IActionResult> OnGetPlanColorRulesAsync(CancellationToken ct)
+        public async Task<IActionResult> OnGetPlansAsync(CancellationToken ct)
         {
-            ServiceResult<List<PlanColorSchemeDto>> result = await planSettingsService.GetPlanColorSchemes(ct);
+            ServiceResult<List<PlanDto>> result = await planSettingsService.GetPlans(ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetGeneralSettingsAsync(CancellationToken ct)
+        {
+            ServiceResult<GeneralSettingsDto> result = await planSettingsService.GetGeneralSettings(ct);
+            return JsonResultMapper.ToJsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetPlanColorRulesAsync([FromQuery] Guid planId, CancellationToken ct)
+        {
+            ServiceResult<List<PlanColorSchemeDto>> result = await planSettingsService.GetPlanColorSchemes(planId, ct);
 
             return JsonResultMapper.ToJsonResult(result);
         }

@@ -1,37 +1,23 @@
-﻿const reportSortKey = "crm_report_sort_v1";
+const reportSortKey = "crm_report_sort_v1";
 const reportFontScaleKey = "crm_report_font_scale_v1";
 const reportFocusKey = "crm_report_focus_v1";
 const reportColOrderKey = "crm_report_col_order_v1";
-const reportPlanTextColorKey = "crm_report_plan_text_color_v1";
 
 let isManualReloadInProgress = false;
 let antiForgeryToken = null;
-
-let reportItemsPeriod = [];
-let reportItemsPlanDay = [];
-let reportItemsPlanMonth = [];
-
-let reportUpdatedAtPeriod = null;
-let reportUpdatedAtPlanDay = null;
-let reportUpdatedAtPlanMonth = null;
-
-let lastReportUpdatedAt = null;
+let reportItems = [];
+let reportUpdatedAt = null;
+let planColorRules = [];
 
 let isHeaderDragging = false;
-let dragOverColId = null;
 let dragSrcColId = null;
 let headerInsert = { targetId: null, side: null };
 let headerInsertEl = null;
-
 let columnOrder = null;
-let planModePeriod = "month";
-let planColorRules = [];
 
 window.resetReportSorting = resetReportSorting;
 window.loadPerformanceReport = loadPerformanceReport;
 window.applySortAndRender = applySortAndRender;
-window.getPlanModePeriod = () => planModePeriod;
-window.setPlanModePeriod = (p) => { planModePeriod = (p === "day") ? "day" : "month"; };
 window.reloadPlanColors = initPlanColors;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -56,20 +42,27 @@ async function initReport() {
 
     await initPlanColors();
 
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-        new bootstrap.Tooltip(el);
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((element) => {
+        new bootstrap.Tooltip(element);
     });
 }
 
 async function initPlanColors() {
+    const planId = getSelectedPlanId();
+    if (!planId) {
+        planColorRules = [];
+        window.getPlanColorByPercent = () => "";
+        return;
+    }
+
     try {
-        const resp = await sendJsonRequest(
-            `?handler=PlanColorRules`,
+        const response = await sendJsonRequest(
+            `?handler=PlanColorRules&planId=${encodeURIComponent(planId)}`,
             "GET",
             buildJsonHeaders(antiForgeryToken)
         );
 
-        const data = unwrapOrThrow(resp, "Ошибка загрузки цветовой схемы.");
+        const data = unwrapOrThrow(response, "Ошибка загрузки цветовой схемы.");
         planColorRules = Array.isArray(data) ? data : [];
 
         window.getPlanColorByPercent = (pct) => getPlanColorByPercentFromRules(pct, planColorRules);
@@ -80,20 +73,33 @@ async function initPlanColors() {
 }
 
 function getPlanColorByPercentFromRules(pct, rules) {
-    const p = Number(pct);
-    if (!Number.isFinite(p)) return "";
+    const percent = Number(pct);
+    if (!Number.isFinite(percent)) return "";
 
-    const items = Array.isArray(rules) ? rules : [];
-    for (const r of items) {
-        const from = Number(r?.fromPercent);
-        const to = Number(r?.toPercent);
-        const color = String(r?.color || "").trim();
+    const items = Array.isArray(rules) ? [...rules] : [];
+    items.sort((a, b) => {
+        const aFrom = Number(a?.fromPercent ?? 0);
+        const bFrom = Number(b?.fromPercent ?? 0);
+        if (aFrom !== bFrom) return aFrom - bFrom;
+
+        const aTo = Number(a?.toPercent ?? Number.MAX_SAFE_INTEGER);
+        const bTo = Number(b?.toPercent ?? Number.MAX_SAFE_INTEGER);
+        return aTo - bTo;
+    });
+
+    for (const item of items) {
+        const from = Number(item?.fromPercent);
+        const to = item?.toPercent === null || item?.toPercent === undefined
+            ? Number.MAX_SAFE_INTEGER
+            : Number(item.toPercent);
+        const color = String(item?.color || "").trim();
 
         if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-        if (to <= from) continue;
         if (!/^#([0-9a-fA-F]{6})$/.test(color)) continue;
 
-        if (p >= from && p < to) return color.toUpperCase();
+        if (percent >= from && percent <= to) {
+            return color.toUpperCase();
+        }
     }
 
     return "";
@@ -105,19 +111,19 @@ function initReportSorting() {
 
     ensureSortIndicators();
 
-    grid.querySelectorAll("th[data-sort-key]").forEach(th => {
+    grid.querySelectorAll("th[data-sort-key]").forEach((th) => {
         th.addEventListener("click", () => {
             if (isHeaderDragging) return;
 
             const key = th.dataset.sortKey;
             if (!key) return;
 
-            const st = loadSortState();
+            const state = loadSortState();
+            let direction = "asc";
 
-            let dir = "asc";
-            if (st && st.key === key) dir = (st.dir === "asc") ? "desc" : "asc";
+            if (state && state.key === key) direction = state.dir === "asc" ? "desc" : "asc";
 
-            saveSortState({ key, dir });
+            saveSortState({ key: key, dir: direction });
             updateSortIndicators();
             applySortAndRender();
         });
@@ -127,43 +133,43 @@ function initReportSorting() {
 }
 
 function initReportReloadButton() {
-    const btn = document.getElementById("reportReload");
-    if (!btn) return;
+    const button = document.getElementById("reportReload");
+    if (!button) return;
 
-    btn.addEventListener("click", async () => {
+    button.addEventListener("click", async () => {
         if (isManualReloadInProgress) return;
 
         isManualReloadInProgress = true;
-        btn.disabled = true;
+        button.disabled = true;
 
-        if (typeof window.reloadPlanColors === "function")
+        if (typeof window.reloadPlanColors === "function") {
             await window.reloadPlanColors();
+        }
 
         const ok = await loadPerformanceReport();
+        if (ok) await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        if (ok) await new Promise(r => setTimeout(r, 2000));
-
-        btn.disabled = false;
+        button.disabled = false;
         isManualReloadInProgress = false;
     });
 }
 
 function initReportFontScale() {
-    const btnMinus = document.getElementById("fontMinus");
-    const btnPlus = document.getElementById("fontPlus");
-    if (!btnMinus || !btnPlus) return;
+    const buttonMinus = document.getElementById("fontMinus");
+    const buttonPlus = document.getElementById("fontPlus");
+    if (!buttonMinus || !buttonPlus) return;
 
     applyFontScale(loadFontScale());
 
-    btnMinus.addEventListener("click", () => changeFontScale(-0.1));
-    btnPlus.addEventListener("click", () => changeFontScale(+0.1));
+    buttonMinus.addEventListener("click", () => changeFontScale(-0.1));
+    buttonPlus.addEventListener("click", () => changeFontScale(0.1));
 }
 
 function initReportFocusMode() {
-    const btn = document.getElementById("reportFocusToggle");
-    if (!btn) return;
+    const button = document.getElementById("reportFocusToggle");
+    if (!button) return;
 
-    btn.addEventListener("click", () => toggleReportFocus());
+    button.addEventListener("click", () => toggleReportFocus());
 
     const saved = localStorage.getItem(reportFocusKey);
     if (saved === "1") enableReportFocus();
@@ -177,65 +183,65 @@ function initReportColumnOrder() {
     if (!theadRow) return;
 
     const defaultOrder = Array.from(theadRow.querySelectorAll("th[data-col-id]"))
-        .map(th => th.dataset.colId)
-        .filter(x => !!x);
+        .map((th) => th.dataset.colId)
+        .filter((x) => !!x);
 
     columnOrder = loadColumnOrder(defaultOrder);
     applyColumnOrderToHeader(columnOrder);
     ensureHeaderInsertIndicator();
 
-    let dragSrcId = null;
+    let dragSourceId = null;
 
-    theadRow.querySelectorAll("th[data-col-id]").forEach(th => {
-        th.addEventListener("dragstart", (e) => {
+    theadRow.querySelectorAll("th[data-col-id]").forEach((th) => {
+        th.addEventListener("dragstart", (event) => {
             const id = th.dataset.colId;
             if (!id) return;
 
             isHeaderDragging = true;
-            dragSrcId = id;
+            dragSourceId = id;
             dragSrcColId = id;
 
             setHeaderDragSourceVisual(dragSrcColId);
 
-            try { e.dataTransfer.effectAllowed = "move"; } catch { }
-            try { e.dataTransfer.setData("text/plain", id); } catch { }
+            try { event.dataTransfer.effectAllowed = "move"; } catch { }
+            try { event.dataTransfer.setData("text/plain", id); } catch { }
         });
 
         th.addEventListener("dragend", () => {
             isHeaderDragging = false;
-            dragSrcId = null;
+            dragSourceId = null;
             dragSrcColId = null;
 
             hideHeaderInsertIndicator();
             clearHeaderDragSourceVisual();
         });
 
-        th.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            showHeaderInsertIndicatorAt(e.clientX, e.clientY);
-            try { e.dataTransfer.dropEffect = "move"; } catch { }
+        th.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            showHeaderInsertIndicatorAt(event.clientX, event.clientY);
+            try { event.dataTransfer.dropEffect = "move"; } catch { }
         });
 
-        th.addEventListener("drop", (e) => {
-            e.preventDefault();
+        th.addEventListener("drop", (event) => {
+            event.preventDefault();
 
             const targetId = headerInsert.targetId;
             const side = headerInsert.side;
 
-            let srcId = null;
-            try { srcId = e.dataTransfer.getData("text/plain"); } catch { }
-            if (!srcId) srcId = dragSrcId;
+            let sourceId = null;
+            try { sourceId = event.dataTransfer.getData("text/plain"); } catch { }
+            if (!sourceId) sourceId = dragSourceId;
 
             hideHeaderInsertIndicator();
             clearHeaderDragSourceVisual();
 
-            if (!srcId || !targetId || !side) return;
-            if (srcId === targetId) return;
+            if (!sourceId || !targetId || !side) return;
+            if (sourceId === targetId) return;
 
-            const next = moveArrayItemBySide(columnOrder, srcId, targetId, side);
-            if (!next || next.length === 0) return;
+            const nextOrder = moveArrayItemBySide(columnOrder, sourceId, targetId, side);
+            if (!nextOrder || nextOrder.length === 0) return;
 
-            columnOrder = next;
+            columnOrder = nextOrder;
             saveColumnOrder(columnOrder);
             applyColumnOrderToHeader(columnOrder);
 
@@ -247,240 +253,159 @@ function initReportColumnOrder() {
 
 async function loadPerformanceReport() {
     try {
-        if (isPlanModeOn()) {
-            const dayRange = getTodayRangeIso();
-            const monthRange = getCurrentMonthRangeIso();
-
-            const base = buildReportPayload();
-
-            const dayPayload = {
-                ...base,
-                dateFrom: dayRange.from,
-                dateTo: dayRange.to
-            };
-
-            const monthPayload = {
-                ...base,
-                dateFrom: monthRange.from,
-                dateTo: monthRange.to
-            };
-
-            const [dayResp, monthResp] = await Promise.all([
-                sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), dayPayload),
-                sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), monthPayload)
-            ]);
-
-            const dayData = unwrapOrThrow(dayResp, "Ошибка загрузки отчёта (день).");
-            const monthData = unwrapOrThrow(monthResp, "Ошибка загрузки отчёта (месяц).");
-
-            reportItemsPlanDay = Array.isArray(dayData) ? dayData : [];
-            reportItemsPlanMonth = Array.isArray(monthData) ? monthData : [];
-
-            const ts = new Date();
-            reportUpdatedAtPlanDay = ts;
-            reportUpdatedAtPlanMonth = ts;
-
-            syncLastUpdatedAtForActive();
-            applySortAndRender();
-
-            document.dispatchEvent(new CustomEvent("crm-report-rendered"));
-            return true;
-        }
+        await initPlanColors();
 
         const payload = buildReportPayload();
-
-        const response = await sendJsonRequest(`?handler=Report`, "POST", buildJsonHeaders(antiForgeryToken), payload);
+        const response = await sendJsonRequest("?handler=Report", "POST", buildJsonHeaders(antiForgeryToken), payload);
         const data = unwrapOrThrow(response, "Ошибка загрузки отчёта.");
 
-        reportItemsPeriod = Array.isArray(data) ? data : [];
-        reportUpdatedAtPeriod = new Date();
+        reportItems = Array.isArray(data) ? data : [];
+        reportUpdatedAt = new Date();
 
-        syncLastUpdatedAtForActive();
         applySortAndRender();
-
         document.dispatchEvent(new CustomEvent("crm-report-rendered"));
+
         return true;
-    } catch (e) {
-        console.error(e);
+    } catch (error) {
+        console.error(error);
         return false;
     }
 }
 
 function buildReportPayload() {
-    const st = (typeof window.readState === "function") ? window.readState() : {};
+    const state = typeof window.readState === "function" ? window.readState() : {};
 
-    const employees = st.employees || [];
-    const groups = st.groups || [];
+    const employees = state.employees || [];
+    const groups = state.groups || [];
+    const selectedPlanId = normalizeGuid(state.selectedPlanId || getSelectedPlanId());
 
     return {
-        dateFrom: st.dateFrom ? new Date(st.dateFrom).toISOString() : null,
-        dateTo: st.dateTo ? new Date(st.dateTo).toISOString() : null,
-
+        dateFrom: state.dateFrom ? new Date(state.dateFrom).toISOString() : null,
+        dateTo: state.dateTo ? new Date(state.dateTo).toISOString() : null,
+        planId: selectedPlanId,
         employeeIds: employees.length > 0 ? employees.map(Number) : null,
         groupIds: employees.length === 0 && groups.length > 0 ? groups.map(Number) : null,
-
-        statusIds: (st.statuses || []).map(Number),
-        priorityIds: (st.priorities || []).map(Number),
-        typeIds: (st.types || []).map(Number),
-
-        hideWithoutSolved: !!st.hideWithoutSolved,
-        hideWithoutCurrent: !!st.hideWithoutCurrent,
-        hideWithoutTime: !!st.hideWithoutTime
+        statusIds: (state.statuses || []).map(Number),
+        priorityIds: (state.priorities || []).map(Number),
+        typeIds: (state.types || []).map(Number),
+        hideWithoutSolved: !!state.hideWithoutSolved,
+        hideWithoutCurrent: !!state.hideWithoutCurrent,
+        hideWithoutTime: !!state.hideWithoutTime
     };
 }
 
-function getActiveItems() {
-    if (isPlanModeOn()) {
-        if (planModePeriod === "day") return Array.isArray(reportItemsPlanDay) ? reportItemsPlanDay : [];
-        return Array.isArray(reportItemsPlanMonth) ? reportItemsPlanMonth : [];
-    }
-
-    return Array.isArray(reportItemsPeriod) ? reportItemsPeriod : [];
-}
-
-function syncLastUpdatedAtForActive() {
-    if (isPlanModeOn()) {
-        lastReportUpdatedAt = (planModePeriod === "day") ? reportUpdatedAtPlanDay : reportUpdatedAtPlanMonth;
-        return;
-    }
-
-    lastReportUpdatedAt = reportUpdatedAtPeriod;
-}
-
-function getTodayRangeIso() {
-    const now = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    return { from: from.toISOString(), to: to.toISOString() };
-}
-
-function getCurrentMonthRangeIso() {
-    const now = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    return { from: from.toISOString(), to: to.toISOString() };
-}
-
 function applySortAndRender() {
-    syncLastUpdatedAtForActive();
-
-    let items = Array.isArray(getActiveItems()) ? [...getActiveItems()] : [];
-
+    let items = Array.isArray(reportItems) ? [...reportItems] : [];
     items = applyClientFilters(items);
 
-    const st = loadSortState();
-    if (st) sortReportItems(items, st.key, st.dir);
+    const sortState = loadSortState();
+    if (sortState) sortReportItems(items, sortState.key, sortState.dir);
 
     renderTableRows(items);
     renderSummaryBar(items);
 }
 
 function applyClientFilters(items) {
-    const st = (typeof window.readState === "function") ? window.readState() : {};
+    const state = typeof window.readState === "function" ? window.readState() : {};
+    let filtered = items;
 
-    let res = items;
+    if (state.hideWithoutSolved) filtered = filtered.filter((x) => Number(x?.solvedIssues ?? 0) > 0);
+    if (state.hideWithoutTime) filtered = filtered.filter((x) => Number(x?.spentedTime ?? 0) > 0);
+    if (state.hideWithoutCurrent) filtered = filtered.filter((x) => Number(x?.issues?.length ?? 0) > 0);
 
-    if (st.hideWithoutSolved) res = res.filter(x => Number(x?.solvedIssues ?? 0) > 0);
-    if (st.hideWithoutTime) res = res.filter(x => Number(x?.spentedTime ?? 0) > 0);
-    if (st.hideWithoutCurrent) res = res.filter(x => Number(x?.issues?.length ?? 0) > 0);
-
-    return res;
+    return filtered;
 }
 
 function renderTableRows(items) {
     const tbody = document.getElementById("rows");
-    tbody.innerHTML = "";
+    if (!tbody) return;
+
+    tbody.textContent = "";
+
+    const state = typeof window.readState === "function" ? window.readState() : {};
+    const selectedPlanId = normalizeGuid(state.selectedPlanId || getSelectedPlanId());
+    const showPlanColumn = !!selectedPlanId;
 
     let order = Array.isArray(columnOrder) && columnOrder.length > 0
         ? [...columnOrder]
-        : ["name", "resolved", "current", "time"];
+        : ["name", "resolved", "plan", "current", "time"];
 
-    if (!isPlanModeOn()) order = order.filter(x => x !== "plan");
+    if (!showPlanColumn) {
+        order = order.filter((x) => x !== "plan");
+    } else if (!order.includes("plan")) {
+        order.splice(2, 0, "plan");
+    }
 
     syncHeaderColumns(order);
 
     if (!items || items.length === 0) {
-        const tr = document.createElement("tr");
-
-        const td = document.createElement("td");
-        td.colSpan = order.length;
-        td.className = "text-center text-muted py-4";
-        td.textContent = "Нет данных";
-
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = order.length;
+        cell.className = "text-center text-muted py-4";
+        cell.textContent = "Нет данных";
+        row.appendChild(cell);
+        tbody.appendChild(row);
         return;
     }
 
-    for (const it of items) {
-        const tr = document.createElement("tr");
-
-        for (const col of order) {
-            tr.appendChild(buildCellForColumn(col, it));
+    for (const item of items) {
+        const row = document.createElement("tr");
+        for (const columnId of order) {
+            row.appendChild(buildCellForColumn(columnId, item));
         }
-
-        tbody.appendChild(tr);
+        tbody.appendChild(row);
     }
 
     applyRowDensity(0.3);
 }
 
-function buildCellForColumn(colId, it) {
+function buildCellForColumn(columnId, item) {
     const td = document.createElement("td");
 
-    if (colId === "name") {
-        td.textContent = buildFullName(it);
+    if (columnId === "name") {
+        td.textContent = buildFullName(item);
         return td;
     }
 
-    if (colId === "resolved") {
+    if (columnId === "resolved") {
+        const solved = Number(item?.solvedIssues ?? 0);
         td.className = "text-center";
-
-        const solved = Number(it?.solvedIssues ?? 0);
         td.textContent = String(solved);
 
-        if (isPlanModeOn() && planModePeriod === "day") {
-            const plan = getPlanValueForItem(it);
-            const c = getResolvedTextColorByPlan(solved, plan);
-
-            if (c) {
-                td.style.color = c;
-            } else {
-                td.style.color = "";
-                td.style.fontWeight = "";
-            }
-        } else {
-            td.style.color = "";
-            td.style.fontWeight = "";
-        }
+        const planValue = Number(item?.planValue ?? 0);
+        const color = getResolvedTextColorByPlan(solved, planValue);
+        if (color) td.style.color = color;
 
         return td;
     }
 
-    if (colId === "plan") {
+    if (columnId === "plan") {
         td.className = "text-center";
 
-        const plan = getPlanValueForItem(it);
-        const txt = (plan === null || plan === undefined) ? "" : String(plan);
+        const planValue = item?.planValue;
+        const text = planValue === null || planValue === undefined ? "" : String(planValue);
 
         const span = document.createElement("span");
-        span.textContent = txt;
+        span.textContent = text;
 
-        if (txt)
-            span.style.color = getPlanTextColor();        
+        const planColor = String(item?.planColor || "").trim();
+        if (/^#([0-9a-fA-F]{6})$/.test(planColor)) {
+            span.style.color = planColor.toUpperCase();
+        }
 
         td.appendChild(span);
         return td;
     }
 
-    if (colId === "current") {
+    if (columnId === "current") {
         td.className = "text-center";
-        td.textContent = String(it?.issues ? it.issues.length : 0);
+        td.textContent = String(item?.issues ? item.issues.length : 0);
         return td;
     }
 
-    if (colId === "time") {
-        const spent = Number(it?.spentedTime ?? 0);
+    if (columnId === "time") {
+        const spent = Number(item?.spentedTime ?? 0);
         td.className = "text-center";
         td.textContent = formatHours(spent);
         td.title = `${Math.round(spent * 60)} минут`;
@@ -503,73 +428,59 @@ function renderSummaryBar(items) {
     let totalCurrent = 0;
     let totalMinutes = 0;
 
-    for (const it of rows) {
-        totalSolved += Number(it?.solvedIssues ?? 0);
-        totalCurrent += Number(it?.issues?.length ?? 0);
-        totalMinutes += Math.round(Number(it?.spentedTime ?? 0) * 60);
+    for (const item of rows) {
+        totalSolved += Number(item?.solvedIssues ?? 0);
+        totalCurrent += Number(item?.issues?.length ?? 0);
+        totalMinutes += Math.round(Number(item?.spentedTime ?? 0) * 60);
     }
 
-    const updatedText = lastReportUpdatedAt
-        ? `• Обновлено: ${formatLastUpdated(lastReportUpdatedAt)} • `
+    const updatedText = reportUpdatedAt
+        ? `• Обновлено: ${formatLastUpdated(reportUpdatedAt)} • `
         : "";
 
-    const periodTag = isPlanModeOn()
-        ? (planModePeriod === "day"
-            ? ' • <span style="color:#0d6efd;">Период: день</span>'
-            : ' • <span style="color:#dc3545;">Период: месяц</span>')
+    const selectedPlanMeta =
+        typeof window.getSelectedReportPlanMeta === "function"
+            ? window.getSelectedReportPlanMeta()
+            : null;
+
+    const planBadge = selectedPlanMeta && selectedPlanMeta.name
+        ? ` • <span class="px-2 py-1 rounded-1 fw-semibold"
+               style="${selectedPlanMeta.color ? `background-color:${selectedPlanMeta.color}; color:#111;` : ""}">
+           План: ${escapeHtml(selectedPlanMeta.name)}
+       </span>`
         : "";
 
-    left.innerHTML = `${updatedText}Сотрудников: ${totalEmployees} • Решённые: ${totalSolved} • Текущие: ${totalCurrent}${periodTag}`;
+    left.innerHTML =
+        `${updatedText}Сотрудников: ${totalEmployees} • Решённые: ${totalSolved} • Текущие: ${totalCurrent}${planBadge}`;
+
     right.textContent = `Время: ${formatMinutesShort(totalMinutes)}`;
 }
 
-function getPlanValueForItem(it) {
-    const p = getActivePeriod();
-    const raw = (p === "day") ? (it?.dayPlan ?? null) : (p === "month" ? (it?.monthPlan ?? null) : null);
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0)
-        return null; // <= 0 скрываем
-
-    return n
-}
-
-function getPlanTextColor() {
-    const v = String(localStorage.getItem(reportPlanTextColorKey) || "").trim();
-    if (/^#([0-9a-fA-F]{6})$/.test(v)) return v.toUpperCase();
-    return "#FFC107";
-}
-
 function getResolvedTextColorByPlan(solved, plan) {
-    const s = Number(solved ?? 0);
-    const p = Number(plan ?? 0);
-
-    if (!Number.isFinite(s) || !Number.isFinite(p) || p <= 0)
+    if (!Number.isFinite(solved) || !Number.isFinite(plan) || plan <= 0) {
         return "";
+    }
 
-    if (s === 0)
-        return "#000000";
-
-    const pct = Math.floor((s / p) * 100);
-    if (typeof window.getPlanColorByPercent === "function")
-        return window.getPlanColorByPercent(pct) || "";
+    const percent = Math.floor((solved / plan) * 100);
+    if (typeof window.getPlanColorByPercent === "function") {
+        return window.getPlanColorByPercent(percent) || "";
+    }
 
     return "";
 }
 
-function getActivePeriod() {
-    if (isPlanModeOn()) return planModePeriod;
-    if (isEoModeOn()) return "day";
-    return null;
+function getSelectedPlanId() {
+    if (typeof window.getSelectedReportPlanId === "function") {
+        return normalizeGuid(window.getSelectedReportPlanId());
+    }
+
+    const element = document.getElementById("reportPlanSelect");
+    return normalizeGuid(element ? element.value : null);
 }
 
-function isEoModeOn() {
-    const el = document.getElementById("eoMode");
-    return !!el && el.checked === true;
-}
-
-function isPlanModeOn() {
-    const el = document.getElementById("planMode");
-    return !!el && el.checked === true;
+function normalizeGuid(value) {
+    const text = String(value || "").trim();
+    return text.length > 0 ? text : null;
 }
 
 function formatHours(hours) {
@@ -593,17 +504,17 @@ function formatMinutesShort(totalMinutes) {
     return `${m} м.`;
 }
 
-function formatLastUpdated(d) {
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${hh}:${mm}`;
+function formatLastUpdated(date) {
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
 }
 
-function buildFullName(it) {
-    const ln = it?.lastName || "";
-    const fn = it?.firstName || "";
-    const pn = it?.patronymic || "";
-    return [ln, fn, pn].filter(x => x && x.trim().length > 0).join(" ").trim();
+function buildFullName(item) {
+    const ln = item?.lastName || "";
+    const fn = item?.firstName || "";
+    const pn = item?.patronymic || "";
+    return [ln, fn, pn].filter((x) => x && x.trim().length > 0).join(" ").trim();
 }
 
 function loadSortState() {
@@ -611,9 +522,9 @@ function loadSortState() {
     if (!raw) return null;
 
     try {
-        const st = JSON.parse(raw);
-        if (!st || !st.key || !st.dir) return null;
-        return st;
+        const state = JSON.parse(raw);
+        if (!state || !state.key || !state.dir) return null;
+        return state;
     } catch {
         return null;
     }
@@ -625,7 +536,7 @@ function saveSortState(state) {
 }
 
 function clearSortIndicators() {
-    document.querySelectorAll('#grid th[data-sort-key] .sort-indicator').forEach(x => {
+    document.querySelectorAll("#grid th[data-sort-key] .sort-indicator").forEach((x) => {
         x.classList.add("opacity-0");
         x.textContent = "▲";
     });
@@ -634,41 +545,42 @@ function clearSortIndicators() {
 function updateSortIndicators() {
     clearSortIndicators();
 
-    const st = loadSortState();
-    if (!st) return;
+    const state = loadSortState();
+    if (!state) return;
 
-    const th = document.querySelector(`#grid th[data-sort-key="${st.key}"]`);
+    const th = document.querySelector(`#grid th[data-sort-key="${state.key}"]`);
     if (!th) return;
 
-    const ind = th.querySelector(".sort-indicator");
-    if (!ind) return;
+    const indicator = th.querySelector(".sort-indicator");
+    if (!indicator) return;
 
-    ind.classList.remove("opacity-0");
-    ind.textContent = (st.dir === "asc") ? "▲" : "▼";
+    indicator.classList.remove("opacity-0");
+    indicator.textContent = state.dir === "asc" ? "▲" : "▼";
 }
 
 function sortReportItems(items, key, dir) {
-    const sign = (dir === "desc") ? -1 : 1;
+    const sign = dir === "desc" ? -1 : 1;
 
-    const getName = (it) => (buildFullName(it) || "").trim().toLowerCase();
-    const getResolved = (it) => Number(it?.solvedIssues ?? 0);
-    const getCurrent = (it) => Number(it?.issues?.length ?? 0);
-    const getTime = (it) => Number(it?.spentedTime ?? 0);
+    const getName = (item) => (buildFullName(item) || "").trim().toLowerCase();
+    const getResolved = (item) => Number(item?.solvedIssues ?? 0);
+    const getPlan = (item) => Number(item?.planValue ?? 0);
+    const getCurrent = (item) => Number(item?.issues?.length ?? 0);
+    const getTime = (item) => Number(item?.spentedTime ?? 0);
 
-    const cmpNum = (a, b) => (a === b ? 0 : (a < b ? -1 : 1));
+    const cmpNum = (a, b) => a === b ? 0 : (a < b ? -1 : 1);
     const cmpStr = (a, b) => a.localeCompare(b, "ru");
 
     items.sort((a, b) => {
-        let r = 0;
+        let result = 0;
 
-        if (key === "name") r = cmpStr(getName(a), getName(b));
-        else if (key === "resolved") r = cmpNum(getResolved(a), getResolved(b));
-        else if (key === "current") r = cmpNum(getCurrent(a), getCurrent(b));
-        else if (key === "time") r = cmpNum(getTime(a), getTime(b));
-        else r = 0;
+        if (key === "name") result = cmpStr(getName(a), getName(b));
+        else if (key === "resolved") result = cmpNum(getResolved(a), getResolved(b));
+        else if (key === "plan") result = cmpNum(getPlan(a), getPlan(b));
+        else if (key === "current") result = cmpNum(getCurrent(a), getCurrent(b));
+        else if (key === "time") result = cmpNum(getTime(a), getTime(b));
 
-        if (r === 0 && key !== "name") r = cmpStr(getName(a), getName(b));
-        return r * sign;
+        if (result === 0 && key !== "name") result = cmpStr(getName(a), getName(b));
+        return result * sign;
     });
 }
 
@@ -682,22 +594,22 @@ function ensureSortIndicators() {
     const grid = document.getElementById("grid");
     if (!grid) return;
 
-    grid.querySelectorAll("th[data-sort-key]").forEach(th => {
+    grid.querySelectorAll("th[data-sort-key]").forEach((th) => {
         th.style.cursor = "pointer";
         th.classList.add("user-select-none");
 
         if (th.querySelector(".sort-indicator")) return;
 
-        const ind = document.createElement("span");
-        ind.className = "sort-indicator ms-1 opacity-0";
-        ind.textContent = "▲";
-        th.appendChild(ind);
+        const indicator = document.createElement("span");
+        indicator.className = "sort-indicator ms-1 opacity-0";
+        indicator.textContent = "▲";
+        th.appendChild(indicator);
     });
 }
 
 function changeFontScale(delta) {
-    const cur = loadFontScale();
-    const next = clamp(round1(cur + delta), 0.7, 2.0);
+    const current = loadFontScale();
+    const next = clamp(round1(current + delta), 0.7, 2.0);
     saveFontScale(next);
     applyFontScale(next);
 }
@@ -712,21 +624,21 @@ function applyFontScale(scale) {
 
 function loadFontScale() {
     const raw = localStorage.getItem(reportFontScaleKey);
-    const v = raw ? Number(raw) : NaN;
-    if (!Number.isFinite(v)) return 1.0;
-    return clamp(v, 0.7, 2.0);
+    const value = raw ? Number(raw) : NaN;
+    if (!Number.isFinite(value)) return 1.0;
+    return clamp(value, 0.7, 2.0);
 }
 
 function saveFontScale(scale) {
     localStorage.setItem(reportFontScaleKey, String(scale));
 }
 
-function clamp(v, min, max) {
-    return Math.min(max, Math.max(min, v));
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
 }
 
-function round1(v) {
-    return Math.round(v * 10) / 10;
+function round1(value) {
+    return Math.round(value * 10) / 10;
 }
 
 function applyRowDensity(scale) {
@@ -736,9 +648,9 @@ function applyRowDensity(scale) {
     const basePadding = 8;
     const px = Math.max(2, Math.round(basePadding * scale));
 
-    grid.querySelectorAll("th, td").forEach(cell => {
-        cell.style.paddingTop = px + "px";
-        cell.style.paddingBottom = px + "px";
+    grid.querySelectorAll("th, td").forEach((cell) => {
+        cell.style.paddingTop = `${px}px`;
+        cell.style.paddingBottom = `${px}px`;
     });
 }
 
@@ -826,8 +738,11 @@ function loadColumnOrder(defaultOrder) {
         if (!Array.isArray(arr) || arr.length === 0) return [...defaultOrder];
 
         const set = new Set(defaultOrder);
-        const cleaned = arr.filter(x => typeof x === "string" && set.has(x));
-        for (const x of defaultOrder) if (!cleaned.includes(x)) cleaned.push(x);
+        const cleaned = arr.filter((x) => typeof x === "string" && set.has(x));
+        for (const x of defaultOrder) {
+            if (!cleaned.includes(x)) cleaned.push(x);
+        }
+
         return cleaned;
     } catch {
         return [...defaultOrder];
@@ -846,7 +761,7 @@ function applyColumnOrderToHeader(order) {
     if (!theadRow) return;
 
     const map = {};
-    theadRow.querySelectorAll("th[data-col-id]").forEach(th => {
+    theadRow.querySelectorAll("th[data-col-id]").forEach((th) => {
         const id = th.dataset.colId;
         if (id) map[id] = th;
     });
@@ -873,7 +788,6 @@ function moveArrayItemBySide(arr, srcId, targetId, side) {
 
     let insertIdx = next.indexOf(targetId);
     if (insertIdx < 0) return null;
-
     if (side === "after") insertIdx += 1;
 
     next.splice(insertIdx, 0, srcId);
@@ -891,21 +805,21 @@ function ensureHeaderInsertIndicator() {
 
     if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
 
-    const el = document.createElement("div");
-    el.style.position = "absolute";
-    el.style.top = "0";
-    el.style.bottom = "0";
-    el.style.width = "3px";
-    el.style.transform = "translateX(-1px)";
-    el.style.background = "rgba(13,110,253,0.95)";
-    el.style.boxShadow = "0 0 0 2px rgba(13,110,253,0.15)";
-    el.style.borderRadius = "2px";
-    el.style.pointerEvents = "none";
-    el.style.display = "none";
-    el.style.zIndex = "2000";
+    const indicator = document.createElement("div");
+    indicator.style.position = "absolute";
+    indicator.style.top = "0";
+    indicator.style.bottom = "0";
+    indicator.style.width = "3px";
+    indicator.style.transform = "translateX(-1px)";
+    indicator.style.background = "rgba(13,110,253,0.95)";
+    indicator.style.boxShadow = "0 0 0 2px rgba(13,110,253,0.15)";
+    indicator.style.borderRadius = "2px";
+    indicator.style.pointerEvents = "none";
+    indicator.style.display = "none";
+    indicator.style.zIndex = "2000";
 
-    wrap.appendChild(el);
-    headerInsertEl = el;
+    wrap.appendChild(indicator);
+    headerInsertEl = indicator;
 }
 
 function showHeaderInsertIndicatorAt(xClient, yClient) {
@@ -933,12 +847,12 @@ function showHeaderInsertIndicatorAt(xClient, yClient) {
         return;
     }
 
-    const r = th.getBoundingClientRect();
-    const mid = r.left + r.width / 2;
+    const rect = th.getBoundingClientRect();
+    const mid = rect.left + rect.width / 2;
     const side = xClient < mid ? "before" : "after";
 
     const wrapRect = wrap.getBoundingClientRect();
-    const x = (side === "before") ? r.left : r.right;
+    const x = side === "before" ? rect.left : rect.right;
 
     headerInsert.targetId = id;
     headerInsert.side = side;
@@ -964,7 +878,7 @@ function setHeaderDragSourceVisual(id) {
     const grid = document.getElementById("grid");
     if (!grid) return;
 
-    grid.querySelectorAll("thead th[data-col-id]").forEach(th => {
+    grid.querySelectorAll("thead th[data-col-id]").forEach((th) => {
         th.style.opacity = "";
         th.style.transition = "opacity 120ms ease";
     });
@@ -979,7 +893,7 @@ function clearHeaderDragSourceVisual() {
     const grid = document.getElementById("grid");
     if (!grid) return;
 
-    grid.querySelectorAll("thead th[data-col-id]").forEach(th => {
+    grid.querySelectorAll("thead th[data-col-id]").forEach((th) => {
         th.style.opacity = "";
         th.style.transition = "";
     });
@@ -995,7 +909,7 @@ function syncHeaderColumns(order) {
     const visible = new Set(order);
 
     const ths = Array.from(theadRow.querySelectorAll("th[data-col-id]"));
-    ths.forEach(th => {
+    ths.forEach((th) => {
         const id = th.dataset.colId;
         const show = !!id && visible.has(id);
 
@@ -1003,9 +917,18 @@ function syncHeaderColumns(order) {
         th.setAttribute("draggable", show ? "true" : "false");
     });
 
-    const shown = ths.filter(th => !th.classList.contains("d-none"));
+    const shown = ths.filter((th) => !th.classList.contains("d-none"));
     shown.forEach((th, idx) => {
         th.classList.remove("border-end", "border-secondary-subtle", "border-secondary");
         if (idx !== shown.length - 1) th.classList.add("border-end", "border-secondary-subtle");
     });
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
 }

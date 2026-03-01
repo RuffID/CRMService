@@ -6,7 +6,8 @@
     <RootNamespace>CRMService.Web</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <UserSecretsId>d689c50c-ea5e-4922-8700-73b6eadcb244</UserSecretsId>
-    <DockerfileContext>..</DockerfileContext>
+    <DockerfileContext>.</DockerfileContext>
+	<DockerfileFile>..\Dockerfile</DockerfileFile>
   </PropertyGroup>
 
   <ItemGroup>

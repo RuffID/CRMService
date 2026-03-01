@@ -12,13 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="EFCoreLibrary">
-      <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\CRMService.Domain\CRMService.Domain.csproj" />
+    <ProjectReference Include="..\CRMService.Contracts\CRMService.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CRMService.Domain\CRMService.Domain.csproj" />
-    <ProjectReference Include="..\CRMService.Contracts\CRMService.Contracts.csproj" />
+    <Reference Include="EFCoreLibrary">
+      <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

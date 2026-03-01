@@ -48,24 +48,26 @@
 
                 <div class="mb-3">
                     <label class="form-label" for="userName">Имя</label>
-                    <input id="userName" class="form-control" maxlength="100" />
+                    <input id="userName" class="form-control" maxlength="100" autocomplete="name" />
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="userLogin">Логин</label>
-                    <input id="userLogin" class="form-control" maxlength="45" />
+                    <input id="userLogin" class="form-control" maxlength="45" autocomplete="username" />
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="userPassword">Пароль</label>
-                    <input id="userPassword" type="password" class="form-control" maxlength="100" />
+                    <input id="userPassword" type="password" class="form-control" maxlength="100" autocomplete="new-password" />
                     <div class="text-muted small mt-1" id="userPasswordHint">Обязателен для нового пользователя.</div>
                 </div>
 
                 <div>
-                    <label class="form-label">Роли</label>
-                    <div id="userRoles" class="border rounded-2 p-2" style="max-height: 180px; overflow-y: auto;"></div>
-                    <div class="text-muted small mt-1">Выберите хотя бы одну роль.</div>
+                    <fieldset class="m-0 p-0 border-0">
+                        <legend class="form-label fs-6 fw-normal mb-2">Роли</legend>
+                        <div id="userRoles" class="border rounded-2 p-2" style="max-height: 180px; overflow-y: auto;"></div>
+                        <div class="text-muted small mt-1">Выберите хотя бы одну роль.</div>
+                    </fieldset>
                 </div>
             </div>
             <div class="modal-footer">
@@ -79,4 +81,3 @@
 <script src="~/js/helpers/http.js" asp-append-version="true"></script>
 <script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
 <script src="~/js/users/users.js" asp-append-version="true"></script>
-

@@ -1,0 +1,23 @@
+﻿@page
+@model CRMService.Web.Pages.AccessDeniedModel
+@{
+    ViewData["Title"] = "Страница не найдена";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4 p-md-5 text-center">
+                    <div class="display-4 fw-bold text-danger mb-2">404</div>
+                    <h1 class="h4 mb-4">Страница не найдена</h1>
+
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <a asp-page="/Index" class="btn btn-primary">На главную</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

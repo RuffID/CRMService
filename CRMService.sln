@@ -3,7 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMService", "CRMService.csproj", "{9CC46957-0BF0-452E-9729-CD813C4603BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMService", "CRMService.Web\\CRMService.csproj", "{9CC46957-0BF0-452E-9729-CD813C4603BF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMService.Domain", "CRMService.Domain\CRMService.Domain.csproj", "{8C07D2D6-A7A5-4BB8-ADAC-EA02283B260D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMService.Application", "CRMService.Application\CRMService.Application.csproj", "{35CB5AA0-F521-48E3-98F1-7CFE6C76AAAD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMService.Infrastructure", "CRMService.Infrastructure\CRMService.Infrastructure.csproj", "{132353D2-A9F4-41C7-988D-60DEA270C1CF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMService.Contracts", "CRMService.Contracts\CRMService.Contracts.csproj", "{A539845A-0AA3-4549-8344-C8E0F3122FF4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +23,22 @@ Global
 		{9CC46957-0BF0-452E-9729-CD813C4603BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9CC46957-0BF0-452E-9729-CD813C4603BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9CC46957-0BF0-452E-9729-CD813C4603BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C07D2D6-A7A5-4BB8-ADAC-EA02283B260D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C07D2D6-A7A5-4BB8-ADAC-EA02283B260D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C07D2D6-A7A5-4BB8-ADAC-EA02283B260D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C07D2D6-A7A5-4BB8-ADAC-EA02283B260D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35CB5AA0-F521-48E3-98F1-7CFE6C76AAAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35CB5AA0-F521-48E3-98F1-7CFE6C76AAAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35CB5AA0-F521-48E3-98F1-7CFE6C76AAAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35CB5AA0-F521-48E3-98F1-7CFE6C76AAAD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{132353D2-A9F4-41C7-988D-60DEA270C1CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{132353D2-A9F4-41C7-988D-60DEA270C1CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{132353D2-A9F4-41C7-988D-60DEA270C1CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{132353D2-A9F4-41C7-988D-60DEA270C1CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A539845A-0AA3-4549-8344-C8E0F3122FF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A539845A-0AA3-4549-8344-C8E0F3122FF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A539845A-0AA3-4549-8344-C8E0F3122FF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A539845A-0AA3-4549-8344-C8E0F3122FF4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -23,3 +47,4 @@ Global
 		SolutionGuid = {6070A3A2-323B-4B20-85E9-2D60BB73A756}
 	EndGlobalSection
 EndGlobal
+

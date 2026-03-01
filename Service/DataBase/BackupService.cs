@@ -16,7 +16,7 @@ namespace CRMService.Service.DataBase
             }
 
             string timestamp = DateTime.Now.ToString("yyyy.MM.dd_HHmmss");
-            string backupFilePath = Path.Combine(backupFolder, $"backup_{timestamp}.sql");
+            string backupFilePath = Path.Combine(backupFolder, $"backup_{timestamp}.bak");
 
             using SqlConnection connection = new(connectionString);
             connection.Open();

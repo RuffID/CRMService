@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Application.Service.OkdeskEntity;
-using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +12,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EquipmentController(IUnitOfWork unitOfWork, EntitySyncService sync, EquipmentService service) : Controller
+    public class EquipmentController(IUnitOfWork unitOfWork, EquipmentService service) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetEquipment([FromQuery] int id, CancellationToken ct)
@@ -45,10 +44,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut]
         public async Task<IActionResult> UpdateEquipmentFromCloudApi([FromQuery] long equipmentId = 0, CancellationToken ct = default)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateEquipmentFromCloudApi(equipmentId, ct);
-            });
+            await service.UpdateEquipmentFromCloudApi(equipmentId, ct);
 
             return NoContent();
         }
@@ -56,10 +52,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_by_company")]
         public async Task<IActionResult> UpdateEquipmentsByCompanyFromCloudApi([FromQuery] long companyId = 0, CancellationToken ct = default)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateEquipmentsFromCloudApi(companyId: companyId, ct: ct);
-            });
+            await service.UpdateEquipmentsFromCloudApi(companyId: companyId, ct: ct);
 
             return NoContent();
         }
@@ -67,10 +60,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_by_maintenance")]
         public async Task<IActionResult> UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] long maintenanceEntityId = 0, CancellationToken ct = default)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateEquipmentsFromCloudApi(maintenanceEntityId: maintenanceEntityId, ct: ct);
-            });
+            await service.UpdateEquipmentsFromCloudApi(maintenanceEntityId: maintenanceEntityId, ct: ct);
 
             return NoContent();
         }
@@ -78,10 +68,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromCloudApi(CancellationToken ct = default)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateEquipmentsFromCloudApi(ct: ct);
-            });
+            await service.UpdateEquipmentsFromCloudApi(ct: ct);
 
             return NoContent();
         }
@@ -89,10 +76,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk(CancellationToken ct = default)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateEquipmentsFromCloudDb(ct);
-            });
+            await service.UpdateEquipmentsFromCloudDb(ct);
 
             return NoContent();
         }

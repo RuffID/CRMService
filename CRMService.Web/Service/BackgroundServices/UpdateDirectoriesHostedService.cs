@@ -1,5 +1,4 @@
 ﻿using CRMService.Application.Service.Hosted;
-using CRMService.Application.Service.Sync;
 
 namespace CRMService.Web.Service.BackgroundServices
 {
@@ -17,9 +16,7 @@ namespace CRMService.Web.Service.BackgroundServices
 
                     UpdateDirectoriesService updateDirectoriesService = scope.ServiceProvider.GetRequiredService<UpdateDirectoriesService>();
 
-                    EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
-
-                    await sync.RunExclusive(async () => await updateDirectoriesService.RunUpdateDirectories());
+                    await updateDirectoriesService.RunUpdateDirectories(stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {

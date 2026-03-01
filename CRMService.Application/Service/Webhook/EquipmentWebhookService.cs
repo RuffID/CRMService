@@ -2,10 +2,11 @@
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Models.WebHook;
 using CRMService.Application.Service.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.Webhook
 {
-    public class EquipmentWebhookService(IUnitOfWork unitOfWork, EquipmentService service, ILogger<EquipmentWebhookService> logger) : IWebhookHandler
+    public class EquipmentWebhookService(IUnitOfWork unitOfWork, EquipmentService service, EntitySyncService sync, ILogger<EquipmentWebhookService> logger) : IWebhookHandler
     {
         public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
         {
@@ -21,30 +22,32 @@ namespace CRMService.Application.Service.Webhook
                     {
                         Equipment dto = @event.Equipment;
 
-                        await service.CheckInformationOnEquipment(dto, ct);
-
-                        Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(dto.Id, ct: ct);
-                        if (existingEquipment == null)
-                            unitOfWork.Equipment.Create(dto);
-                        else
-                            existingEquipment.CopyData(dto);
-
-                        foreach (EquipmentParameter parameter in dto.Parameters)
+                        await sync.RunExclusive(dto, async () =>
                         {
-                            EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
+                            await service.CheckInformationOnEquipment(dto, ct);
 
-                            if (existingParameter == null)
-                                unitOfWork.Parameter.Create(parameter);
+                            Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(dto.Id, ct: ct);
+                            if (existingEquipment == null)
+                                unitOfWork.Equipment.Create(dto);
                             else
-                                existingParameter.CopyData(parameter);
-                        }
+                                existingEquipment.CopyData(dto);
+
+                            foreach (EquipmentParameter parameter in dto.Parameters)
+                            {
+                                EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
+
+                                if (existingParameter == null)
+                                    unitOfWork.Parameter.Create(parameter);
+                                else
+                                    existingParameter.CopyData(parameter);
+                            }
+                            await unitOfWork.SaveChangesAsync(ct);
+                        }, ct);
                     }
                     break;
                 default:
                     return false;
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             return true;
         }

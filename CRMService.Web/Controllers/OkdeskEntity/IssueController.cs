@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
-using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
@@ -12,7 +11,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueController(EntitySyncService sync, IUnitOfWork unitOfWork, IssueService service) : Controller
+    public class IssueController(IUnitOfWork unitOfWork, IssueService service) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0, CancellationToken ct = default)
@@ -42,10 +41,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
             if (dateTo.Hour == 0 && dateTo.Minute == 0 && dateTo.Second == 0)
                 dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
 
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(IssueController), ct);
-            });
+            await service.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(IssueController), ct);
 
             return NoContent();
         }
@@ -59,10 +55,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
             if (dateTo.Hour == 0 && dateTo.Minute == 0 && dateTo.Second == 0)
                 dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
 
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateIssuesFromCloudDb(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, nameof(IssueController), ct);
-            });
+            await service.UpdateIssuesFromCloudDb(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, nameof(IssueController), ct);
 
             return NoContent();
         }

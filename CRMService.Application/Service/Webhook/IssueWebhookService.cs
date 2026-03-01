@@ -4,11 +4,12 @@ using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Models.WebHook;
 using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.Extensions.Options;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.Webhook
 {
     public class IssueWebhookService(IUnitOfWork unitOfWork, IssueService issueService, IOptions<ApiEndpointOptions> endp,
-        IOptions<TelegramBotOptions> tgSettings, ILogger<IssueWebhookService> logger, INotificationService tgNotif) : IWebhookHandler
+        IOptions<TelegramBotOptions> tgSettings, EntitySyncService sync, INotificationService tgNotif, ILogger<IssueWebhookService> logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
 
@@ -50,18 +51,23 @@ namespace CRMService.Application.Service.Webhook
         private async Task CreateIssue(IssueWebHook issueJson, string eventType, CancellationToken ct)
         {
             Issue issue = issueJson.ConvertToIssue();
-            await issueService.CheckAttributes(issue, ct);
 
-            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-            if (existingIssue == null)
-                unitOfWork.Issue.Create(issue);
-            else
-                existingIssue.CopyData(issue);
+            await sync.RunExclusive(issue, async () =>
+            {
 
-            logger.LogInformation("[Method:{MethodName}] Create issue from webhook: \"{EventType}\" Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
-                nameof(CreateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
+                await issueService.CheckAttributes(issue, ct);
 
-            await unitOfWork.SaveChangesAsync(ct);
+                Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
+                if (existingIssue == null)
+                    unitOfWork.Issue.Create(issue);
+                else
+                    existingIssue.CopyData(issue);
+
+                logger.LogInformation("[Method:{MethodName}] Create issue from webhook: \"{EventType}\" Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+                    nameof(CreateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
+
+                await unitOfWork.SaveChangesAsync(ct);
+            }, ct);
 
             string content = string.Empty;
 
@@ -77,83 +83,95 @@ namespace CRMService.Application.Service.Webhook
         private async Task UpdateStatusAndSaveTimeEntries(RootEventWebHook @event, CancellationToken ct)
         {
             Issue issue = @event.Issue!.ConvertToIssue();
-            await issueService.CheckAttributes(issue, ct);
 
-            logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
-                nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, @event.Issue.Id, @event.Issue.Status?.Code, @event.Issue.Priority?.Code, @event.Issue.Type?.Code, @event.Issue.Client?.Company?.Id, @event.Issue.Maintenance_entity?.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
-
-            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-            if (existingIssue == null)
-                unitOfWork.Issue.Create(issue);
-            else
-                existingIssue.CopyData(issue);
-
-            List<TimeEntry> entries = new();
-            if (@event.Event!.Time_entries != null && @event.Event!.Time_entries.Length != 0)
+            await sync.RunExclusive(issue, async () =>
             {
-                foreach (TimeEntryWebHook entry in @event.Event.Time_entries)
+                await issueService.CheckAttributes(issue, ct);
+
+                logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{WebhookType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+                    nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, @event.Issue.Id, @event.Issue.Status?.Code, @event.Issue.Priority?.Code, @event.Issue.Type?.Code, @event.Issue.Client?.Company?.Id, @event.Issue.Maintenance_entity?.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
+
+                Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
+                if (existingIssue == null)
+                    unitOfWork.Issue.Create(issue);
+                else
+                    existingIssue.CopyData(issue);
+
+                List<TimeEntry> entries = new();
+                if (@event.Event!.Time_entries != null && @event.Event!.Time_entries.Length != 0)
                 {
-                    entries.Add(new()
+                    foreach (TimeEntryWebHook entry in @event.Event.Time_entries)
                     {
-                        Id = entry.Id,
-                        SpentTime = entry.Spent_time,
-                        EmployeeId = entry.Employee.Id,
-                        IssueId = issue.Id,
-                        CreatedAt = DateTime.Now,
-                        LoggedAt = entry.Logged_at
-                    });
+                        entries.Add(new()
+                        {
+                            Id = entry.Id,
+                            SpentTime = entry.Spent_time,
+                            EmployeeId = entry.Employee.Id,
+                            IssueId = issue.Id,
+                            CreatedAt = DateTime.Now,
+                            LoggedAt = entry.Logged_at
+                        });
+                    }
+
+                    foreach (TimeEntry item in entries)
+                    {
+                        TimeEntry? existingTimeEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
+                        if (existingTimeEntry == null)
+                            unitOfWork.TimeEntry.Create(item);
+                        else
+                            existingTimeEntry.CopyData(item);
+                    }
+
+                    logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
+                    nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
                 }
 
-                foreach (TimeEntry item in entries)
-                {
-                    TimeEntry? existingTimeEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingTimeEntry == null)
-                        unitOfWork.TimeEntry.Create(item);
-                    else
-                        existingTimeEntry.CopyData(item);
-                }
-
-                logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
-                nameof(UpdateStatusAndSaveTimeEntries), @event.Event!.Event_type, entries.Count, @event.Issue.Id, @event.Issue.EffectiveAssignee?.Employee?.Id);
-            }
-
-            await unitOfWork.SaveChangesAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
+            }, ct);
         }
 
         private async Task UpdateIssue(IssueWebHook issueJson, string eventType, CancellationToken ct)
         {
             Issue issue = issueJson.ConvertToIssue();
-            await issueService.CheckAttributes(issue, ct);
 
-            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-            if (existingIssue == null)
-                unitOfWork.Issue.Create(issue);
-            else
-                existingIssue.CopyData(issue);
+            await sync.RunExclusive(issue, async () =>
+            {
+                await issueService.CheckAttributes(issue, ct);
 
-            logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
-                nameof(UpdateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
+                Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
+                if (existingIssue == null)
+                    unitOfWork.Issue.Create(issue);
+                else
+                    existingIssue.CopyData(issue);
 
-            await unitOfWork.SaveChangesAsync(ct);
+                logger.LogInformation("[Method:{MethodName}] Update issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+                    nameof(UpdateIssue), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
+
+                await unitOfWork.SaveChangesAsync(ct);
+            }, ct);
         }
 
         private async Task MarkIssueAsDeletedAsync(IssueWebHook issueJson, string eventType, CancellationToken ct)
         {
             Issue issue = issueJson.ConvertToIssue();
-            await issueService.CheckAttributes(issue, ct);
 
-            issue.DeletedAt = DateTime.Now;
+            await sync.RunExclusive(issue, async () =>
+            {
+                await issueService.CheckAttributes(issue, ct);
 
-            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-            if (existingIssue == null)
-                unitOfWork.Issue.Create(issue);
-            else
-                existingIssue.CopyData(issue);
+                issue.DeletedAt = DateTime.Now;
 
-            logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, old work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
-                nameof(MarkIssueAsDeletedAsync), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
+                Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
+                if (existingIssue == null)
+                    unitOfWork.Issue.Create(issue);
+                else
+                    existingIssue.CopyData(issue);
 
-            await unitOfWork.SaveChangesAsync(ct);
+                logger.LogInformation("[Method:{MethodName}] Delete issue from webhook: \"{EventType}\". Issue: {issueId}, status: {statusCode}, priority: {priorityCode}, old work type: {typeCode}, companyId: {companyId}, objectId: {objectId}, assigneeId: {assigneeId}",
+                    nameof(MarkIssueAsDeletedAsync), eventType, issueJson.Id, issueJson.Status?.Code, issueJson.Priority?.Code, issueJson.Type?.Code, issueJson.Client?.Company?.Id, issueJson.Maintenance_entity?.Id, issueJson.EffectiveAssignee?.Employee?.Id);
+
+                await unitOfWork.SaveChangesAsync(ct);
+            }, ct);
         }
 
         private async Task NewComment(RootEventWebHook @event, CancellationToken ct)

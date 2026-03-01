@@ -23,36 +23,32 @@ namespace CRMService.Web.Service.BackgroundServices
                     IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                     IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                     TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
-                    EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 
                     DateTime dateTo = DateTime.Now;
                     DateTime dateFrom = dateTo.AddMinutes(-REPORT_WINDOW_MINUTES);
 
                     // Обновление заявок через API за определённый промежуток
-                    await sync.RunExclusive(async () =>
+                    await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(ThirtyMinutesReportHostedService));
+
+                    // Ниже обновляется списанное время по заявкам, которые были обновлены в течении определённого промежутка времени. Это нужно для того, чтобы в отчетах отображалось актуальное списанное время.
+                    // Получение из БД заявок, которые были обновлены за определённый промежуток времени
+                    List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
+                        i => i.DeletedAt == null
+                        && i.Id >= 0
+                        && i.EmployeesUpdatedAt >= dateFrom
+                        && i.EmployeesUpdatedAt <= dateTo,
+                        asNoTracking: true, ct: stoppingToken);
+
+                    // Обновление списанного времени по каждой заявке, которая была обновлена в течении определённого промежутка времени
+                    if (issuesFromLocalDb.Count != 0)
                     {
-                        await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(ThirtyMinutesReportHostedService));
-
-                        // Ниже обновляется списанное время по заявкам, которые были обновлены в течении определённого промежутка времени. Это нужно для того, чтобы в отчетах отображалось актуальное списанное время.
-                        // Получение из БД заявок, которые были обновлены за определённый промежуток времени
-                        List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
-                            i => i.DeletedAt == null
-                            && i.Id >= 0
-                            && i.EmployeesUpdatedAt >= dateFrom
-                            && i.EmployeesUpdatedAt <= dateTo,
-                            asNoTracking: true, ct: stoppingToken);
-
-                        // Обновление списанного времени по каждой заявке, которая была обновлена в течении определённого промежутка времени
-                        if (issuesFromLocalDb.Count != 0)
+                        foreach (Issue issue in issuesFromLocalDb)
                         {
-                            foreach (Issue issue in issuesFromLocalDb)
-                            {
-                                if (issue.DeletedAt.HasValue)
-                                    continue;
-                                await timeEntryService.UpdateTimeEntriesFromCloudApi(issue.Id, stoppingToken);
-                            }
+                            if (issue.DeletedAt.HasValue)
+                                continue;
+                            await timeEntryService.UpdateTimeEntriesFromCloudApi(issue.Id, stoppingToken);
                         }
-                    });
+                    }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -60,7 +56,7 @@ namespace CRMService.Web.Service.BackgroundServices
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError( ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(ThirtyMinutesReportHostedService));
+                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(ThirtyMinutesReportHostedService));
                 }
 
                 await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT), stoppingToken);

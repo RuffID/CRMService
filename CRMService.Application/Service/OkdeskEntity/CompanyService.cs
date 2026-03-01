@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<CompanyService> logger)
+        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, EntitySyncService sync, ILogger<CompanyService> logger)
     {
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
@@ -86,17 +87,20 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (company == null)
                 return;
 
-            if (!await CheckCompanyCategory(company, ct))
-                return;
+            await sync.RunExclusive(company, async () =>
+            {
+                if (!await CheckCompanyCategory(company, ct))
+                    return;
 
-            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+                Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
 
-            if (existingCompany == null)
-                unitOfWork.Company.Create(company);
-            else
-                existingCompany.CopyData(company);
+                if (existingCompany == null)
+                    unitOfWork.Company.Create(company);
+                else
+                    existingCompany.CopyData(company);
 
-            await unitOfWork.SaveChangesAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct);
+            }, ct);
         }
 
         public async Task UpdateCompaniesFromCloudApi(CancellationToken ct)
@@ -112,15 +116,18 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Company company in companies)
                 {
-                    Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-                    if (existingCompany == null)
-                        unitOfWork.Company.Create(company);
-                    else
-                        existingCompany.CopyData(company);
+                    await sync.RunExclusive(company, async () =>
+                    {
+                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+                        if (existingCompany == null)
+                            unitOfWork.Company.Create(company);
+                        else
+                            existingCompany.CopyData(company);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
                 }
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task UpdateCompaniesFromCloudDb(CancellationToken ct)
@@ -139,15 +146,18 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (Company company in companies)
                 {
-                    Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-                    if (existingCompany == null)
-                        unitOfWork.Company.Create(company);
-                    else
-                        existingCompany.CopyData(company);
+                    await sync.RunExclusive(company, async () =>
+                    {
+                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+                        if (existingCompany == null)
+                            unitOfWork.Company.Create(company);
+                        else
+                            existingCompany.CopyData(company);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
                 }
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }

@@ -18,6 +18,10 @@ namespace CRMService.DataBase.ModelsConfigure.CrmEntity
             builder.Property(e => e.PlanColor)
                 .HasMaxLength(50);
 
+            builder.Property(e => e.Period)
+                .IsRequired()
+                .HasMaxLength(16);
+
             builder.HasIndex(e => e.Name)
                 .IsUnique();
         }

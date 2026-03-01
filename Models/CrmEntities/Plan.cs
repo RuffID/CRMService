@@ -1,4 +1,5 @@
 using EFCoreLibrary.Abstractions.Entity;
+using CRMService.Models.Constants;
 
 namespace CRMService.Models.CrmEntities
 {
@@ -7,6 +8,7 @@ namespace CRMService.Models.CrmEntities
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? PlanColor { get; set; }
+        public string Period { get; set; } = PlanPeriodConstants.MONTH;
 
         public virtual ICollection<PlanSetting> PlanSettings { get; set; } = new List<PlanSetting>();
         public virtual ICollection<PlanColorScheme> PlanColorSchemes { get; set; } = new List<PlanColorScheme>();
@@ -15,6 +17,7 @@ namespace CRMService.Models.CrmEntities
         {
             Name = entity.Name;
             PlanColor = entity.PlanColor;
+            Period = entity.Period;
         }
     }
 }

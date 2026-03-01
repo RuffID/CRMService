@@ -253,6 +253,10 @@ function initReportColumnOrder() {
 
 async function loadPerformanceReport() {
     try {
+        if (typeof window.enforceReportModeDates === "function") {
+            window.enforceReportModeDates();
+        }
+
         await initPlanColors();
 
         const payload = buildReportPayload();

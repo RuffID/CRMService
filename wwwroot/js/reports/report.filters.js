@@ -4,6 +4,10 @@ const storageKey = "crm_report_filters_v1";
 const reportEoModeKey = "crm_report_eo_mode_v1";
 const reportPlanModeKey = "crm_report_plan_mode_v1";
 const reportSelectedPlanKey = "crm_report_selected_plan_v1";
+const reportPlanPeriodDay = "day";
+const reportPlanPeriodWeek = "week";
+const reportPlanPeriodMonth = "month";
+const reportPlanPeriodYear = "year";
 
 const reportAutoReloadMs = 5 * 60 * 1000;
 
@@ -165,6 +169,7 @@ function wireFiltersPersistence(storageKey) {
         const select = event.target;
         localStorage.setItem(reportSelectedPlanKey, select?.value || "");
 
+        enforceModeDates();
         saveFilters(storageKey);
 
         if (typeof window.loadPerformanceReport === "function") {
@@ -243,6 +248,7 @@ function wirePeriodModes() {
 
         saveModeFlags();
         applyPeriodModesUi();
+        enforceModeDates();
 
         await restartAutoReload(true);
 
@@ -283,11 +289,12 @@ function scheduleNextPlanSwitch() {
 
         const current = normalizePlanId(select.value);
         let currentIndex = planIds.indexOf(current);
-        if (currentIndex < 0) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = -1;
 
         const nextIndex = (currentIndex + 1) % planIds.length;
         select.value = planIds[nextIndex];
         localStorage.setItem(reportSelectedPlanKey, select.value || "");
+        enforceModeDates();
         saveFilters(storageKey);
 
         if (typeof window.loadPerformanceReport === "function") {
@@ -359,7 +366,7 @@ function syncDateInputsLock() {
     const dt = getEl("dateTo");
     if (!df || !dt) return;
 
-    const locked = isEoModeOn();
+    const locked = isEoModeOn() || isPlanModeOn();
 
     df.disabled = locked;
     dt.disabled = locked;
@@ -368,7 +375,30 @@ function syncDateInputsLock() {
 function enforceModeDates() {
     if (isEoModeOn()) {
         setTodayRange();
+        return;
     }
+
+    if (!isPlanModeOn()) {
+        return;
+    }
+
+    const period = getSelectedPlanPeriod();
+    if (period === reportPlanPeriodDay) {
+        setTodayRange();
+        return;
+    }
+
+    if (period === reportPlanPeriodWeek) {
+        setCurrentWeekRangeMondaySunday();
+        return;
+    }
+
+    if (period === reportPlanPeriodYear) {
+        setCurrentYearRange();
+        return;
+    }
+
+    setCurrentMonthRange();
 }
 
 function setTodayRange() {
@@ -381,6 +411,27 @@ function setCurrentMonthRange() {
     const now = new Date();
     const first = new Date(now.getFullYear(), now.getMonth(), 1);
     const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    setValue("dateFrom", toDateInputValue(first));
+    setValue("dateTo", toDateInputValue(last));
+}
+
+function setCurrentWeekRangeMondaySunday() {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetToMonday);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+
+    setValue("dateFrom", toDateInputValue(monday));
+    setValue("dateTo", toDateInputValue(sunday));
+}
+
+function setCurrentYearRange() {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), 0, 1);
+    const last = new Date(now.getFullYear(), 11, 31);
 
     setValue("dateFrom", toDateInputValue(first));
     setValue("dateTo", toDateInputValue(last));
@@ -556,6 +607,7 @@ function readState() {
 }
 
 window.readState = readState;
+window.enforceReportModeDates = enforceModeDates;
 window.getSelectedReportPlanId = () => normalizePlanId(getValue("reportPlanSelect"));
 window.hasReportPlans = () => reportPlans.length > 0;
 window.getSelectedReportPlanMeta = () => {
@@ -569,8 +621,10 @@ window.getSelectedReportPlanMeta = () => {
         const name = String(plan?.name ?? plan?.Name ?? "").trim();
         const colorRaw = String(plan?.planColor ?? plan?.PlanColor ?? "").trim().toUpperCase();
         const color = /^#([0-9A-F]{6})$/.test(colorRaw) ? colorRaw : null;
+        const periodRaw = String(plan?.period ?? plan?.Period ?? "").trim().toLowerCase();
+        const period = normalizeReportPlanPeriod(periodRaw) ?? reportPlanPeriodMonth;
 
-        return { id, name, color };
+        return { id, name, color, period };
     }
 
     return null;
@@ -633,6 +687,23 @@ function getEl(id) {
 function normalizePlanId(value) {
     const text = String(value || "").trim();
     return text.length > 0 ? text : null;
+}
+
+function getSelectedPlanPeriod() {
+    const meta = typeof window.getSelectedReportPlanMeta === "function"
+        ? window.getSelectedReportPlanMeta()
+        : null;
+
+    return normalizeReportPlanPeriod(meta?.period) ?? reportPlanPeriodMonth;
+}
+
+function normalizeReportPlanPeriod(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === reportPlanPeriodDay) return reportPlanPeriodDay;
+    if (normalized === reportPlanPeriodWeek) return reportPlanPeriodWeek;
+    if (normalized === reportPlanPeriodMonth) return reportPlanPeriodMonth;
+    if (normalized === reportPlanPeriodYear) return reportPlanPeriodYear;
+    return null;
 }
 
 function getBool(id) {

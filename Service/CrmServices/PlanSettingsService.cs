@@ -1,6 +1,7 @@
 using CRMService.Abstractions.Database.Repository;
 using CRMService.Abstractions.Service;
 using CRMService.Models.CrmEntities;
+using CRMService.Models.Constants;
 using CRMService.Models.Dto.CrmEntities;
 using CRMService.Models.Dto.OkdeskEntity;
 using CRMService.Models.Responses.Results;
@@ -20,7 +21,8 @@ namespace CRMService.Service.CrmServices
                 {
                     Id = x.Id,
                     Name = x.Name,
-                    PlanColor = x.PlanColor
+                    PlanColor = x.PlanColor,
+                    Period = NormalizePlanPeriod(x.Period) ?? PlanPeriodConstants.MONTH
                 })
                 .ToList();
 
@@ -47,11 +49,16 @@ namespace CRMService.Service.CrmServices
                 if (item.PlanColor != null && normalizedColor == null)
                     return ServiceResult<bool>.Fail(400, "Plan color must be in format #RRGGBB.");
 
+                string? normalizedPeriod = NormalizePlanPeriod(item.Period);
+                if (normalizedPeriod == null)
+                    return ServiceResult<bool>.Fail(400, "Plan period must be one of: day, week, month, year.");
+
                 normalizedItems.Add(new PlanDto
                 {
                     Id = item.Id,
                     Name = name,
-                    PlanColor = normalizedColor
+                    PlanColor = normalizedColor,
+                    Period = normalizedPeriod
                 });
             }
 
@@ -87,13 +94,15 @@ namespace CRMService.Service.CrmServices
 
                     plan.Name = item.Name;
                     plan.PlanColor = item.PlanColor;
+                    plan.Period = item.Period;
                     continue;
                 }
 
                 Plan newPlan = new ()
                 {
                     Name = item.Name,
-                    PlanColor = item.PlanColor
+                    PlanColor = item.PlanColor,
+                    Period = item.Period
                 };
 
                 unitOfWork.Plan.Create(newPlan);
@@ -387,6 +396,15 @@ namespace CRMService.Service.CrmServices
                 return null;
 
             return NormalizeRequiredHexColor(color);
+        }
+
+        private static string? NormalizePlanPeriod(string? period)
+        {
+            if (string.IsNullOrWhiteSpace(period))
+                return null;
+
+            string normalized = period.Trim().ToLowerInvariant();
+            return PlanPeriodConstants.All.Contains(normalized) ? normalized : null;
         }
 
         private static string NormalizeRequiredHexColor(string? color)

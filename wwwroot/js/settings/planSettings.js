@@ -2,6 +2,14 @@
 const planSettingsNameFilterKey = "crm_plan_settings_name_filter_v1";
 const planSettingsGroupFilterKey = "crm_plan_settings_group_filter_v1";
 const defaultPickerColor = "#000000";
+const defaultPlanPeriod = "month";
+
+const planPeriodOptions = [
+    { value: "day", text: "День" },
+    { value: "week", text: "Неделя" },
+    { value: "month", text: "Месяц" },
+    { value: "year", text: "Год" }
+];
 
 let antiForgeryToken = null;
 let isSaving = false;
@@ -49,7 +57,7 @@ function initButtons() {
 
     if (btnAddPlan) {
         btnAddPlan.addEventListener("click", () => {
-            plans.push({ id: null, name: "", planColor: "" });
+            plans.push({ id: null, name: "", period: defaultPlanPeriod, planColor: "" });
             renderPlansTable();
             renderPlanSelect();
         });
@@ -212,7 +220,7 @@ function renderPlansTable() {
     if (!Array.isArray(plans) || plans.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 3;
+        cell.colSpan = 4;
         cell.className = "text-center text-muted py-3";
         cell.textContent = "Планы не добавлены";
         row.appendChild(cell);
@@ -235,6 +243,31 @@ function renderPlansTable() {
             plan.name = nameInput.value;
         });
         nameCell.appendChild(nameInput);
+
+        const periodCell = document.createElement("td");
+        const periodSelect = document.createElement("select");
+        periodSelect.id = `plan_period_${index}`;
+        periodSelect.name = `plan_period_${index}`;
+        periodSelect.className = "form-select form-select-sm";
+
+        for (const optionData of planPeriodOptions) {
+            const option = document.createElement("option");
+            option.value = optionData.value;
+            option.textContent = optionData.text;
+            periodSelect.appendChild(option);
+        }
+
+        const normalizedPeriod = normalizePlanPeriod(plan.period) ?? defaultPlanPeriod;
+        periodSelect.value = normalizedPeriod;
+        plan.period = normalizedPeriod;
+
+        periodSelect.addEventListener("change", () => {
+            const value = normalizePlanPeriod(periodSelect.value) ?? defaultPlanPeriod;
+            periodSelect.value = value;
+            plan.period = value;
+        });
+
+        periodCell.appendChild(periodSelect);
 
         const colorCell = document.createElement("td");
         const colorWrap = document.createElement("div");
@@ -301,7 +334,7 @@ function renderPlansTable() {
         });
         actionCell.appendChild(deleteBtn);
 
-        row.append(nameCell, colorCell, actionCell);
+        row.append(nameCell, periodCell, colorCell, actionCell);
         tbody.appendChild(row);
     }
 }
@@ -519,14 +552,20 @@ function buildPlansPayload() {
             throw new Error("Название плана не может быть пустым.");
         }
 
+        const normalizedPeriod = normalizePlanPeriod(plan.period);
+        if (!normalizedPeriod) {
+            throw new Error(`Укажите период плана (${trimmedName}).`);
+        }
+
         const normalizedColor = String(plan.planColor || "").trim().toUpperCase();
         if (normalizedColor !== "" && !isValidHex(normalizedColor)) {
-            throw new Error(`РЈРєР°Р¶РёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ С†РІРµС‚ РїР»Р°РЅР° (${trimmedName}) РІ С„РѕСЂРјР°С‚Рµ #RRGGBB.`);
+            throw new Error(`Укажите корректный цвет плана (${trimmedName}) в формате #RRGGBB.`);
         }
 
         normalized.push({
             id: normalizeGuid(plan.id),
             name: trimmedName,
+            period: normalizedPeriod,
             planColor: normalizedColor === "" ? null : normalizedColor
         });
     }
@@ -730,8 +769,20 @@ function mapPlanItem(item) {
     return {
         id: normalizeGuid(item?.id),
         name: String(item?.name || ""),
+        period: normalizePlanPeriod(item?.period) ?? defaultPlanPeriod,
         planColor: String(item?.planColor || "").toUpperCase()
     };
+}
+
+function normalizePlanPeriod(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    for (const optionData of planPeriodOptions) {
+        if (optionData.value === normalized) {
+            return normalized;
+        }
+    }
+
+    return null;
 }
 
 function mapColorRuleItem(item) {
@@ -1140,4 +1191,3 @@ function clearPageError() {
     el.textContent = "";
     el.classList.add("d-none");
 }
-

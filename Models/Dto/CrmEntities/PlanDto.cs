@@ -5,5 +5,6 @@ namespace CRMService.Models.Dto.CrmEntities
         public Guid? Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? PlanColor { get; set; }
+        public string Period { get; set; } = string.Empty;
     }
 }

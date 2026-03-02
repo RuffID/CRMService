@@ -37,7 +37,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task UpdateManufacturersFromCloudApi(CancellationToken ct)
         {
-            logger.LogInformation("[Method:{MethodName}] Starting to update manufacturers from API.", nameof(UpdateManufacturersFromCloudApi));
+            logger.LogInformation("[Method:{MethodName}] Starting to update model from API.", nameof(UpdateManufacturersFromCloudApi));
 
             await foreach (List<Manufacturer> manufacturers in GetManufacturersFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {

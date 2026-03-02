@@ -8,10 +8,4 @@
   <ItemGroup>
     <ProjectReference Include="..\CRMService.Domain\CRMService.Domain.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="EFCoreLibrary">
-      <HintPath>..\libs\EFCoreLibrary.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 </Project>

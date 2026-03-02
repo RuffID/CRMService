@@ -1,9 +1,8 @@
-﻿using EFCoreLibrary.Abstractions.Entity;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace CRMService.Contracts.Models.Dto.OkdeskEntity
 {
-    public class ModelDto : IEntity<int>
+    public class ModelDto
     {
         public int Id { get; set; }
         public string? Code { get; set; }

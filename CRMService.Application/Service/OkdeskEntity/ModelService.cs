@@ -1,23 +1,21 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Domain.Models.Constants;
-using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
 using System.Runtime.CompilerServices;
-using CRMService.Application.Common.Mapping.OkdeskEntity;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<ModelService> logger)
     {
-        private async IAsyncEnumerable<List<ModelDto>> GetModelsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
+        private async IAsyncEnumerable<List<Model>> GetModelsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/models?api_token={okdeskSettings.Value.OkdeskApiToken}";
 
-            await foreach (List<ModelDto> manufacturers in request.GetAllItemsAsync<ModelDto>(link, startIndex: 0, limit, ct: ct))
-                yield return manufacturers;
+            await foreach (List<Model> models in request.GetAllItemsAsync<Model>(link, startIndex: 0, limit, ct: ct))
+                yield return models;
         }
 
         private async Task<List<Model>?> GetModelsFromCloudDb(CancellationToken ct)
@@ -46,17 +44,17 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task UpdateModelsFromCloudApi(CancellationToken ct)
         {
-            logger.LogInformation("[Method:{MethodName}] Starting to update manufacturers from API.", nameof(UpdateModelsFromCloudApi));
+            logger.LogInformation("[Method:{MethodName}] Starting to update models from API.", nameof(UpdateModelsFromCloudApi));
 
-            await foreach (List<ModelDto> models in GetModelsFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
+            await foreach (List<Model> modelsFromApi in GetModelsFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
-                foreach (ModelDto model in models)
+                foreach (Model model in modelsFromApi)
                 {
                     Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
                     if (existingModel == null)
-                        unitOfWork.Model.Create(model.ToEntity());
+                        unitOfWork.Model.Create(model);
                     else
-                        existingModel.CopyData(model.ToEntity());
+                        existingModel.CopyData(model);
                 }
             }
 

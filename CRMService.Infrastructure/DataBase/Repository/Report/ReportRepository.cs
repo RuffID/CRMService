@@ -94,6 +94,26 @@ namespace CRMService.Infrastructure.DataBase.Repository.Report
                 .ToListAsync(ct);
         }
 
+        public async Task<List<SolvedIssuesCountInfo>> GetOpenIssuesCountByEmployees(ReportRequest? filters, CancellationToken ct)
+        {
+            IQueryable<Issue> query = issues.Query(asNoTracking: true);
+
+            query = ApplyIssueFilters(query, filters);
+
+            query = query
+                .Where(i => i.AssigneeId != null)
+                .Where(i => !i.Status!.Code.Equals("completed") && !i.Status.Code.Equals("closed"));
+
+            return await query
+                .GroupBy(i => i.AssigneeId!.Value)
+                .Select(g => new SolvedIssuesCountInfo
+                {
+                    EmployeeId = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync(ct);
+        }
+
         private static IQueryable<Issue> ApplyIssueFilters(IQueryable<Issue> query, ReportRequest? filters)
         {
             query = query.Where(i => i.DeletedAt == null);

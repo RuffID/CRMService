@@ -315,7 +315,7 @@ function applyClientFilters(items) {
 
     if (state.hideWithoutSolved) filtered = filtered.filter((x) => Number(x?.solvedIssues ?? 0) > 0);
     if (state.hideWithoutTime) filtered = filtered.filter((x) => Number(x?.spentedTime ?? 0) > 0);
-    if (state.hideWithoutCurrent) filtered = filtered.filter((x) => Number(x?.issues?.length ?? 0) > 0);
+    if (state.hideWithoutCurrent) filtered = filtered.filter((x) => Number(x?.currentIssuesCount ?? 0) > 0);
 
     return filtered;
 }
@@ -404,7 +404,7 @@ function buildCellForColumn(columnId, item) {
 
     if (columnId === "current") {
         td.className = "text-center";
-        td.textContent = String(item?.issues ? item.issues.length : 0);
+        td.textContent = String(Number(item?.currentIssuesCount ?? 0));
         return td;
     }
 
@@ -434,7 +434,7 @@ function renderSummaryBar(items) {
 
     for (const item of rows) {
         totalSolved += Number(item?.solvedIssues ?? 0);
-        totalCurrent += Number(item?.issues?.length ?? 0);
+        totalCurrent += Number(item?.currentIssuesCount ?? 0);
         totalMinutes += Math.round(Number(item?.spentedTime ?? 0) * 60);
     }
 
@@ -568,7 +568,7 @@ function sortReportItems(items, key, dir) {
     const getName = (item) => (buildFullName(item) || "").trim().toLowerCase();
     const getResolved = (item) => Number(item?.solvedIssues ?? 0);
     const getPlan = (item) => Number(item?.planValue ?? 0);
-    const getCurrent = (item) => Number(item?.issues?.length ?? 0);
+    const getCurrent = (item) => Number(item?.currentIssuesCount ?? 0);
     const getTime = (item) => Number(item?.spentedTime ?? 0);
 
     const cmpNum = (a, b) => a === b ? 0 : (a < b ? -1 : 1);

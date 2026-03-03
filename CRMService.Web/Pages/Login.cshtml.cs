@@ -41,17 +41,12 @@ namespace CRMService.Web.Pages
                     claims.Add(new Claim(ClaimTypes.Role, role.Name));
             }
 
-            AuthenticationProperties props = new ()
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14),
-                AllowRefresh = true
-            };
+            AuthenticationProperties props = new () { IsPersistent = true };
 
             ClaimsIdentity identity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal principal = new(identity);
 
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
 
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);

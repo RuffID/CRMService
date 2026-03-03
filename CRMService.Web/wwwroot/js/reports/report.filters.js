@@ -316,6 +316,13 @@ async function restartAutoReload(forceNow = false) {
 
     stopPlanSwitchTimer();
 
+    if (isPlanModeOn()) {
+        if (forceNow && typeof window.loadPerformanceReport === "function") {
+            await window.loadPerformanceReport();
+        }
+        return;
+    }
+
     reportAutoReloadTimerId = setInterval(async () => {
         if (document.hidden) return;
         if (isAutoReloadInProgress) return;
@@ -331,7 +338,6 @@ async function restartAutoReload(forceNow = false) {
 
     if (forceNow && typeof window.loadPerformanceReport === "function") {
         await window.loadPerformanceReport();
-        return;
     }
 }
 

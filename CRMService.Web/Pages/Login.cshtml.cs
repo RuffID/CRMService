@@ -2,6 +2,7 @@
 using CRMService.Domain.Models.Authorization;
 using CRMService.Contracts.Models.Request;
 using CRMService.Application.Service.Authorization;
+using CRMService.Web.Service.Attributes;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,19 @@ using System.Security.Claims;
 
 namespace CRMService.Web.Pages
 {
+    [CookieAuthorize]
     public class LoginModel(IUnitOfWork unitOfWork, Hasher hash) : PageModel
     {
         [BindProperty]
         public UserPageRequest UserPage { get; set; } = new();
+
+        public IActionResult OnGet()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToPage("/Index");
+
+            return Page();
+        }
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl, CancellationToken ct)
         {
@@ -41,7 +51,7 @@ namespace CRMService.Web.Pages
                     claims.Add(new Claim(ClaimTypes.Role, role.Name));
             }
 
-            AuthenticationProperties props = new () { IsPersistent = true };
+            AuthenticationProperties props = new() { IsPersistent = true };
 
             ClaimsIdentity identity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal principal = new(identity);
@@ -55,8 +65,3 @@ namespace CRMService.Web.Pages
         }
     }
 }
-
-
-
-
-

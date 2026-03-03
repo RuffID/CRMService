@@ -115,7 +115,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     SpentTime = entry.Field<double>("spent_time"),
                     IssueId = entry.Field<int>("issue_id"),
                     LoggedAt = entry.Field<DateTime>("logged_at").ToLocalTime(),
-                    CreatedAt = entry.Field<DateTime>("created_at").ToLocalTime()
+                    CreatedAt = entry.Field<DateTime?>("created_at")?.ToLocalTime()
                 }).ToList();
         }
 

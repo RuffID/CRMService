@@ -4,7 +4,7 @@ using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindParamService(IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<KindParamService> logger)
+    public class KindParamService(IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, ILogger<KindParamService> logger)
     {
         private async Task<List<KindParam>> GetConnectionsFromCloudDb(CancellationToken ct)
         {

@@ -6,10 +6,11 @@ using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<IssuePriorityService> logger)
+    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssuePriorityService> logger)
     {
         public async Task<ServiceResult<List<PriorityDto>>> GetIssuePrioritiesAsync(CancellationToken ct)
         {
@@ -56,14 +57,17 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (IssuePriority priority in priorities)
                 {
-                    IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
-                    if (existingPriority == null)
-                        unitOfWork.IssuePriority.Create(priority);
-                    else
-                        existingPriority.CopyData(priority);
-                }
+                    await sync.RunExclusive(priority, async () =>
+                    {
+                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
+                        if (existingPriority == null)
+                            unitOfWork.IssuePriority.Create(priority);
+                        else
+                            existingPriority.CopyData(priority);
 
-                await unitOfWork.SaveChangesAsync(ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudApi));
@@ -79,17 +83,20 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (IssuePriority priority in priorities)
                 {
-                    IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
-                    if (existingPriority == null)
-                        unitOfWork.IssuePriority.Create(priority);
-                    else
-                        existingPriority.CopyData(priority);
-                }
+                    await sync.RunExclusive(priority, async () =>
+                    {
+                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
+                        if (existingPriority == null)
+                            unitOfWork.IssuePriority.Create(priority);
+                        else
+                            existingPriority.CopyData(priority);
 
-                await unitOfWork.SaveChangesAsync(ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
-            logger.LogInformation("[Method:{MethodName}] Issue priorities update completed.", nameof(UpdateIssuePrioritiesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Update issue priorities completed.", nameof(UpdateIssuePrioritiesFromCloudDb));
         }
     }
 }

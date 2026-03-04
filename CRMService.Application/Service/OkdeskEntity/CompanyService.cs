@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, EntitySyncService sync, ILogger<CompanyService> logger)
+        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<CompanyService> logger)
     {
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
@@ -128,6 +128,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                     }, ct);
                 }
             }
+
+            logger.LogInformation("[Method:{MethodName}] Update companies completed.", nameof(UpdateCompaniesFromCloudApi));
         }
 
         public async Task UpdateCompaniesFromCloudDb(CancellationToken ct)
@@ -183,8 +185,3 @@ namespace CRMService.Application.Service.OkdeskEntity
         }
     }
 }
-
-
-
-
-

@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -8,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<ModelService> logger)
+    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<ModelService> logger)
     {
         private async IAsyncEnumerable<List<Model>> GetModelsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -50,24 +51,29 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Model model in modelsFromApi)
                 {
-                    model.KindId = model.Kind?.Id;
-                    model.ManufacturerId = model.Manufacturer?.Id;
-
-                    await CheckModel(model, ct);
-
-                    Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
-                    if (existingModel == null)
+                    await sync.RunExclusive(model, async () =>
                     {
-                        model.Kind = null;
-                        model.Manufacturer = null;
-                        unitOfWork.Model.Create(model);
-                    }
-                    else
-                        existingModel.CopyData(model);
+                        model.KindId = model.Kind?.Id;
+                        model.ManufacturerId = model.Manufacturer?.Id;
+
+                        await CheckModel(model, ct);
+
+                        Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
+                        if (existingModel == null)
+                        {
+                            model.Kind = null;
+                            model.Manufacturer = null;
+                            unitOfWork.Model.Create(model);
+                        }
+                        else
+                            existingModel.CopyData(model);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
                 }
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update models completed.", nameof(UpdateModelsFromCloudApi));
         }
 
         public async Task UpdateModelsFromCloudDb(CancellationToken ct)
@@ -81,16 +87,21 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (Model model in models)
             {
-                await CheckModel(model, ct);
+                await sync.RunExclusive(model, async () =>
+                {
+                    await CheckModel(model, ct);
 
-                Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
-                if (existingModel == null)
-                    unitOfWork.Model.Create(model);
-                else
-                    existingModel.CopyData(model);
+                    Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
+                    if (existingModel == null)
+                        unitOfWork.Model.Create(model);
+                    else
+                        existingModel.CopyData(model);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update models completed.", nameof(UpdateModelsFromCloudDb));
         }
 
         private async Task CheckModel(Model model, CancellationToken ct)

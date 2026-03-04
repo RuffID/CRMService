@@ -1,10 +1,11 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
 using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class CompanyCategoryService(postgresSelect pGSelect, IUnitOfWork unitOfWork, ILogger<CompanyCategoryService> logger)
+    public class CompanyCategoryService(IPostgresSelect pGSelect, IUnitOfWork unitOfWork, EntitySyncService sync, ILogger<CompanyCategoryService> logger)
     {
         private async Task<List<CompanyCategory>> GetCategoriesFromCloudDb(CancellationToken ct)
         {
@@ -48,20 +49,20 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (CompanyCategory category in categories)
             {
-                CompanyCategory? existingCategory = await unitOfWork.CompanyCategory.GetItemByIdAsync(category.Id, ct: ct);
+                await sync.RunExclusive(category, async () =>
+                {
+                    CompanyCategory? existingCategory = await unitOfWork.CompanyCategory.GetItemByIdAsync(category.Id, ct: ct);
 
-                if (existingCategory == null)
-                    unitOfWork.CompanyCategory.Create(category);
-                else
-                    existingCategory.CopyData(category);
+                    if (existingCategory == null)
+                        unitOfWork.CompanyCategory.Create(category);
+                    else
+                        existingCategory.CopyData(category);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update company categories complete.", nameof(UpdateCategoriesFromCloudDb));
         }
     }
 }
-
-
-
-
-

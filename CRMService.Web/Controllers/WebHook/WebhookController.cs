@@ -69,7 +69,3 @@ namespace CRMService.Web.Controllers.WebHook
         }
     }
 }
-
-
-
-

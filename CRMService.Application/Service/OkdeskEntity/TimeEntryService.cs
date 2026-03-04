@@ -8,7 +8,7 @@ using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<TimeEntryService> logger)
+    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, ILogger<TimeEntryService> logger)
     {
         public async Task<TimeEntries?> GetimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {

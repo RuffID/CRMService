@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService itemService, IUnitOfWork unitOfWork, postgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueService> logger)
+    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService itemService, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueService> logger)
     {
         private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {

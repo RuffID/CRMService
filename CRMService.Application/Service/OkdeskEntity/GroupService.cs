@@ -6,10 +6,11 @@ using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<GroupService> logger)
+    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<GroupService> logger)
     {
         public async Task<ServiceResult<List<GroupDto>>> GetGroups(CancellationToken ct = default)
         {
@@ -52,19 +53,22 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (Group group in groups)
             {
-                group.Employees?.Clear();
-
-                Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
-
-                if (existingGroup == null)
-                    unitOfWork.Group.Create(group);
-                else
+                await sync.RunExclusive(group, async () =>
                 {
-                    existingGroup.CopyData(group);
-                }
+                    group.Employees?.Clear();
+
+                    Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+
+                    if (existingGroup == null)
+                        unitOfWork.Group.Create(group);
+                    else
+                        existingGroup.CopyData(group);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update groups completed.", nameof(UpdateGroupsFromCloudApi));
         }
 
         public async Task UpdateGroupsFromCloudDb(CancellationToken ct)
@@ -78,14 +82,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (Group group in groups)
             {
-                Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
-                if (existingGroup == null)
-                    unitOfWork.Group.Create(group);
-                else
-                    existingGroup.CopyData(group);
+                await sync.RunExclusive(group, async () =>
+                {
+                    Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+                    if (existingGroup == null)
+                        unitOfWork.Group.Create(group);
+                    else
+                        existingGroup.CopyData(group);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update groups completed.", nameof(UpdateGroupsFromCloudDb));
         }
 
         public async Task UpsertEmployeeGroupConnectionsFromApi(CancellationToken ct)
@@ -139,8 +148,3 @@ namespace CRMService.Application.Service.OkdeskEntity
         }
     }
 }
-
-
-
-
-

@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, EntitySyncService sync, ILogger<EquipmentService> logger)
+    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<EquipmentService> logger)
     {
         private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, [EnumeratorCancellation] CancellationToken ct = default)
         {

@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -8,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<ManufacturerService> logger)
+    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<ManufacturerService> logger)
     {
         private async IAsyncEnumerable<List<Manufacturer>> GetManufacturersFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -43,15 +44,20 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Manufacturer newManufacturer in manufacturers)
                 {
-                    Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
-                    if (existingManufacturer == null)
-                        unitOfWork.Manufacturer.Create(newManufacturer);
-                    else
-                        existingManufacturer.CopyData(newManufacturer);
+                    await sync.RunExclusive(newManufacturer, async () =>
+                    {
+                        Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
+                        if (existingManufacturer == null)
+                            unitOfWork.Manufacturer.Create(newManufacturer);
+                        else
+                            existingManufacturer.CopyData(newManufacturer);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
                 }
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update model completed.", nameof(UpdateManufacturersFromCloudApi));
         }
 
         public async Task UpdateManufacturersFromCloudDb(CancellationToken ct)
@@ -62,14 +68,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (Manufacturer newManufacturer in manufacturers)
             {
-                Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
-                if (existingManufacturer == null)
-                    unitOfWork.Manufacturer.Create(newManufacturer);
-                else
-                    existingManufacturer.CopyData(newManufacturer);
+                await sync.RunExclusive(newManufacturer, async () =>
+                {
+                    Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
+                    if (existingManufacturer == null)
+                        unitOfWork.Manufacturer.Create(newManufacturer);
+                    else
+                        existingManufacturer.CopyData(newManufacturer);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update model completed.", nameof(UpdateManufacturersFromCloudDb));
         }
     }
 }

@@ -9,10 +9,11 @@ using Microsoft.Extensions.Options;
 using System.Data;
 using System.Runtime.CompilerServices;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, postgresSelect postgresSelect, IOkdeskEntityRequestService request, ILogger<EmployeeService> logger)
+    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, IOkdeskEntityRequestService request, EntitySyncService sync, ILogger<EmployeeService> logger)
     {
         public async Task<ServiceResult<List<EmployeeDto>>> GetEmployees(List<int>? groupIds = null, CancellationToken ct = default)
         {
@@ -26,7 +27,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
             else
             {
-                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Active, 
+                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Active,
                     asNoTracking: true,
                     include: e => e.Include(x => x.EmployeeGroups).ThenInclude(eg => eg.Group),
                     ct: ct);
@@ -78,15 +79,20 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Employee employee in employees)
                 {
-                    Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
-                    if (existingEmployee == null)
-                        unitOfWork.Employee.Create(employee);
-                    else
-                        existingEmployee.CopyData(employee);
+                    await sync.RunExclusive(employee, async () =>
+                    {
+                        Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
+                        if (existingEmployee == null)
+                            unitOfWork.Employee.Create(employee);
+                        else
+                            existingEmployee.CopyData(employee);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
                 }
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update employees completed.", nameof(UpdateEmployeesFromCloudApi));
         }
 
         public async Task UpdateEmployeesFromCloudDb(CancellationToken ct)
@@ -103,17 +109,23 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (Employee employee in employees)
                 {
-                    Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
-                    if (existingEmployee == null)
-                        unitOfWork.Employee.Create(employee);
-                    else
-                        existingEmployee.CopyData(employee);
+                    await sync.RunExclusive(employee, async () =>
+                    {
+                        Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
+                        if (existingEmployee == null)
+                            unitOfWork.Employee.Create(employee);
+                        else
+                            existingEmployee.CopyData(employee);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
                 }
 
                 lastSequentialId = employees.Last().Id;
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+
+            logger.LogInformation("[Method:{MethodName}] Update employees completed.", nameof(UpdateEmployeesFromCloudDb));
         }
     }
 }

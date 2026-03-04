@@ -1,12 +1,13 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, EmployeeService employeeService, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, ILogger<RoleService> logger)
+    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, EmployeeService employeeService, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, EntitySyncService sync, ILogger<RoleService> logger)
     {
         private async Task<List<OkdeskRole>> GetRolesFromCloudApi()
         {
@@ -26,15 +27,20 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (OkdeskRole role in roles)
             {
-                OkdeskRole? existingRole = await unitOfWork.OkdeskRole.GetItemByIdAsync(role.Id, ct: ct);
+                await sync.RunExclusive(role, async () =>
+                {
+                    OkdeskRole? existingRole = await unitOfWork.OkdeskRole.GetItemByIdAsync(role.Id, ct: ct);
 
-                if (existingRole == null)
-                    unitOfWork.OkdeskRole.Create(role);
-                else
-                    existingRole.CopyData(role);
+                    if (existingRole == null)
+                        unitOfWork.OkdeskRole.Create(role);
+                    else
+                        existingRole.CopyData(role);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update roles completed.", nameof(UpdateRolesFromCloudApi));
         }
 
         public async Task UpsertEmployeeRoleConnectionsFromApi(CancellationToken ct)

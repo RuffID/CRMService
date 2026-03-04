@@ -6,10 +6,11 @@ using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<IssueStatusService> logger)
+    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueStatusService> logger)
     {
         public async Task<ServiceResult<List<StatusDto>>> GetIssueStatusesAsync(CancellationToken ct)
         {
@@ -57,14 +58,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (IssueStatus item in statuses)
             {
-                IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingStatus == null)
-                    unitOfWork.IssueStatus.Create(item);
-                else
-                    existingStatus.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingStatus == null)
+                        unitOfWork.IssueStatus.Create(item);
+                    else
+                        existingStatus.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update issue statuses completed.", nameof(UpdateIssueStatusesFromCloudApi));
         }
 
         public async Task UpdateIssueStatusesFromCloudDb(CancellationToken ct)
@@ -78,15 +84,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (IssueStatus item in statuses)
             {
-                IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingStatus == null)
-                    unitOfWork.IssueStatus.Create(item);
-                else
-                    existingStatus.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingStatus == null)
+                        unitOfWork.IssueStatus.Create(item);
+                    else
+                        existingStatus.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
-
+            logger.LogInformation("[Method:{MethodName}] Update issue statuses completed.", nameof(UpdateIssueStatusesFromCloudApi));
         }
     }
 }

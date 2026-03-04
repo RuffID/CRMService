@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
-        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
+        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
     {
         public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
@@ -92,6 +92,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                     }, ct);
                 }
             }
+
+            logger.LogInformation("[Method:{MethodName}] Update maintenance entities completed.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct)
@@ -127,11 +129,6 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task CheckMaintenanceEntity(MaintenanceEntity maintenanceEntity, CancellationToken ct)
         {
-            if (maintenanceEntity.Company != null)
-                maintenanceEntity.CompanyId = (await unitOfWork.Company.GetItemByPredicateAsync(c => c.Id == maintenanceEntity.Company.Id, asNoTracking: true, ct: ct))?.Id;            
-            else if (maintenanceEntity.CompanyId.HasValue)
-                maintenanceEntity.CompanyId = (await unitOfWork.Company.GetItemByPredicateAsync(c => c.Id == maintenanceEntity.CompanyId, asNoTracking: true, ct: ct))?.Id;
-
             if (maintenanceEntity.Company != null)
             {
                 Company? company = await unitOfWork.Company.GetItemByIdAsync(maintenanceEntity.Company.Id, true, ct: ct);

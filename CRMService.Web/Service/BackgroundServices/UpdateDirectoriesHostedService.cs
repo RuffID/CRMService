@@ -24,13 +24,9 @@ namespace CRMService.Web.Service.BackgroundServices
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "[HostedService] Unhandled exception in UpdateDirectoriesHostedService loop");
+                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(UpdateDirectoriesHostedService));
                 }
             }
         }
     }
 }
-
-
-
-

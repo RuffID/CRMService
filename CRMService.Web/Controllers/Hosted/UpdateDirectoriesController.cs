@@ -11,15 +11,11 @@ namespace CRMService.Web.Controllers.Hosted
     public class UpdateDirectoriesController(UpdateDirectoriesService service) : Controller
     {
         [HttpPost]
-        public async Task<IActionResult> RunUpdate()
+        public async Task<IActionResult> RunUpdate(CancellationToken ct)
         {
-            await service.RunUpdateDirectories();
+            await service.RunUpdateDirectories(ct);
 
             return NoContent();
         }
     }
 }
-
-
-
-

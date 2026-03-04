@@ -8,10 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<IssueTypeService> logger)
+    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueTypeService> logger)
     {
         public async Task<ServiceResult<List<TaskTypeDto>>> GetTypes(CancellationToken ct)
         {
@@ -73,23 +74,33 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (IssueType item in Types)
             {
-                IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingTypes == null)
-                    unitOfWork.IssueType.Create(item);
-                else
-                    existingTypes.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingTypes == null)
+                        unitOfWork.IssueType.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
             foreach (IssueTypeGroup item in Groups)
             {
-                IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingTypes == null)
-                    unitOfWork.IssueTypeGroup.Create(item);
-                else
-                    existingTypes.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingTypes == null)
+                        unitOfWork.IssueTypeGroup.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update issue types completed.", nameof(UpdateIssueTypesFromCloudApi));
         }
 
         public async Task UpdateIssueTypesFromCloudDb(CancellationToken ct)
@@ -102,17 +113,20 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (IssueType item in types)
                 {
-                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingTypes == null)
-                        unitOfWork.IssueType.Create(item);
-                    else
-                        existingTypes.CopyData(item);
-                }
+                    await sync.RunExclusive(item, async () =>
+                    {
+                        IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
+                        if (existingTypes == null)
+                            unitOfWork.IssueType.Create(item);
+                        else
+                            existingTypes.CopyData(item);
 
-                await unitOfWork.SaveChangesAsync(ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
-            logger.LogInformation("[Method:{MethodName}] Issue types update completed.", nameof(UpdateIssueTypesFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Update issue types completed.", nameof(UpdateIssueTypesFromCloudDb));
         }
 
         private void TypeHandler(IssueTypeResponse node, int? parentGroupId, List<IssueTypeGroup> groups, List<IssueType> types)
@@ -138,7 +152,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
             else
             {
-                IssueType type = new ()
+                IssueType type = new()
                 {
                     Id = node.Id,
                     Code = node.Code,

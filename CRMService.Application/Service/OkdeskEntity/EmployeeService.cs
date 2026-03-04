@@ -43,12 +43,13 @@ namespace CRMService.Application.Service.OkdeskEntity
                 yield return employees;
         }
 
-        private async Task<List<Employee>> GetEmployeesFromCloudDb(int limit, CancellationToken ct)
+        private async Task<List<Employee>> GetEmployeesFromCloudDb(int limit, int lastSequentialId, CancellationToken ct)
         {
             string sqlCommand = string.Format("SELECT * FROM users " +
                 "WHERE type = 'Employee' " +
+                "AND users.sequential_id > {0} " +
                 "ORDER BY users.sequential_id " +
-                "LIMIT '{0}';", limit);
+                "LIMIT {1};", lastSequentialId, limit);
 
             DataSet ds = await postgresSelect.Select(sqlCommand, ct);
             DataTable? employeesTable = ds.Tables["Table"];
@@ -92,9 +93,10 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting to update employees from DB.", nameof(UpdateEmployeesFromCloudDb));
 
+            int lastSequentialId = 0;
             while (true)
             {
-                List<Employee> employees = await GetEmployeesFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
+                List<Employee> employees = await GetEmployeesFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, lastSequentialId, ct);
 
                 if (employees.Count == 0)
                     break;
@@ -107,13 +109,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                     else
                         existingEmployee.CopyData(employee);
                 }
+
+                lastSequentialId = employees.Last().Id;
             }
 
             await unitOfWork.SaveChangesAsync(ct);
         }
     }
 }
-
-
-
-

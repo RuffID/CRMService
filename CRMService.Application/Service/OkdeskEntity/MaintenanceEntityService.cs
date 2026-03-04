@@ -58,6 +58,8 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             await sync.RunExclusive(newMaintenanceEntity, async () =>
             {
+                await CheckMaintenanceEntity(newMaintenanceEntity, ct);
+
                 MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
                 if (existingMaintenance == null)
                     unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
@@ -78,6 +80,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(newMaintenanceEntity, async () =>
                     {
+                        await CheckMaintenanceEntity(newMaintenanceEntity, ct);
+
                         MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
                         if (existingMaintenance == null)
                             unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
@@ -105,6 +109,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(newMaintenanceEntity, async () =>
                     {
+                        await CheckMaintenanceEntity(newMaintenanceEntity, ct);
+
                         MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
                         if (existingMaintenance == null)
                             unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
@@ -117,6 +123,44 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
+        }
+
+        private async Task CheckMaintenanceEntity(MaintenanceEntity maintenanceEntity, CancellationToken ct)
+        {
+            if (maintenanceEntity.Company != null)
+                maintenanceEntity.CompanyId = (await unitOfWork.Company.GetItemByPredicateAsync(c => c.Id == maintenanceEntity.Company.Id, asNoTracking: true, ct: ct))?.Id;            
+            else if (maintenanceEntity.CompanyId.HasValue)
+                maintenanceEntity.CompanyId = (await unitOfWork.Company.GetItemByPredicateAsync(c => c.Id == maintenanceEntity.CompanyId, asNoTracking: true, ct: ct))?.Id;
+
+            if (maintenanceEntity.Company != null)
+            {
+                Company? company = await unitOfWork.Company.GetItemByIdAsync(maintenanceEntity.Company.Id, true, ct: ct);
+                if (company == null)
+                {
+                    logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for maintenanceEntity with id: {maintenanceEntityId}.",
+                        nameof(CheckMaintenanceEntity), maintenanceEntity.Company.Id, maintenanceEntity.Id);
+                    maintenanceEntity.CompanyId = null;
+                    maintenanceEntity.Company = null;
+                }
+                else
+                {
+                    maintenanceEntity.CompanyId = company?.Id;
+                }
+            }
+            else if (maintenanceEntity.CompanyId.HasValue)
+            {
+                Company? company = await unitOfWork.Company.GetItemByIdAsync(maintenanceEntity.CompanyId.Value, true, ct: ct);
+                if (company == null)
+                {
+                    logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for maintenanceEntity with id: {maintenanceEntityId}.",
+                        nameof(CheckMaintenanceEntity), maintenanceEntity.CompanyId, maintenanceEntity.Id);
+                    maintenanceEntity.CompanyId = null;
+                }
+                else
+                {
+                    maintenanceEntity.CompanyId = company?.Id;
+                }
+            }
         }
     }
 }

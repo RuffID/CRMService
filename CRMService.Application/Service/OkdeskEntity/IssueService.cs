@@ -148,60 +148,118 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 Company? company = await unitOfWork.Company.GetItemByIdAsync(issue.Company.Id, true, ct: ct);
                 if (company == null)
+                {
                     logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for issue with id: {IssueId}.",
                         nameof(CheckAttributes), issue.Company.Id, issue.Id);
-
-                issue.CompanyId = company?.Id;
+                    issue.CompanyId = null;
+                }
+                else
+                {
+                    issue.CompanyId = company?.Id;
+                }
+            }
+            else if (issue.CompanyId.HasValue)
+            {
+                Company? company = await unitOfWork.Company.GetItemByIdAsync(issue.CompanyId.Value, true, ct: ct);
+                if (company == null)
+                {
+                    logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.CompanyId, issue.Id);
+                    issue.CompanyId = null;
+                }
+                else
+                {
+                    issue.CompanyId = company?.Id;
+                }
             }
 
             if (issue.ServiceObject != null)
             {
                 MaintenanceEntity? serviceObject = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(issue.ServiceObject.Id, true, ct: ct);
                 if (serviceObject == null)
+                {
                     logger.LogWarning("[Method:{MethodName}] Service object with id: {ServiceObjectId} was not found for issue with id: {IssueId}.",
                         nameof(CheckAttributes), issue.ServiceObject.Id, issue.Id);
-
-                issue.ServiceObjectId = serviceObject?.Id;
+                    issue.ServiceObjectId = null;
+                }
+                else
+                {
+                    issue.ServiceObjectId = serviceObject?.Id;
+                }
+            }
+            else if (issue.ServiceObjectId.HasValue)
+            {
+                MaintenanceEntity? serviceObject = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(issue.ServiceObjectId.Value, true, ct: ct);
+                if (serviceObject == null)
+                {
+                    logger.LogWarning("[Method:{MethodName}] Service object with id: {ServiceObjectId} was not found for issue with id: {IssueId}.",
+                        nameof(CheckAttributes), issue.ServiceObjectId, issue.Id);
+                    issue.ServiceObjectId = null;
+                }
+                else
+                {
+                    issue.ServiceObjectId = serviceObject?.Id;
+                }
             }
 
             if (issue.Status != null)
             {
                 IssueStatus? status = await unitOfWork.IssueStatus.GetItemByPredicateAsync(s => s.Code == issue.Status.Code, true, ct: ct);
                 if (status == null)
+                {
                     logger.LogWarning("[Method:{MethodName}] Status with code: {StatusCode} was not found for issue with id: {IssueId}.",
                         nameof(CheckAttributes), issue.Status.Code, issue.Id);
-
-                issue.StatusId = status?.Id;
+                    issue.StatusId = null;
+                }
+                else
+                {
+                    issue.StatusId = status?.Id;
+                }
             }
 
             if (issue.Priority != null)
             {
                 IssuePriority? priority = await unitOfWork.IssuePriority.GetItemByPredicateAsync(p => p.Code == issue.Priority.Code, true, ct: ct);
                 if (priority == null)
+                {
                     logger.LogWarning("[Method:{MethodName}] Priority with code: {PriorityCode} was not found for issue with id: {IssueId}.",
                         nameof(CheckAttributes), issue.Priority.Code, issue.Id);
-
-                issue.PriorityId = priority?.Id;
+                    issue.PriorityId = null;
+                }
+                else
+                {
+                    issue.PriorityId = priority?.Id;
+                }
             }
 
             if (issue.Type != null)
             {
                 IssueType? type = await unitOfWork.IssueType.GetItemByPredicateAsync(t => t.Code == issue.Type.Code, true, ct: ct);
                 if (type == null)
+                {
                     logger.LogWarning("[Method:{MethodName}] Type with code: {TypeCode} was not found for issue with id: {IssueId}.",
                         nameof(CheckAttributes), issue.Type.Code, issue.Id);
-
-                issue.TypeId = type?.Id;
+                    issue.TypeId = null;
+                }
+                else
+                {
+                    issue.TypeId = type?.Id;
+                }
             }
 
             if (issue.AssigneeId != null && issue.AssigneeId != 0)
             {
                 Employee? assignee = await unitOfWork.Employee.GetItemByIdAsync(issue.AssigneeId.Value, true, ct: ct);
                 if (assignee == null)
+                {
                     logger.LogWarning("[Method:{MethodName}] Employee with id: {AssigneeId} was not found for issue with id: {IssueId}.",
                         nameof(CheckAttributes), issue.AssigneeId, issue.Id);
-
-                issue.AssigneeId = assignee?.Id;
+                    issue.AssigneeId = null;
+                }
+                else
+                {
+                    issue.AssigneeId = assignee?.Id;
+                }
             }
 
             issue.Company = null;

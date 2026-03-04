@@ -68,11 +68,11 @@ namespace CRMService.Application.Service.Report
                 HideWithoutTime = filters.HideWithoutTime
             };
 
-            List<IssueInfo> openIssues = await unitOfWork.Report.GetInfoForOpenIssuesByEmployee(effectiveFilters, ct);
+            List<SolvedIssuesCountInfo> openCounts = await unitOfWork.Report.GetOpenIssuesCountByEmployees(effectiveFilters, ct);
             List<SolvedIssuesCountInfo> solvedCounts = await unitOfWork.Report.GetSolvedIssuesCountByEmployees(dateFrom, dateTo, effectiveFilters, ct);
             List<SpentedTimeInfo> spentTimes = await unitOfWork.Report.GetSpentedTimeByEmployee(dateFrom, dateTo, effectiveFilters, ct);
 
-            Dictionary<int, List<IssueInfo>> issuesByEmployee = openIssues.GroupBy(x => x.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
+            Dictionary<int, int> currentByEmployee = openCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
             Dictionary<int, int> solvedByEmployee = solvedCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
             Dictionary<int, double> spentByEmployee = spentTimes.ToDictionary(x => x.EmployeeId, x => x.SpentedTime);
 
@@ -80,13 +80,11 @@ namespace CRMService.Application.Service.Report
 
             foreach (int employeeId in employeeIds)
             {
-                issuesByEmployee.TryGetValue(employeeId, out List<IssueInfo>? issues);
+                currentByEmployee.TryGetValue(employeeId, out int current);
                 solvedByEmployee.TryGetValue(employeeId, out int solved);
                 spentByEmployee.TryGetValue(employeeId, out double spent);
                 employeeMap.TryGetValue(employeeId, out Employee? employee);
                 planMap.TryGetValue(employeeId, out PlanSetting? ps);
-
-                int current = issues?.Count ?? 0;
 
                 if (effectiveFilters.HideWithoutSolved && solved == 0)
                     continue;
@@ -109,7 +107,7 @@ namespace CRMService.Application.Service.Report
                     FirstName = employee?.FirstName,
                     LastName = employee?.LastName,
                     Patronymic = employee?.Patronymic,
-                    Issues = issues ?? [],
+                    CurrentIssuesCount = current,
                     SolvedIssues = solved,
                     SpentedTime = spent,
                     PlanId = filters.PlanId,

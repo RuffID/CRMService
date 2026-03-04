@@ -132,11 +132,6 @@ namespace CRMService.Web.Core
                 options.RequireHttpsMetadata = false;
             });
 
-            services.AddAntiforgery(options =>
-            {
-                options.Cookie.Name = ".CRMService.Antiforgery";
-            });
-
             services.AddRazorPages(options =>
             {
                 // Делает все ссылки на страницы to lower case
@@ -170,8 +165,6 @@ namespace CRMService.Web.Core
 
             services.AddDbContext<ApplicationContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")); });
             services.AddDbContext<OkdeskContext>(options => { options.UseNpgsql(builder.Configuration.GetConnectionString("Postgresql")); });
-
-            services.AddLogging();
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
             {

@@ -4,6 +4,7 @@ using CRMService.Infrastructure.DataBase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20260303143238_UpdateTimeEntryModel_SetCreatedAtNullable")]
+    partial class UpdateTimeEntryModel_SetCreatedAtNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -716,7 +719,7 @@ namespace CRMService.Infrastructure.DataBase.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<int?>("CompanyId")
+                    b.Property<int>("CompanyId")
                         .HasColumnType("int")
                         .HasJsonPropertyName("Company_id");
 
@@ -777,10 +780,10 @@ namespace CRMService.Infrastructure.DataBase.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int?>("KindId")
+                    b.Property<int>("KindId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ManufacturerId")
+                    b.Property<int>("ManufacturerId")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -1115,7 +1118,8 @@ namespace CRMService.Infrastructure.DataBase.Migrations
                     b.HasOne("CRMService.Domain.Models.OkdeskEntity.Company", "Company")
                         .WithMany("MaintenanceEntities")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Company");
                 });
@@ -1125,12 +1129,14 @@ namespace CRMService.Infrastructure.DataBase.Migrations
                     b.HasOne("CRMService.Domain.Models.OkdeskEntity.Kind", "Kind")
                         .WithMany("Models")
                         .HasForeignKey("KindId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CRMService.Domain.Models.OkdeskEntity.Manufacturer", "Manufacturer")
                         .WithMany("Models")
                         .HasForeignKey("ManufacturerId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Kind");
 

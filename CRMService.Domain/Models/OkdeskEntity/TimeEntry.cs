@@ -17,7 +17,8 @@ namespace CRMService.Domain.Models.OkdeskEntity
         [JsonPropertyName("logged_at")]
         public DateTime LoggedAt { get; set; }
 
-        public DateTime CreatedAt { get; set; }
+        [JsonPropertyName("created_at")]
+        public DateTime? CreatedAt { get; set; }
 
         public virtual Employee? Employee { get; set; }
 
@@ -33,5 +34,3 @@ namespace CRMService.Domain.Models.OkdeskEntity
         }
     }
 }
-
-

@@ -15,17 +15,17 @@ namespace CRMService.Domain.Models.OkdeskEntity
 
         public bool Visible { get; set; }
 
-        public int KindId { get; set; }
+        public int? KindId { get; set; }
 
-        public int ManufacturerId { get; set; }
+        public int? ManufacturerId { get; set; }
 
         public virtual ICollection<Equipment> Equipment { get; set; } = new List<Equipment>();
 
         [JsonPropertyName("equipment_kind")]
-        public virtual Kind Kind { get; set; } = null!;
+        public virtual Kind? Kind { get; set; }
 
         [JsonPropertyName("equipment_manufacturer")]
-        public virtual Manufacturer Manufacturer { get; set; } = null!;
+        public virtual Manufacturer? Manufacturer { get; set; }
 
         public void CopyData(Model model)
         {
@@ -33,6 +33,8 @@ namespace CRMService.Domain.Models.OkdeskEntity
             Name = model.Name;
             Description = model.Description;
             Visible = model.Visible;
+            KindId = model.KindId;
+            ManufacturerId = model.ManufacturerId;
         }
     }
 }

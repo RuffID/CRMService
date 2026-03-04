@@ -50,9 +50,18 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Model model in modelsFromApi)
                 {
+                    model.KindId = model.Kind?.Id;
+                    model.ManufacturerId = model.Manufacturer?.Id;
+
+                    await CheckModel(model, ct);
+
                     Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
                     if (existingModel == null)
+                    {
+                        model.Kind = null;
+                        model.Manufacturer = null;
                         unitOfWork.Model.Create(model);
+                    }
                     else
                         existingModel.CopyData(model);
                 }
@@ -87,9 +96,10 @@ namespace CRMService.Application.Service.OkdeskEntity
         private async Task CheckModel(Model model, CancellationToken ct)
         {
             if (model.Manufacturer != null)
-                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == model.Manufacturer.Code, asNoTracking: true, ct: ct))?.Id ?? 0;
+                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == model.Manufacturer.Code, asNoTracking: true, ct: ct))?.Id;
+
             if (model.Kind != null)
-                model.KindId = (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == model.Kind.Code, asNoTracking: true, ct: ct))?.Id ?? 0;
+                model.KindId = (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == model.Kind.Code, asNoTracking: true, ct: ct))?.Id;
         }
     }
 }

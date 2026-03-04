@@ -151,8 +151,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     issue.CompanyId = company?.Id;
                 }
             }
-
-            if (issue.CompanyId.HasValue)
+            else if (issue.CompanyId.HasValue)
             {
                 Company? company = await unitOfWork.Company.GetItemByIdAsync(issue.CompanyId.Value, true, ct: ct);
                 if (company == null)
@@ -181,8 +180,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     issue.ServiceObjectId = serviceObject?.Id;
                 }
             }
-
-            if (issue.ServiceObjectId.HasValue)
+            else if (issue.ServiceObjectId.HasValue)
             {
                 MaintenanceEntity? serviceObject = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(issue.ServiceObjectId.Value, true, ct: ct);
                 if (serviceObject == null)

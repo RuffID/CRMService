@@ -14,9 +14,9 @@ namespace CRMService.Domain.Models.OkdeskEntity
         public bool Active { get; set; }
 
         [JsonPropertyName("Company_id")]
-        public int CompanyId { get; set; }
+        public int? CompanyId { get; set; }
 
-        public virtual Company Company { get; set; } = null!;
+        public virtual Company? Company { get; set; }
 
         public virtual ICollection<Equipment> Equipment { get; set; } = new List<Equipment>();
 
@@ -27,6 +27,7 @@ namespace CRMService.Domain.Models.OkdeskEntity
             Name = newItem.Name;
             Address = newItem.Address;
             Active = newItem.Active;
+            CompanyId = newItem.CompanyId;
         }
     }
 }

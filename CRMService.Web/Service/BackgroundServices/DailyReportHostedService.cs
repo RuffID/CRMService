@@ -23,33 +23,29 @@ namespace CRMService.Web.Service.BackgroundServices
                     IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                     IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                     TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
-                    EntitySyncService sync = scope.ServiceProvider.GetRequiredService<EntitySyncService>();
 
                     DateTime dateTo = DateTime.Now;
                     DateTime dateFrom = dateTo.AddDays(-REPORT_WINDOW_DAYS);
 
-                    await sync.RunExclusive(async () =>
+                    await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService));
+
+                    List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
+                        i => i.DeletedAt == null
+                        && i.Id >= 0
+                        && i.EmployeesUpdatedAt >= dateFrom
+                        && i.EmployeesUpdatedAt <= dateTo,
+                        asNoTracking: true, ct: stoppingToken);
+
+                    if (issuesFromLocalDb.Count != 0)
                     {
-                        await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService));
-
-                        List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
-                            i => i.DeletedAt == null
-                            && i.Id >= 0
-                            && i.EmployeesUpdatedAt >= dateFrom
-                            && i.EmployeesUpdatedAt <= dateTo,
-                            asNoTracking: true, ct: stoppingToken);
-
-                        if (issuesFromLocalDb.Count != 0)
+                        foreach (Issue issue in issuesFromLocalDb)
                         {
-                            foreach (Issue issue in issuesFromLocalDb)
-                            {
-                                if (issue.DeletedAt.HasValue)
-                                    continue;
+                            if (issue.DeletedAt.HasValue)
+                                continue;
 
-                                await timeEntryService.UpdateTimeEntriesFromCloudApi(issue.Id, stoppingToken);
-                            }
+                            await timeEntryService.UpdateTimeEntriesFromCloudApi(issue.Id, stoppingToken);
                         }
-                    });
+                    }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {

@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<CompanyService> logger)
+        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<CompanyService> logger)
     {
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
@@ -86,17 +87,10 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (company == null)
                 return;
 
-            if (!await CheckCompanyCategory(company, ct))
-                return;
-
-            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-
-            if (existingCompany == null)
-                unitOfWork.Company.Create(company);
-            else
-                existingCompany.CopyData(company);
-
-            await unitOfWork.SaveChangesAsync(ct);
+            await sync.RunExclusive(company, async () =>
+            {
+                await CreateOrUpdateAsync(company, ct);
+            }, ct);
         }
 
         public async Task UpdateCompaniesFromCloudApi(CancellationToken ct)
@@ -112,15 +106,14 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Company company in companies)
                 {
-                    Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-                    if (existingCompany == null)
-                        unitOfWork.Company.Create(company);
-                    else
-                        existingCompany.CopyData(company);
+                    await sync.RunExclusive(company, async () =>
+                    {
+                        await CreateOrUpdateAsync(company, ct);
+                    }, ct);
                 }
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update companies completed.", nameof(UpdateCompaniesFromCloudApi));
         }
 
         public async Task UpdateCompaniesFromCloudDb(CancellationToken ct)
@@ -139,42 +132,42 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (Company company in companies)
                 {
-                    Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-                    if (existingCompany == null)
-                        unitOfWork.Company.Create(company);
-                    else
-                        existingCompany.CopyData(company);
+                    await sync.RunExclusive(company, async () =>
+                    {
+                        await CreateOrUpdateAsync(company, ct);
+                    }, ct);
                 }
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }
 
-        public async Task<bool> CheckCompanyCategory(Company company, CancellationToken ct)
+        public async Task CreateOrUpdateAsync(Company company, CancellationToken ct)
+        {
+            await CheckCompanyCategory(company, ct);
+
+            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+
+            if (existingCompany == null)
+                unitOfWork.Company.Create(company);
+            else
+                existingCompany.CopyData(company);
+
+            await unitOfWork.SaveChangesAsync(ct);
+        }
+
+        public async Task CheckCompanyCategory(Company company, CancellationToken ct)
         {
             if (company.Category == null)
             {
-                company.CategoryId = 0;
-                return true;
+                company.CategoryId = null;
+                return;
             }
 
             CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(company.Category.Id, ct: ct);
-            if (category != null)
-            {
-                company.CategoryId = category.Id;
-                company.Category = null;
-                return true;
-            }
+            company.CategoryId = category?.Id;
 
             company.Category = null;
-            return false;
         }
     }
 }
-
-
-
-
-

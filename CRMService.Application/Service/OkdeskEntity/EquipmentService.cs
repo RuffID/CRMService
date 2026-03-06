@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,7 @@ using System.Text.Json;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<EquipmentService> logger)
+    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<EquipmentService> logger)
     {
         private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, [EnumeratorCancellation] CancellationToken ct = default)
         {
@@ -87,21 +88,11 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (equipments == null || equipments.Count == 0)
                 return;
 
-            Equipment? equipment = equipments.First();
-
-            await CheckInformationOnEquipment(equipment, ct);
-
-            foreach (EquipmentParameter parameter in equipment.Parameters)
+            Equipment equipment = equipments.First();
+            await sync.RunExclusive(equipment, async () =>
             {
-                EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
-
-                if (existingParameter == null)
-                    unitOfWork.Parameter.Create(parameter);
-                else
-                    existingParameter.CopyData(parameter);
-            }
-
-            await unitOfWork.SaveChangesAsync(ct);
+                await CreateOrUpdate(equipment, ct);
+            }, ct);
         }
 
         public async Task UpdateEquipmentsFromCloudApi(long companyId = 0, long maintenanceEntityId = 0, CancellationToken ct = default)
@@ -115,27 +106,11 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (Equipment equipment in equipments)
                 {
-                    await CheckInformationOnEquipment(equipment, ct);
-
-                    Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(equipment.Id, ct: ct);
-
-                    if (existingEquipment == null)
-                        unitOfWork.Equipment.Create(equipment);
-                    else
-                        existingEquipment.CopyData(equipment);
-
-                    foreach (EquipmentParameter parameter in equipment.Parameters)
+                    await sync.RunExclusive(equipment, async () =>
                     {
-                        EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == equipment.Id && p.KindParameterId == parameter.KindParameterId, ct: ct);
-
-                        if (existingParameter == null)
-                            unitOfWork.Parameter.Create(parameter);
-                        else
-                            existingParameter.CopyData(parameter);
-                    }
+                        await CreateOrUpdate(equipment, ct);
+                    }, ct);
                 }
-
-                await unitOfWork.SaveChangesAsync(ct);
             }
 
             logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudApi));
@@ -150,30 +125,37 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (Equipment equipment in equipments)
                 {
-                    await CheckInformationOnEquipment(equipment, ct);
-
-                    Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(equipment.Id, ct: ct);
-
-                    if (existingEquipment == null)
-                        unitOfWork.Equipment.Create(equipment);
-                    else
-                        existingEquipment.CopyData(equipment);
-
-                    foreach (EquipmentParameter parameter in equipment.Parameters)
+                    await sync.RunExclusive(equipment, async () =>
                     {
-                        EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
-
-                        if (existingParameter == null)
-                            unitOfWork.Parameter.Create(parameter);
-                        else
-                            existingParameter.CopyData(parameter);
-                    }
+                        await CreateOrUpdate(equipment, ct);
+                    }, ct);
                 }
-
-                await unitOfWork.SaveChangesAsync(ct);
             }
 
             logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));
+        }
+
+        public async Task CreateOrUpdate(Equipment equipment, CancellationToken ct)
+        {
+            await CheckInformationOnEquipment(equipment, ct);
+
+            Equipment? existingEquipment = await unitOfWork.Equipment.GetItemByIdAsync(equipment.Id, ct: ct);
+
+            if (existingEquipment == null)
+                unitOfWork.Equipment.Create(equipment);
+            else
+                existingEquipment.CopyData(equipment);
+
+            foreach (EquipmentParameter parameter in equipment.Parameters)
+            {
+                EquipmentParameter? existingParameter = await unitOfWork.Parameter.GetItemByPredicateAsync(p => p.EquipmentId == parameter.EquipmentId && p.KindParameterId == parameter.KindParameterId, ct: ct);
+
+                if (existingParameter == null)
+                    unitOfWork.Parameter.Create(parameter);
+                else
+                    existingParameter.CopyData(parameter);
+            }
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task CheckInformationOnEquipment(Equipment equipment, CancellationToken ct)

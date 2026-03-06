@@ -178,7 +178,7 @@ namespace CRMService.Web.Core
             services.AddSingleton(new PGConfig(builder.Configuration.GetConnectionString("Postgresql")!));
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
-            services.AddScoped<postgresSelect, PGSelect>();
+            services.AddScoped<IPostgresSelect, PGSelect>();
             services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<BackupService<ApplicationContext>>(sp =>

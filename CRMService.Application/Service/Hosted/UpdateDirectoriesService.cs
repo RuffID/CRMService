@@ -63,5 +63,3 @@ namespace CRMService.Application.Service.Hosted
         }
     }
 }
-
-

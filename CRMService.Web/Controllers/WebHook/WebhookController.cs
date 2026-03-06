@@ -1,6 +1,5 @@
 ﻿using CRMService.Application.Abstractions.Service;
 using CRMService.Application.Models.WebHook;
-using CRMService.Application.Service.Sync;
 using CRMService.Web.Core.Filter;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -10,15 +9,14 @@ namespace CRMService.Web.Controllers.WebHook
     [ApiController]
     [Route("api/[controller]")]
     [ServiceFilter(typeof(IpOkdeskWebHookActionFilterAttribute))]
-    public class WebhookController(IServiceScopeFactory scopeFactory, EntitySyncService sync, ILogger<WebhookController> logger) : Controller
+    public class WebhookController(IServiceScopeFactory scopeFactory, ILogger<WebhookController> logger) : Controller
     {
         [HttpPost]
         public async Task<IActionResult> WebHookAction()
         {
-
-            // Для дебага, посмотреть тело запроса в случаи несоответствии моделей либо внутренних ошибок
+            // Тело парсится для дебага, посмотреть в случае несоответствий моделей / внутренних ошибок
             string body;
-            using (StreamReader reader = new (Request.Body))
+            using (StreamReader reader = new(Request.Body))
                 body = await reader.ReadToEndAsync();
 
             RootEventWebHook? @event;
@@ -28,7 +26,7 @@ namespace CRMService.Web.Controllers.WebHook
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Webhook JSON deserialize failed. Raw body: {Body}", body);
+                logger.LogError(ex, "[Method:{MethodName}] Webhook JSON deserialize failed. Raw body: {Body}", nameof(WebHookAction), body);
                 return BadRequest("Invalid JSON");
             }
 
@@ -38,6 +36,7 @@ namespace CRMService.Web.Controllers.WebHook
                 return BadRequest("Empty event or action object.");
             }
 
+            // Сразу же отдать ответ о том что вебхук принят, чтобы он не ждал пока произойдёт обработка запроса
             _ = Task.Run(async () =>
             {
                 try
@@ -45,24 +44,21 @@ namespace CRMService.Web.Controllers.WebHook
                     using IServiceScope scope = scopeFactory.CreateScope();
                     IEnumerable<IWebhookHandler> handlers = scope.ServiceProvider.GetRequiredService<IEnumerable<IWebhookHandler>>();
 
-                    await sync.RunExclusive(async () =>
+                    bool handled = false;
+                    foreach (IWebhookHandler handler in handlers)
                     {
-                        bool handled = false;
-                        foreach (IWebhookHandler handler in handlers)
+                        if (await handler.HandleWebhook(@event, CancellationToken.None))
                         {
-                            if (await handler.HandleWebhook(@event, CancellationToken.None))
-                            {
-                                handled = true;
-                                break;
-                            }
+                            handled = true;
+                            break;
                         }
+                    }
 
-                        if (!handled)
-                        {
-                            logger.LogWarning("[Method:{MethodName}] Webhook NOT handled. Event type: {EventType}. Body: {Body}",
-                                nameof(WebHookAction), @event.Event.Event_type, body);
-                        }
-                    });
+                    if (!handled)
+                    {
+                        logger.LogWarning("[Method:{MethodName}] Webhook NOT handled. Event type: {EventType}. Body: {Body}",
+                            nameof(WebHookAction), @event.Event.Event_type, body);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -74,7 +70,3 @@ namespace CRMService.Web.Controllers.WebHook
         }
     }
 }
-
-
-
-

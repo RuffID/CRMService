@@ -14,7 +14,7 @@ public class Company : IEntity<int>, ICopyable<Company>
 
     public bool Active { get; set; }
 
-    public int CategoryId { get; set; }
+    public int? CategoryId { get; set; }
 
     public virtual CompanyCategory? Category { get; set; }
 
@@ -32,6 +32,3 @@ public class Company : IEntity<int>, ICopyable<Company>
         CategoryId = company.CategoryId;
     }
 }
-
-
-

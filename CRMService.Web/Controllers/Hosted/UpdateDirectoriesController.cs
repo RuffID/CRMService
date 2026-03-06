@@ -1,5 +1,4 @@
 ﻿using CRMService.Domain.Models.Constants;
-using CRMService.Application.Service.Sync;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Service.Hosted;
@@ -9,18 +8,14 @@ namespace CRMService.Web.Controllers.Hosted
     [Authorize, Authorize(Roles = RolesConstants.ADMIN)]
     [Route("api/[controller]")]
     [ApiController]
-    public class UpdateDirectoriesController(UpdateDirectoriesService service, EntitySyncService sync) : Controller
+    public class UpdateDirectoriesController(UpdateDirectoriesService service) : Controller
     {
         [HttpPost]
-        public async Task<IActionResult> RunUpdate()
+        public async Task<IActionResult> RunUpdate(CancellationToken ct)
         {
-            await sync.RunExclusive(async () => await service.RunUpdateDirectories());
+            await service.RunUpdateDirectories(ct);
 
             return NoContent();
         }
     }
 }
-
-
-
-

@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -8,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<KindService> logger)
+    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<KindService> logger)
     {
 
         private async IAsyncEnumerable<List<Kind>> GetKindsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
@@ -47,15 +48,21 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (Kind item in kinds)
                 {
-                    Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingKinds == null)
-                        unitOfWork.Kind.Create(item);
-                    else
-                        existingKinds.CopyData(item);
+                    await sync.RunExclusive(item, async () =>
+                    {
+                        Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
+                        if (existingKinds == null)
+                            unitOfWork.Kind.Create(item);
+                        else
+                            existingKinds.CopyData(item);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+
+                    }, ct);
                 }
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update kinds completed.", nameof(UpdateKindsFromCloudApi));
         }
 
         public async Task UpdateKindsFromCloudDb(CancellationToken ct)
@@ -69,14 +76,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (Kind item in kinds)
             {
-                Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingKinds == null)
-                    unitOfWork.Kind.Create(item);
-                else
-                    existingKinds.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingKinds == null)
+                        unitOfWork.Kind.Create(item);
+                    else
+                        existingKinds.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update kinds completed.", nameof(UpdateKindsFromCloudDb));
         }
     }
 }

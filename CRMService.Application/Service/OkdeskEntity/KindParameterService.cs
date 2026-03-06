@@ -1,12 +1,13 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<KindParameterService> logger)
+    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<KindParameterService> logger)
     {
         public async Task<List<KindsParameter>> GetKindParametersFromCloudApi(CancellationToken ct)
         {
@@ -45,14 +46,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (KindsParameter item in parameters)
             {
-                KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingTypes == null)
-                    unitOfWork.KindParameter.Create(item);
-                else
-                    existingTypes.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingTypes == null)
+                        unitOfWork.KindParameter.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update kind parameters completed.", nameof(UpdateKindParametersFromCloudApi));
         }
 
         public async Task UpdateKindParametersFromCloudDb(CancellationToken ct)
@@ -66,14 +72,19 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (KindsParameter item in parameters)
             {
-                KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
-                if (existingTypes == null)
-                    unitOfWork.KindParameter.Create(item);
-                else
-                    existingTypes.CopyData(item);
+                await sync.RunExclusive(item, async () =>
+                {
+                    KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
+                    if (existingTypes == null)
+                        unitOfWork.KindParameter.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update kind parameters completed.", nameof(UpdateKindParametersFromCloudDb));
         }
     }
 }

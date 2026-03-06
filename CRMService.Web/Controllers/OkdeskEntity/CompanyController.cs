@@ -12,7 +12,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CompanyController(IUnitOfWork unitOfWork, EntitySyncService sync, CompanyService service) : Controller
+    public class CompanyController(IUnitOfWork unitOfWork, CompanyService service) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetCompany([FromQuery] int id, CancellationToken ct)
@@ -36,10 +36,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_from_api")]
         public async Task<IActionResult> UpdateCompanyFromCloudApi([FromQuery] int companyId, CancellationToken ct)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateCompanyFromCloudApi(companyId, ct);
-            });
+            await service.UpdateCompanyFromCloudApi(companyId, ct);
 
             return NoContent();
         }
@@ -47,10 +44,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_companies_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateCompaniesFromCloudApi(CancellationToken ct)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateCompaniesFromCloudApi(ct);
-            });
+            await service.UpdateCompaniesFromCloudApi(ct);
 
             return NoContent();
         }
@@ -58,10 +52,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_companies_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateCompaniesFromCloudDb(CancellationToken ct)
         {
-            await sync.RunExclusive(async () =>
-            {
-                await service.UpdateCompaniesFromCloudDb(ct);
-            });
+            await service.UpdateCompaniesFromCloudDb(ct);
 
             return NoContent();
         }

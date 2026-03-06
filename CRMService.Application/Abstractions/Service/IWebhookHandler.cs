@@ -7,6 +7,3 @@ namespace CRMService.Application.Abstractions.Service
         Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct);
     }
 }
-
-
-

@@ -1,11 +1,10 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
-using CRMService.Domain.Models.OkdeskEntity;
-using CRMService.Application.Models.WebHook;
+﻿using CRMService.Application.Models.WebHook;
 using CRMService.Application.Service.OkdeskEntity;
+using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.Webhook
 {
-    public class CompanyWebhookService(IUnitOfWork unitOfWork, CompanyService companyService, ILogger<CompanyWebhookService> logger) : IWebhookHandler
+    public class CompanyWebhookService(CompanyService companyService, EntitySyncService sync, ILogger<CompanyWebhookService> logger) : IWebhookHandler
     {
         public async Task<bool> HandleWebhook(RootEventWebHook @event, CancellationToken ct)
         {
@@ -18,20 +17,11 @@ namespace CRMService.Application.Service.Webhook
             {
                 case "new_company":
                 case "change_company":
-                    if (await companyService.CheckCompanyCategory(@event.Company, ct))
-                    {
-                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(@event.Company.Id, ct: ct);
-                        if (existingCompany == null)
-                            unitOfWork.Company.Create(@event.Company);
-                        else
-                            existingCompany.CopyData(@event.Company);
-                    }
+                    await sync.RunExclusive(@event.Company, async () => { await companyService.CreateOrUpdateAsync(@event.Company, ct); }, ct);
                     break;
                 default:
                     return false;
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             return true;
         }

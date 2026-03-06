@@ -4,7 +4,7 @@ using System.Data;
 
 namespace CRMService.Infrastructure.DataBase.Postgresql
 {
-    public class PGSelect(PGConfig pgConfig, ILoggerFactory logger) : postgresSelect
+    public class PGSelect(PGConfig pgConfig, ILoggerFactory logger) : IPostgresSelect
     {
         private readonly ILogger<PGSelect> _logger = logger.CreateLogger<PGSelect>();
 
@@ -32,9 +32,3 @@ namespace CRMService.Infrastructure.DataBase.Postgresql
         }
     }
 }
-
-
-
-
-
-

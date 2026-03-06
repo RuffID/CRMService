@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
 using System.Data;
@@ -7,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService itemService, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<IssueService> logger)
+    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService itemService, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueService> logger)
     {
         private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -81,13 +82,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                         foreach (Issue issue in issues)
                         {
                             issue.AssigneeId = employee.Id;
-                            await CheckAttributes(issue, ct);
 
-                            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-                            if (existingIssue == null)
-                                unitOfWork.Issue.Create(issue);
-                            else
-                                existingIssue.CopyData(issue);
+                            await sync.RunExclusive(issue, async () =>
+                            {
+                                await CreateOrUpdate(issue, ct);
+                            }, ct);
                         }
                     }
                 }
@@ -96,8 +95,6 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id > employeeStartIndex, asNoTracking: true, ct: ct);
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApi), caller);
         }
@@ -115,13 +112,10 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (Issue issue in issues)
                 {
-                    await CheckAttributes(issue, ct);
-
-                    Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-                    if (existingIssue == null)
-                        unitOfWork.Issue.Create(issue);
-                    else
-                        existingIssue.CopyData(issue);
+                    await sync.RunExclusive(issue, async () =>
+                    {
+                        await CreateOrUpdate(issue, ct);
+                    }, ct);
                 }
 
                 startIndex = issues.Last().Id;
@@ -130,9 +124,20 @@ namespace CRMService.Application.Service.OkdeskEntity
                     break;
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
-
             logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
+        }
+
+        public async Task CreateOrUpdate(Issue issue, CancellationToken ct)
+        {
+            await CheckAttributes(issue, ct);
+
+            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
+            if (existingIssue == null)
+                unitOfWork.Issue.Create(issue);
+            else
+                existingIssue.CopyData(issue);
+
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task CheckAttributes(Issue issue, CancellationToken ct)

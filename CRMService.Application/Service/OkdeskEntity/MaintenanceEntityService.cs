@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
-        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, postgresSelect postgresSelect, ILogger<MaintenanceEntityService> logger)
+        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
     {
         public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
@@ -55,14 +56,10 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (newMaintenanceEntity == null)
                 return;
 
-
-            MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
-            if (existingMaintenance == null)
-                unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-            else
-                existingMaintenance.CopyData(newMaintenanceEntity);
-
-            await unitOfWork.SaveChangesAsync(ct);
+            await sync.RunExclusive(newMaintenanceEntity, async () =>
+            {
+                await CreateOrUpdate(newMaintenanceEntity, ct);
+            }, ct);
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudApi(CancellationToken ct)
@@ -73,17 +70,14 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 foreach (MaintenanceEntity newMaintenanceEntity in me)
                 {
-                    await CheckMaintenanceEntity(newMaintenanceEntity, ct);
-
-                    MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
-                    if (existingMaintenance == null)
-                        unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-                    else
-                        existingMaintenance.CopyData(newMaintenanceEntity);
+                    await sync.RunExclusive(newMaintenanceEntity, async () =>
+                    {
+                        await CreateOrUpdate(newMaintenanceEntity, ct);
+                    }, ct);
                 }
             }
 
-            await unitOfWork.SaveChangesAsync(ct);
+            logger.LogInformation("[Method:{MethodName}] Update maintenance entities completed.", nameof(UpdateMaintenanceEntitiesFromCloudApi));
         }
 
         public async Task UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct)
@@ -99,28 +93,31 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 foreach (MaintenanceEntity newMaintenanceEntity in me)
                 {
-                    await CheckMaintenanceEntity(newMaintenanceEntity, ct);
-
-                    MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
-                    if (existingMaintenance == null)
-                        unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-                    else
-                        existingMaintenance.CopyData(newMaintenanceEntity);
+                    await sync.RunExclusive(newMaintenanceEntity, async () =>
+                    {
+                        await CreateOrUpdate(newMaintenanceEntity, ct);
+                    }, ct);
                 }
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
         }
 
+        public async Task CreateOrUpdate(MaintenanceEntity maintenanceEntity, CancellationToken ct)
+        {
+            await CheckMaintenanceEntity(maintenanceEntity, ct);
+
+            MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(maintenanceEntity.Id, ct: ct);
+            if (existingMaintenance == null)
+                unitOfWork.MaintenanceEntity.Create(maintenanceEntity);
+            else
+                existingMaintenance.CopyData(maintenanceEntity);
+
+            await unitOfWork.SaveChangesAsync(ct);
+        }
+
         private async Task CheckMaintenanceEntity(MaintenanceEntity maintenanceEntity, CancellationToken ct)
         {
-            if (maintenanceEntity.Company != null)
-                maintenanceEntity.CompanyId = (await unitOfWork.Company.GetItemByPredicateAsync(c => c.Id == maintenanceEntity.Company.Id, asNoTracking: true, ct: ct))?.Id;            
-            else if (maintenanceEntity.CompanyId.HasValue)
-                maintenanceEntity.CompanyId = (await unitOfWork.Company.GetItemByPredicateAsync(c => c.Id == maintenanceEntity.CompanyId, asNoTracking: true, ct: ct))?.Id;
-
             if (maintenanceEntity.Company != null)
             {
                 Company? company = await unitOfWork.Company.GetItemByIdAsync(maintenanceEntity.Company.Id, true, ct: ct);

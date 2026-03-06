@@ -81,18 +81,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                     {
                         foreach (Issue issue in issues)
                         {
+                            issue.AssigneeId = employee.Id;
+
                             await sync.RunExclusive(issue, async () =>
                             {
-
-                                issue.AssigneeId = employee.Id;
-                                await CheckAttributes(issue, ct);
-
-                                Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-                                if (existingIssue == null)
-                                    unitOfWork.Issue.Create(issue);
-                                else
-                                    existingIssue.CopyData(issue);
-                                await unitOfWork.SaveChangesAsync(ct);
+                                await CreateOrUpdate(issue, ct);
                             }, ct);
                         }
                     }
@@ -121,15 +114,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(issue, async () =>
                     {
-                        await CheckAttributes(issue, ct);
-
-                        Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
-                        if (existingIssue == null)
-                            unitOfWork.Issue.Create(issue);
-                        else
-                            existingIssue.CopyData(issue);
-
-                        await unitOfWork.SaveChangesAsync(ct);
+                        await CreateOrUpdate(issue, ct);
                     }, ct);
                 }
 
@@ -140,6 +125,19 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudDb), caller);
+        }
+
+        public async Task CreateOrUpdate(Issue issue, CancellationToken ct)
+        {
+            await CheckAttributes(issue, ct);
+
+            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(issue.Id, ct: ct);
+            if (existingIssue == null)
+                unitOfWork.Issue.Create(issue);
+            else
+                existingIssue.CopyData(issue);
+
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         public async Task CheckAttributes(Issue issue, CancellationToken ct)

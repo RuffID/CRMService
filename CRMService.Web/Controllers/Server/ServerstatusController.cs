@@ -9,9 +9,8 @@ namespace CRMService.Web.Controllers.Server
     [Route("api/[controller]")]
     public class ServerstatusController(ServerData data) : Controller
     {
-
         [HttpGet, AllowAnonymous]
-        public IActionResult ServerStatus(CancellationToken ct = default)
+        public IActionResult ServerStatus(CancellationToken ct)
         {
             TimeSpan upTime = DateTime.UtcNow - data.ServerStartingTime;
             string upTimeString = $"Days: {upTime.Days}, Hours: {upTime.Hours}, Minutes: {upTime.Minutes}";
@@ -20,7 +19,3 @@ namespace CRMService.Web.Controllers.Server
         }
     }
 }
-
-
-
-

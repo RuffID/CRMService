@@ -58,15 +58,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             await sync.RunExclusive(newMaintenanceEntity, async () =>
             {
-                await CheckMaintenanceEntity(newMaintenanceEntity, ct);
-
-                MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
-                if (existingMaintenance == null)
-                    unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-                else
-                    existingMaintenance.CopyData(newMaintenanceEntity);
-
-                await unitOfWork.SaveChangesAsync(ct);
+                await CreateOrUpdate(newMaintenanceEntity, ct);
             }, ct);
         }
 
@@ -80,15 +72,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(newMaintenanceEntity, async () =>
                     {
-                        await CheckMaintenanceEntity(newMaintenanceEntity, ct);
-
-                        MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
-                        if (existingMaintenance == null)
-                            unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-                        else
-                            existingMaintenance.CopyData(newMaintenanceEntity);
-
-                        await unitOfWork.SaveChangesAsync(ct);
+                        await CreateOrUpdate(newMaintenanceEntity, ct);
                     }, ct);
                 }
             }
@@ -111,20 +95,25 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(newMaintenanceEntity, async () =>
                     {
-                        await CheckMaintenanceEntity(newMaintenanceEntity, ct);
-
-                        MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(newMaintenanceEntity.Id, ct: ct);
-                        if (existingMaintenance == null)
-                            unitOfWork.MaintenanceEntity.Create(newMaintenanceEntity);
-                        else
-                            existingMaintenance.CopyData(newMaintenanceEntity);
-
-                        await unitOfWork.SaveChangesAsync(ct);
+                        await CreateOrUpdate(newMaintenanceEntity, ct);
                     }, ct);
                 }
             }
 
             logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
+        }
+
+        public async Task CreateOrUpdate(MaintenanceEntity maintenanceEntity, CancellationToken ct)
+        {
+            await CheckMaintenanceEntity(maintenanceEntity, ct);
+
+            MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(maintenanceEntity.Id, ct: ct);
+            if (existingMaintenance == null)
+                unitOfWork.MaintenanceEntity.Create(maintenanceEntity);
+            else
+                existingMaintenance.CopyData(maintenanceEntity);
+
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task CheckMaintenanceEntity(MaintenanceEntity maintenanceEntity, CancellationToken ct)

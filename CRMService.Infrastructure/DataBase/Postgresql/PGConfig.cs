@@ -7,7 +7,3 @@ namespace CRMService.Infrastructure.DataBase.Postgresql
         public NpgsqlConnection GetPsqlConnection() => new (connectionString);
     }
 }
-
-
-
-

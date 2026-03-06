@@ -89,17 +89,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             await sync.RunExclusive(company, async () =>
             {
-                if (!await CheckCompanyCategory(company, ct))
-                    return;
-
-                Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-
-                if (existingCompany == null)
-                    unitOfWork.Company.Create(company);
-                else
-                    existingCompany.CopyData(company);
-
-                await unitOfWork.SaveChangesAsync(ct);
+                await CreateOrUpdateAsync(company, ct);
             }, ct);
         }
 
@@ -118,13 +108,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(company, async () =>
                     {
-                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-                        if (existingCompany == null)
-                            unitOfWork.Company.Create(company);
-                        else
-                            existingCompany.CopyData(company);
-
-                        await unitOfWork.SaveChangesAsync(ct);
+                        await CreateOrUpdateAsync(company, ct);
                     }, ct);
                 }
             }
@@ -150,13 +134,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(company, async () =>
                     {
-                        Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
-                        if (existingCompany == null)
-                            unitOfWork.Company.Create(company);
-                        else
-                            existingCompany.CopyData(company);
-
-                        await unitOfWork.SaveChangesAsync(ct);
+                        await CreateOrUpdateAsync(company, ct);
                     }, ct);
                 }
             }
@@ -164,24 +142,32 @@ namespace CRMService.Application.Service.OkdeskEntity
             logger.LogInformation("[Method:{MethodName}] Companies update completed.", nameof(UpdateCompaniesFromCloudDb));
         }
 
-        public async Task<bool> CheckCompanyCategory(Company company, CancellationToken ct)
+        public async Task CreateOrUpdateAsync(Company company, CancellationToken ct)
+        {
+            await CheckCompanyCategory(company, ct);
+
+            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+
+            if (existingCompany == null)
+                unitOfWork.Company.Create(company);
+            else
+                existingCompany.CopyData(company);
+
+            await unitOfWork.SaveChangesAsync(ct);
+        }
+
+        public async Task CheckCompanyCategory(Company company, CancellationToken ct)
         {
             if (company.Category == null)
             {
-                company.CategoryId = 0;
-                return true;
+                company.CategoryId = null;
+                return;
             }
 
             CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(company.Category.Id, ct: ct);
-            if (category != null)
-            {
-                company.CategoryId = category.Id;
-                company.Category = null;
-                return true;
-            }
+            company.CategoryId = category?.Id;
 
             company.Category = null;
-            return false;
         }
     }
 }

@@ -47,6 +47,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return;
             }
 
+            // Если пустые записи Time_entries, значит не удалось спарсить списанное время/его нет и выходит из метода
             if (timeEntry?.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
             {
                 List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
@@ -62,13 +63,15 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (TimeEntry entry in timeEntry.Time_Entries)
             {
-                entry.EmployeeId = entry.Employee?.Id ?? throw new InvalidOperationException($"Employee id is not set in time entry: {entry.Id}");
+                entry.EmployeeId = entry.Employee?.Id 
+                    ?? throw new InvalidOperationException($"Employee id is not set in time entry: {entry.Id}");
 
                 entry.IssueId = issueId;
 
                 if (await unitOfWork.Employee.GetItemByIdAsync(entry.EmployeeId, asNoTracking: true, ct: ct) == null)
                 {
-                    logger.LogWarning("[Method:{MethodName}] Employee {EmployeeId} not found in local DB.", nameof(UpdateTimeEntriesFromCloudApi), entry.EmployeeId);
+                    logger.LogWarning("[Method:{MethodName}] Employee {EmployeeId} not found in local DB.", 
+                        nameof(UpdateTimeEntriesFromCloudApi), entry.EmployeeId);
 
                     continue;
                 }
@@ -76,15 +79,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 entry.Employee = null;
                 entry.Issue = null;
 
-                TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(entry.Id, ct: ct);
-
-                if (existingEntry == null)
-                    unitOfWork.TimeEntry.Create(entry);
-                else
-                    existingEntry.CopyData(entry);
+                await CreateOrUpdate(entry, ct);
             }
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             await DeleteMarkedAsDeletedTimeEntries(timeEntry.Time_Entries, ct);
         }
@@ -142,15 +138,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                         continue;
                     }
 
-                    TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(item.Id, ct: ct);
-
-                    if (existingEntry == null)
-                        unitOfWork.TimeEntry.Create(item);
-                    else
-                        existingEntry.CopyData(item);
+                    await CreateOrUpdate(item, ct);
                 }
-
-                await unitOfWork.SaveChangesAsync(ct);
 
                 startId = entries.Last().Id;
 
@@ -159,6 +148,18 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
+        }
+
+        public async Task CreateOrUpdate(TimeEntry entry, CancellationToken ct)
+        {
+            TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(entry.Id, ct: ct);
+
+            if (existingEntry == null)
+                unitOfWork.TimeEntry.Create(entry);
+            else
+                existingEntry.CopyData(entry);
+
+            await unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task DeleteMarkedAsDeletedTimeEntries(TimeEntry[] entriesFromCloudApi, CancellationToken ct)

@@ -32,9 +32,3 @@ namespace CRMService.Infrastructure.DataBase.Postgresql
         }
     }
 }
-
-
-
-
-
-

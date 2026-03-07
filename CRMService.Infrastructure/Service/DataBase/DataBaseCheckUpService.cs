@@ -1,9 +1,9 @@
-﻿using EFCoreLibrary.Abstractions.Database;
+using EFCoreLibrary.Abstractions.Database;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Infrastructure.Service.DataBase
 {
-    public class DataBaseCheckUpService<TContext>(IAppDbContext dbContext, ILoggerFactory logger, BackupService<TContext> backupService) where TContext : DbContext
+    public class DataBaseCheckUpService<TContext>(IAppDbContext<TContext> dbContext, ILoggerFactory logger, BackupService<TContext> backupService) where TContext : DbContext
     {
         private readonly ILogger<DataBaseCheckUpService<TContext>> _logger = logger.CreateLogger<DataBaseCheckUpService<TContext>>();
 

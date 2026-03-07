@@ -28,5 +28,3 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
         }
     }
 }
-
-

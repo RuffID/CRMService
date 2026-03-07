@@ -1,4 +1,4 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
@@ -6,13 +6,12 @@ using CRMService.Contracts.Models.Responses;
 using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueTypeService> logger)
+    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueTypeService> logger)
     {
         public async Task<ServiceResult<List<TaskTypeDto>>> GetTypes(CancellationToken ct)
         {
@@ -46,21 +45,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<List<IssueType>> GetIssueTypesFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT * FROM issue_work_types ORDER BY id;";
+            List<IssueType> issueTypes = await okdeskUnitOfWork.IssueType.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new List<IssueType>();
-
-            return table.AsEnumerable().
-                Select(type => new IssueType
-                {
-                    Id = type.Field<int>("id"),
-                    Code = type.Field<string>("code") ?? "",
-                    Name = type.Field<string>("name") ?? string.Empty,
-                    IsInner = type.Field<bool>("inner")
-                }).ToList();
+            return issueTypes.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateIssueTypesFromCloudApi(CancellationToken ct)
@@ -76,7 +63,8 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(item, async () =>
                 {
-                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
+                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByPredicateAsync(predicate: t => t.Code == item.Code, ct: ct);
+
                     if (existingTypes == null)
                         unitOfWork.IssueType.Create(item);
                     else
@@ -90,7 +78,8 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(item, async () =>
                 {
-                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdAsync(item.Id, ct: ct);
+                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByPredicateAsync(predicate: t => t.Code == item.Code, ct: ct);
+
                     if (existingTypes == null)
                         unitOfWork.IssueTypeGroup.Create(item);
                     else
@@ -115,7 +104,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, ct: ct);
+                        IssueType? existingTypes = await unitOfWork.IssueType.GetItemByPredicateAsync(predicate: t => t.Code == item.Code, ct: ct);
                         if (existingTypes == null)
                             unitOfWork.IssueType.Create(item);
                         else

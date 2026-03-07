@@ -1,16 +1,15 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.Extensions.Options;
-using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueStatusService> logger)
+    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueStatusService> logger)
     {
         public async Task<ServiceResult<List<StatusDto>>> GetIssueStatusesAsync(CancellationToken ct)
         {
@@ -28,20 +27,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<List<IssueStatus>> GetIssueStatusesFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT * FROM issue_statuses ORDER BY id;;";
+            List<IssueStatus> issueStatuses = await okdeskUnitOfWork.IssueStatus.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
-
-            return table.AsEnumerable().
-                Select(status => new IssueStatus
-                {
-                    Id = status.Field<int>("id"),
-                    Code = status.Field<string>("code") ?? "",
-                    Name = status.Field<string>("name") ?? string.Empty
-                }).ToList();
+            return issueStatuses.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateIssueStatusesFromCloudApi(CancellationToken ct)
@@ -50,24 +38,24 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<IssueStatus> statuses = await GetIssueStatusesFromCloudApi(ct);
 
-            if (statuses.Count == 0)
-                return;
-
-            for (int i = 0; i < statuses.Count; i++)
-                statuses[i].Id = i + 1;
-
-            foreach (IssueStatus item in statuses)
+            if (statuses.Count != 0)
             {
-                await sync.RunExclusive(item, async () =>
+                foreach (IssueStatus item in statuses)
                 {
-                    IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingStatus == null)
-                        unitOfWork.IssueStatus.Create(item);
-                    else
-                        existingStatus.CopyData(item);
+                    await sync.RunExclusive(item, async () =>
+                    {
+                        IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByPredicateAsync(predicate: s => s.Code == item.Code, ct: ct);
+                        if (existingStatus == null)
+                        {
+                            item.Id = 0;
+                            unitOfWork.IssueStatus.Create(item);
+                        }
+                        else
+                            existingStatus.CopyData(item);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update issue statuses completed.", nameof(UpdateIssueStatusesFromCloudApi));
@@ -79,21 +67,24 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<IssueStatus> statuses = await GetIssueStatusesFromCloudDb(ct);
 
-            if (statuses.Count == 0)
-                return;
-
-            foreach (IssueStatus item in statuses)
+            if (statuses.Count != 0)
             {
-                await sync.RunExclusive(item, async () =>
+                foreach (IssueStatus item in statuses)
                 {
-                    IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingStatus == null)
-                        unitOfWork.IssueStatus.Create(item);
-                    else
-                        existingStatus.CopyData(item);
+                    await sync.RunExclusive(item, async () =>
+                    {
+                        IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByPredicateAsync(predicate: s => s.Code == item.Code, ct: ct);
+                        if (existingStatus == null)
+                        {
+                            item.Id = 0;
+                            unitOfWork.IssueStatus.Create(item);
+                        }
+                        else
+                            existingStatus.CopyData(item);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update issue statuses completed.", nameof(UpdateIssueStatusesFromCloudApi));

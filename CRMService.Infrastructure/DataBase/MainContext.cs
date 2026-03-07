@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Infrastructure.DataBase;
 
-public partial class ApplicationContext(DbContextOptions<ApplicationContext> options) : DbContext(options)
+public partial class MainContext(DbContextOptions<MainContext> options) : DbContext(options)
 {
     public virtual DbSet<Company> Companies { get; set; }
     public virtual DbSet<CompanyCategory> CompanyCategories { get; set; }
@@ -79,5 +79,3 @@ public partial class ApplicationContext(DbContextOptions<ApplicationContext> opt
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
-
-

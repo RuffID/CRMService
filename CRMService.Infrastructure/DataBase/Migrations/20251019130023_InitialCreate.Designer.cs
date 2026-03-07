@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
-    [DbContext(typeof(ApplicationContext))]
+    [DbContext(typeof(MainContext))]
     [Migration("20251019130023_InitialCreate")]
     partial class InitialCreate
     {

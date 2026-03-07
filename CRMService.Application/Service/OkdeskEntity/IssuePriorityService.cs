@@ -1,16 +1,15 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.Extensions.Options;
-using System.Data;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssuePriorityService> logger)
+    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssuePriorityService> logger)
     {
         public async Task<ServiceResult<List<PriorityDto>>> GetIssuePrioritiesAsync(CancellationToken ct)
         {
@@ -28,20 +27,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT * FROM issue_priorities ORDER BY id;";
+            List<IssuePriority> issuePriorities = await okdeskUnitOfWork.IssuePriority.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
-
-            return table.AsEnumerable().
-                Select(priority => new IssuePriority
-                {
-                    Id = priority.Field<int>("id"),
-                    Code = priority.Field<string>("code") ?? "",
-                    Name = priority.Field<string>("name")
-                }).ToList();
+            return issuePriorities.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
@@ -52,16 +40,16 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             if (priorities.Count != 0)
             {
-                for (int i = 0; i < priorities.Count; i++)
-                    priorities[i].Id = i + 1;
-
                 foreach (IssuePriority priority in priorities)
                 {
                     await sync.RunExclusive(priority, async () =>
                     {
-                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
+                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByPredicateAsync(predicate: p => p.Code == priority.Code, ct: ct);
                         if (existingPriority == null)
+                        {
+                            priority.Id = 0;
                             unitOfWork.IssuePriority.Create(priority);
+                        }
                         else
                             existingPriority.CopyData(priority);
 
@@ -85,9 +73,12 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(priority, async () =>
                     {
-                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByIdAsync(priority.Id, ct: ct);
+                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByPredicateAsync(predicate: p => p.Code == priority.Code, ct: ct);
                         if (existingPriority == null)
+                        {
+                            priority.Id = 0;
                             unitOfWork.IssuePriority.Create(priority);
+                        }
                         else
                             existingPriority.CopyData(priority);
 

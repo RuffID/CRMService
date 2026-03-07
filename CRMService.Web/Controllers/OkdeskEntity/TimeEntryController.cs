@@ -17,7 +17,10 @@ namespace CRMService.Web.Controllers.OkdeskEntity
                 return BadRequest("Start date is later than end date.");
 
             if (dateTo.Hour == 0 || dateTo.Minute == 0 || dateTo.Second == 0)
-                dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
+                dateTo = DateTime.SpecifyKind(new DateTime(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59), dateTo.Kind);
+
+            dateFrom = ConvertToUtc(dateFrom);
+            dateTo = ConvertToUtc(dateTo);
 
             await service.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, ct);
 
@@ -30,6 +33,18 @@ namespace CRMService.Web.Controllers.OkdeskEntity
             await service.UpdateTimeEntriesFromCloudApi(issueId, ct);
 
             return NoContent();
+        }
+
+        private static DateTime ConvertToUtc(DateTime dateTime)
+        {
+            // Обрабатывает локальное время как UTC-границу запроса к PostgreSQL timestamptz.
+            return dateTime.Kind switch
+            {
+                DateTimeKind.Utc => dateTime,
+                DateTimeKind.Local => dateTime.ToUniversalTime(),
+                DateTimeKind.Unspecified => TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dateTime, DateTimeKind.Local)),
+                _ => throw new ArgumentOutOfRangeException(nameof(dateTime), dateTime.Kind, "Unsupported DateTime kind.")
+            };
         }
     }
 }

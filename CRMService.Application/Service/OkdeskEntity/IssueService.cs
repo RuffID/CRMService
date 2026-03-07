@@ -3,12 +3,11 @@ using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService itemService, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<IssueService> logger)
+    public class IssueService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService itemService, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueService> logger)
     {
         private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApi(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -21,44 +20,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Issue>> GetIssuesFromCloudDb(DateTime updatedSinceFrom, DateTime updatedUntilTo, int startIndex, int limit, CancellationToken ct)
         {
-            string sqlCommand = string.Format(
-                    "SELECT issues.sequential_id, assigned.sequential_id AS assignee_id, author.sequential_id AS author_id, issues.title, issues.created_at, issues.completed_at, issues.deadline_at, issues.employees_updated_at, issues.deleted_at, issues.delay_to, issue_statuses.code AS statusCode, issue_work_types.code AS typeCode, issue_priorities.code AS priorityCode, companies.sequential_id AS companyId, company_maintenance_entities.sequential_id AS maintenanceEntityId " +
-                    "FROM issues " +
-                    "LEFT OUTER JOIN issue_statuses ON issues.status_id = issue_statuses.id " +
-                    "LEFT OUTER JOIN issue_work_types ON issues.work_type_id = issue_work_types.id " +
-                    "LEFT OUTER JOIN issue_priorities ON issues.priority_id = issue_priorities.id " +
-                    "LEFT OUTER JOIN companies ON issues.company_id = companies.id " +
-                    "LEFT OUTER JOIN company_maintenance_entities ON issues.maintenance_entity_id = company_maintenance_entities.id " +
-                    "LEFT OUTER JOIN users AS assigned ON issues.assignee_id = assigned.id " +
-                    "LEFT OUTER JOIN users AS author ON issues.author_id = author.id " +
-                    "WHERE ((issues.employees_updated_at BETWEEN '{0}' AND '{1}') OR (issues.deleted_at BETWEEN '{0}' AND '{1}')) " +
-                    "AND issues.sequential_id > '{2}' ORDER BY issues.sequential_id LIMIT '{3}';",
-                    updatedSinceFrom.ToString("yyyy-MM-dd HH:mm:ss"), updatedUntilTo.ToString("yyyy-MM-dd HH:mm:ss"), startIndex, limit);
+            List<Issue> issues = await okdeskUnitOfWork.Issue.GetUpdatedItemsAsync(updatedSinceFrom, updatedUntilTo, startIndex, limit, ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? issuesTable = ds.Tables["Table"];
-            if (issuesTable == null)
-                return new();
-
-            return issuesTable.AsEnumerable().
-                Select(issue => new Issue
-                {
-                    Id = issue.Field<int>("sequential_id"),
-                    Title = issue.Field<string>("title") ?? "",
-                    AssigneeId = issue.Field<int?>("assignee_id"),
-                    AuthorId = issue.Field<int?>("author_id"),
-                    CompanyId = issue.Field<int?>("companyId"),
-                    ServiceObjectId = issue.Field<int?>("maintenanceEntityId"),
-                    Status = new IssueStatus() { Code = issue.Field<string>("statusCode") ?? string.Empty },
-                    Type = new IssueType() { Code = issue.Field<string>("typeCode") ?? string.Empty },
-                    Priority = new IssuePriority { Code = issue.Field<string>("priorityCode") ?? string.Empty },
-                    CreatedAt = issue.Field<DateTime>("created_at").ToLocalTime(),
-                    CompletedAt = issue.Field<DateTime?>("completed_at")?.ToLocalTime(),
-                    DeadlineAt = issue.Field<DateTime?>("deadline_at")?.ToLocalTime(),
-                    DelayTo = issue.Field<DateTime?>("delay_to")?.ToLocalTime(),
-                    EmployeesUpdatedAt = issue.Field<DateTime>("employees_updated_at").ToLocalTime(),
-                    DeletedAt = issue.Field<DateTime?>("deleted_at")?.ToLocalTime()
-                }).ToList();
+            return issues.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateIssuesFromCloudApi(DateTime dateFrom, DateTime dateTo, long startIndex = 0, long limit = 0, [CallerMemberName] string caller = "", CancellationToken ct = default)

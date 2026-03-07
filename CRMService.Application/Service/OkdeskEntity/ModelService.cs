@@ -1,15 +1,14 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<ModelService> logger)
+    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<ModelService> logger)
     {
         private async IAsyncEnumerable<List<Model>> GetModelsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -19,28 +18,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                 yield return models;
         }
 
-        private async Task<List<Model>?> GetModelsFromCloudDb(CancellationToken ct)
+        private async Task<List<Model>> GetModelsFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand =
-                "SELECT equipment_models.id, equipment_models.code, equipment_models.name, equipment_kinds.code AS kindCode, equipment_manufacturers.code AS manufacturerCode " +
-                "FROM equipment_models " +
-                "LEFT OUTER JOIN equipment_kinds ON equipment_models.equipment_kind_id = equipment_kinds.id " +
-                "LEFT OUTER JOIN equipment_manufacturers ON equipment_models.equipment_manufacturer_id = equipment_manufacturers.id " +
-                "ORDER BY id;";
+            List<Model> models = await okdeskUnitOfWork.Model.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return null;
-
-            return table.AsEnumerable().
-                Select(model => new Model
-                {
-                    Code = model.Field<string>("code") ?? "",
-                    Name = model.Field<string>("name") ?? string.Empty,
-                    Kind = new() { Code = model.Field<string>("kindCode") ?? "" },
-                    Manufacturer = new() { Code = model.Field<string>("manufacturerCode") ?? "" }
-                }).ToList();
+            return models.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateModelsFromCloudApi(CancellationToken ct)
@@ -49,28 +31,34 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             await foreach (List<Model> modelsFromApi in GetModelsFromCloudApi(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
             {
-                foreach (Model model in modelsFromApi)
+                if (modelsFromApi.Count != 0)
                 {
-                    await sync.RunExclusive(model, async () =>
+                    foreach (Model model in modelsFromApi)
                     {
-                        model.KindId = model.Kind?.Id;
-                        model.ManufacturerId = model.Manufacturer?.Id;
-
-                        await CheckModel(model, ct);
-
-                        Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
-                        if (existingModel == null)
+                        await sync.RunExclusive(model, async () =>
                         {
-                            model.Kind = null;
-                            model.Manufacturer = null;
-                            unitOfWork.Model.Create(model);
-                        }
-                        else
-                            existingModel.CopyData(model);
+                            model.KindId = model.Kind?.Id;
+                            model.ManufacturerId = model.Manufacturer?.Id;
 
-                        await unitOfWork.SaveChangesAsync(ct);
-                    }, ct);
+                            await CheckModel(model, ct);
+
+                            Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
+                            if (existingModel == null)
+                            {
+                                model.Kind = null;
+                                model.Manufacturer = null;
+                                unitOfWork.Model.Create(model);
+                            }
+                            else
+                                existingModel.CopyData(model);
+
+                            await unitOfWork.SaveChangesAsync(ct);
+                        }, ct);
+                    }
                 }
+
+                if (modelsFromApi.Count < LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API)
+                    break;
             }
 
             logger.LogInformation("[Method:{MethodName}] Update models completed.", nameof(UpdateModelsFromCloudApi));
@@ -80,25 +68,25 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting to update manufacturers from DB.", nameof(UpdateModelsFromCloudDb));
 
-            List<Model>? models = await GetModelsFromCloudDb(ct);
+            List<Model> models = await GetModelsFromCloudDb(ct);
 
-            if (models == null || models.Count == 0)
-                return;
-
-            foreach (Model model in models)
+            if (models.Count != 0)
             {
-                await sync.RunExclusive(model, async () =>
+                foreach (Model model in models)
                 {
-                    await CheckModel(model, ct);
+                    await sync.RunExclusive(model, async () =>
+                    {
+                        await CheckModel(model, ct);
 
-                    Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
-                    if (existingModel == null)
-                        unitOfWork.Model.Create(model);
-                    else
-                        existingModel.CopyData(model);
+                        Model? existingModel = await unitOfWork.Model.GetItemByIdAsync(model.Id, ct: ct);
+                        if (existingModel == null)
+                            unitOfWork.Model.Create(model);
+                        else
+                            existingModel.CopyData(model);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update models completed.", nameof(UpdateModelsFromCloudDb));

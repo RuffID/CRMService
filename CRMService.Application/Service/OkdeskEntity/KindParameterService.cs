@@ -1,13 +1,12 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<KindParameterService> logger)
+    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<KindParameterService> logger)
     {
         public async Task<List<KindsParameter>> GetKindParametersFromCloudApi(CancellationToken ct)
         {
@@ -18,22 +17,11 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<KindsParameter>> GetKindParametersFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT id, code, name, field_type FROM equipment_parameters ORDER BY id;";
+            List<KindsParameter> parameters = await okdeskUnitOfWork.KindParameter.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
-
-            return table.AsEnumerable().
-                Select(priority => new KindsParameter
-                {
-                    Id = priority.Field<int>("id"),
-                    Code = priority.Field<string>("code") ?? "",
-                    Name = priority.Field<string>("name"),
-                    FieldType = priority.Field<int>("field_type").ToString()
-                }).ToList();
+            return parameters.OrderBy(x => x.Id).ToList();
         }
+
 
         public async Task UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
@@ -41,21 +29,22 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<KindsParameter> parameters = await GetKindParametersFromCloudApi(ct);
 
-            if (parameters.Count == 0)
-                return;
-
-            foreach (KindsParameter item in parameters)
+            if (parameters.Count != 0)
             {
-                await sync.RunExclusive(item, async () =>
+                foreach (KindsParameter item in parameters)
                 {
-                    KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingTypes == null)
-                        unitOfWork.KindParameter.Create(item);
-                    else
-                        existingTypes.CopyData(item);
+                    await sync.RunExclusive(item, async () =>
+                    {
+                        KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByPredicateAsync(predicate: k => k.Code == item.Code, ct: ct);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        if (existingTypes == null)
+                            unitOfWork.KindParameter.Create(item);
+                        else
+                            existingTypes.CopyData(item);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update kind parameters completed.", nameof(UpdateKindParametersFromCloudApi));
@@ -67,21 +56,22 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<KindsParameter> parameters = await GetKindParametersFromCloudDb(ct);
 
-            if (parameters.Count == 0)
-                return;
-
-            foreach (KindsParameter item in parameters)
+            if (parameters.Count != 0)
             {
-                await sync.RunExclusive(item, async () =>
+                foreach (KindsParameter item in parameters)
                 {
-                    KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
-                    if (existingTypes == null)
-                        unitOfWork.KindParameter.Create(item);
-                    else
-                        existingTypes.CopyData(item);
+                    await sync.RunExclusive(item, async () =>
+                    {
+                        KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByPredicateAsync(predicate: k => k.Code == item.Code, ct: ct);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        if (existingTypes == null)
+                            unitOfWork.KindParameter.Create(item);
+                        else
+                            existingTypes.CopyData(item);
+
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update kind parameters completed.", nameof(UpdateKindParametersFromCloudDb));

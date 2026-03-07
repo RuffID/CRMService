@@ -1,15 +1,14 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<ManufacturerService> logger)
+    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<ManufacturerService> logger)
     {
         private async IAsyncEnumerable<List<Manufacturer>> GetManufacturersFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -21,19 +20,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Manufacturer>> GetManufacturersFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT * FROM equipment_manufacturers ORDER BY id;";
-
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
-
-            return table.AsEnumerable().
-                Select(manufacture => new Manufacturer
-                {
-                    Code = manufacture.Field<string>("code") ?? "",
-                    Name = manufacture.Field<string>("name") ?? string.Empty
-                }).ToList();
+            List<Manufacturer> manufacturers = await okdeskUnitOfWork.Manufacturer.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            
+            return manufacturers.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateManufacturersFromCloudApi(CancellationToken ct)

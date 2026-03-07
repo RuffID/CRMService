@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
-    [DbContext(typeof(ApplicationContext))]
+    [DbContext(typeof(MainContext))]
     [Migration("20260228142750_UpdatePlanDynamicModel")]
     partial class UpdatePlanDynamicModel
     {

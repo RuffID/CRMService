@@ -1,5 +1,4 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
-using CRMService.Application.Abstractions.Service;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Domain.Models.CrmEntities;
 using CRMService.Domain.Models.Constants;
 using CRMService.Contracts.Models.Dto.CrmEntities;
@@ -11,7 +10,7 @@ namespace CRMService.Application.Service.CrmServices
 {
     public class PlanSettingsService(IUnitOfWork unitOfWork, EmployeeService employeeService) : IPlanSettingsService
     {
-        private const int DefaultPlanSwitchSeconds = 10;
+        private const int DEFAULT_PLAN_SWITCH_SECONDS = 10;
 
         public async Task<ServiceResult<List<PlanDto>>> GetPlans(CancellationToken ct = default)
         {
@@ -127,7 +126,7 @@ namespace CRMService.Application.Service.CrmServices
 
         public async Task<ServiceResult<bool>> SaveGeneralSettings(GeneralSettingsDto item, CancellationToken ct = default)
         {
-            if (item.PlanSwitchSeconds < DefaultPlanSwitchSeconds)
+            if (item.PlanSwitchSeconds < DEFAULT_PLAN_SWITCH_SECONDS)
                 return ServiceResult<bool>.Fail(400, "PlanSwitchSeconds must be >= 10.");
 
             GeneralSettings settings = await EnsureGeneralSettings(ct);
@@ -356,7 +355,7 @@ namespace CRMService.Application.Service.CrmServices
 
             GeneralSettings created = new ()
             {
-                PlanSwitchSeconds = DefaultPlanSwitchSeconds
+                PlanSwitchSeconds = DEFAULT_PLAN_SWITCH_SECONDS
             };
 
             unitOfWork.GeneralSettings.Create(created);
@@ -438,6 +437,3 @@ namespace CRMService.Application.Service.CrmServices
         }
     }
 }
-
-
-

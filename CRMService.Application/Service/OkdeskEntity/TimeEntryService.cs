@@ -4,11 +4,10 @@ using CRMService.Application.Models.ConfigClass;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, ILogger<TimeEntryService> logger)
+    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, ILogger<TimeEntryService> logger)
     {
         public async Task<TimeEntries?> GetimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
@@ -88,31 +87,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<TimeEntry>> GetTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, long startId, long limit, CancellationToken ct)
         {
-            string sqlCommand = string.Format(
-                    "SELECT time_entries.id, users.sequential_id AS employee_id, time_entries.spent_time, issues.sequential_id AS issue_id, time_entries.logged_at, time_entries.created_at " +
-                    "FROM time_entries " +
-                    "LEFT OUTER JOIN users ON time_entries.employee_id = users.id " +
-                    "LEFT OUTER JOIN issues ON time_entries.issue_id = issues.id " +
-                    "WHERE (time_entries.logged_at BETWEEN '{0}' AND '{1}') " +
-                    "AND time_entries.id > {2} " +
-                    "ORDER BY time_entries.id LIMIT {3};",
-                    dateFrom.ToString("yyyy-MM-dd HH:mm:ss"), dateTo.ToString("yyyy-MM-dd HH:mm:ss"), startId, limit);
+            List<TimeEntry> timeEntries = await okdeskUnitOfWork.TimeEntry.GetLoggedItemsAsync(dateFrom, dateTo, startId, limit, ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
-
-            return table.AsEnumerable().
-                Select(entry => new TimeEntry
-                {
-                    Id = entry.Field<int>("id"),
-                    EmployeeId = entry.Field<int>("employee_id"),
-                    SpentTime = entry.Field<double>("spent_time"),
-                    IssueId = entry.Field<int>("issue_id"),
-                    LoggedAt = entry.Field<DateTime>("logged_at").ToLocalTime(),
-                    CreatedAt = entry.Field<DateTime?>("created_at")?.ToLocalTime()
-                }).ToList();
+            return timeEntries.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateTimeEntriesFromCloudDb(DateTime dateFrom, DateTime dateTo, CancellationToken ct)

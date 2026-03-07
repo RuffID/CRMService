@@ -1,16 +1,15 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
-using CRMService.Application.Models.ConfigClass;
-using CRMService.Contracts.Models.Dto.OkdeskEntity;
-using CRMService.Domain.Models.OkdeskEntity;
-using CRMService.Contracts.Models.Responses.Results;
-using Microsoft.Extensions.Options;
-using System.Data;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.OkdeskEntity;
+using CRMService.Contracts.Models.Responses.Results;
+using CRMService.Domain.Models.OkdeskEntity;
+using Microsoft.Extensions.Options;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<GroupService> logger)
+    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<GroupService> logger)
     {
         public async Task<ServiceResult<List<GroupDto>>> GetGroups(CancellationToken ct = default)
         {
@@ -28,19 +27,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Group>> GetGroupsFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT * FROM groups ORDER BY groups.sequential_id;";
+            List<Group> groups = await okdeskUnitOfWork.Group.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? groupTable = ds.Tables["Table"];
-            if (groupTable == null)
-                return new();
-
-            return groupTable.AsEnumerable().
-                Select(group => new Group
-                {
-                    Id = group.Field<int>("sequential_id"),
-                    Name = group.Field<string>("name") ?? ""
-                }).ToList();
+            return groups.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateGroupsFromCloudApi(CancellationToken ct)
@@ -49,23 +38,24 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<Group> groups = await GetGroupsFromCloudApi(ct);
 
-            if (groups.Count == 0) return;
-
-            foreach (Group group in groups)
+            if (groups.Count != 0)
             {
-                await sync.RunExclusive(group, async () =>
+                foreach (Group group in groups)
                 {
-                    group.Employees?.Clear();
+                    await sync.RunExclusive(group, async () =>
+                    {
+                        group.Employees?.Clear();
 
-                    Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+                        Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
 
-                    if (existingGroup == null)
-                        unitOfWork.Group.Create(group);
-                    else
-                        existingGroup.CopyData(group);
+                        if (existingGroup == null)
+                            unitOfWork.Group.Create(group);
+                        else
+                            existingGroup.CopyData(group);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update groups completed.", nameof(UpdateGroupsFromCloudApi));
@@ -77,21 +67,21 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<Group> groups = await GetGroupsFromCloudDb(ct);
 
-            if (groups.Count == 0)
-                return;
-
-            foreach (Group group in groups)
+            if (groups.Count != 0)
             {
-                await sync.RunExclusive(group, async () =>
+                foreach (Group group in groups)
                 {
-                    Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
-                    if (existingGroup == null)
-                        unitOfWork.Group.Create(group);
-                    else
-                        existingGroup.CopyData(group);
+                    await sync.RunExclusive(group, async () =>
+                    {
+                        Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+                        if (existingGroup == null)
+                            unitOfWork.Group.Create(group);
+                        else
+                            existingGroup.CopyData(group);
 
-                    await unitOfWork.SaveChangesAsync(ct);
-                }, ct);
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }, ct);
+                }
             }
 
             logger.LogInformation("[Method:{MethodName}] Update groups completed.", nameof(UpdateGroupsFromCloudDb));
@@ -134,14 +124,12 @@ namespace CRMService.Application.Service.OkdeskEntity
                     ct: ct);
 
             List<EmployeeGroup> toAdd = desired.Except(existing, EmployeeGroup.Comparer).ToList();
-
             List<EmployeeGroup> toDelete = existing.Except(desired, EmployeeGroup.Comparer).ToList();
 
             if (toAdd.Count == 0 && toDelete.Count == 0)
                 return;
 
             unitOfWork.EmployeeGroup.CreateRange(toAdd);
-
             unitOfWork.EmployeeGroup.DeleteRange(toDelete);
 
             await unitOfWork.SaveChangesAsync(ct);

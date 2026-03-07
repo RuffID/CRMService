@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
-    [DbContext(typeof(ApplicationContext))]
+    [DbContext(typeof(MainContext))]
     [Migration("20260306055231_UpdateCompanyModel_SetCategoryIdNullable")]
     partial class UpdateCompanyModel_SetCategoryIdNullable
     {

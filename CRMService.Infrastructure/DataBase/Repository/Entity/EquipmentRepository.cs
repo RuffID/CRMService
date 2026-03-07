@@ -1,13 +1,15 @@
-﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
 using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class EquipmentRepository(IGetItemByIdRepository<Equipment, int> getItemById,
-        IGetItemByPredicateRepository<Equipment> getItemByPredicate,
-        ICreateItemRepository<Equipment> create) : IEquipmentRepository
+    public class EquipmentRepository(
+        IGetItemByIdRepository<Equipment, int, MainContext> getItemById,
+        IGetItemByPredicateRepository<Equipment, MainContext> getItemByPredicate,
+        ICreateItemRepository<Equipment, MainContext> create
+    ) : IEquipmentRepository
     {
         public Task<Equipment?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Equipment>, IQueryable<Equipment>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -18,11 +20,10 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
         public Task<List<Equipment>> GetItemsByPredicateAsync(Expression<Func<Equipment, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Equipment>, IQueryable<Equipment>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
-        public void Create(Equipment item) => create.Create(item);
+        public void Create(Equipment item)
+            => create.Create(item);
 
-        public void CreateRange(IEnumerable<Equipment> entities) => create.CreateRange(entities);
+        public void CreateRange(IEnumerable<Equipment> entities)
+            => create.CreateRange(entities);
     }
 }
-
-
-

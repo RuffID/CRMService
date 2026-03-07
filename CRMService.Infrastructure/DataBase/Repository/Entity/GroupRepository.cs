@@ -1,13 +1,15 @@
-﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
 using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class GroupRepository(IGetItemByIdRepository<Group, int> getItemByid,
-        IGetItemByPredicateRepository<Group> getItemByPredicate,
-        ICreateItemRepository<Group> create) : IGroupRepository
+    public class GroupRepository(
+        IGetItemByIdRepository<Group, int, MainContext> getItemByid,
+        IGetItemByPredicateRepository<Group, MainContext> getItemByPredicate,
+        ICreateItemRepository<Group, MainContext> create
+    ) : IGroupRepository
     {
         public Task<Group?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Group>, IQueryable<Group>>? include = null, CancellationToken ct = default)
             => getItemByid.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -18,11 +20,10 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
         public Task<List<Group>> GetItemsByPredicateAsync(Expression<Func<Group, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<Group>, IQueryable<Group>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
-        public void Create(Group item) => create.Create(item);
+        public void Create(Group item)
+            => create.Create(item);
 
-        public void CreateRange(IEnumerable<Group> entities) => create.CreateRange(entities);
+        public void CreateRange(IEnumerable<Group> entities)
+            => create.CreateRange(entities);
     }
 }
-
-
-

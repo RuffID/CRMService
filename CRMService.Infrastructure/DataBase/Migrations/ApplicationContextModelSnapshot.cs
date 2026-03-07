@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
-    [DbContext(typeof(ApplicationContext))]
+    [DbContext(typeof(MainContext))]
     partial class ApplicationContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
@@ -270,7 +270,10 @@ namespace CRMService.Infrastructure.DataBase.Migrations
             modelBuilder.Entity("CRMService.Domain.Models.OkdeskEntity.CompanyCategory", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -528,7 +531,10 @@ namespace CRMService.Infrastructure.DataBase.Migrations
             modelBuilder.Entity("CRMService.Domain.Models.OkdeskEntity.IssuePriority", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -554,7 +560,10 @@ namespace CRMService.Infrastructure.DataBase.Migrations
             modelBuilder.Entity("CRMService.Domain.Models.OkdeskEntity.IssueStatus", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -690,9 +699,8 @@ namespace CRMService.Infrastructure.DataBase.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("FieldType")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                    b.Property<int?>("FieldType")
+                        .HasColumnType("int")
                         .HasJsonPropertyName("field_type");
 
                     b.Property<string>("Name")

@@ -1,36 +1,24 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
-using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class CompanyCategoryService(IPostgresSelect pGSelect, IUnitOfWork unitOfWork, EntitySyncService sync, ILogger<CompanyCategoryService> logger)
+    public class CompanyCategoryService(IOkdeskUnitOfWork okdeskUnitOfWork, IUnitOfWork unitOfWork, EntitySyncService sync, ILogger<CompanyCategoryService> logger)
     {
         private async Task<List<CompanyCategory>> GetCategoriesFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = "SELECT * FROM company_categories;";
-            DataSet ds = await pGSelect.Select(sqlCommand, ct);
-            DataTable? categoryTable = ds.Tables["Table"];
-            if (categoryTable == null)
-                return new();
+            List<CompanyCategory> categories = await okdeskUnitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            return categoryTable.AsEnumerable().
-                    Select(category => new CompanyCategory
-                    {
-                        Id = categoryTable.Rows.IndexOf(category) + 1,
-                        Name = category.Field<string>("name") ?? string.Empty,
-                        Code = category.Field<string>("code") ?? string.Empty,
-                        Color = category.Field<string>("color") ?? string.Empty
-                    }).ToList();
+            return categories.OrderBy(x => x.Id).ToList();
         }
 
         public async Task CheckAnonymousCategory(CancellationToken ct)
         {
             // Создание категории с нулевым id которой нет в базе окдеска, но по которой ищутся клиенты без категории
             // Это нужно для первого запуска сервера
-            CompanyCategory no_category = new() { Id = 0, Name = "Без категории", Code = "no_category", Color = "#FFFFFF" };
-            CompanyCategory? noCategoryFromDb = await unitOfWork.CompanyCategory.GetItemByIdAsync(no_category.Id, true, ct: ct);
+            CompanyCategory no_category = new() { Name = "Без категории", Code = "no_category", Color = "#FFFFFF" };
+            CompanyCategory? noCategoryFromDb = await unitOfWork.CompanyCategory.GetItemByPredicateAsync(c => c.Code == no_category.Code, true, ct: ct);
             if (noCategoryFromDb == null)
             {
                 unitOfWork.CompanyCategory.Create(no_category);
@@ -51,10 +39,13 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(category, async () =>
                 {
-                    CompanyCategory? existingCategory = await unitOfWork.CompanyCategory.GetItemByIdAsync(category.Id, ct: ct);
+                    CompanyCategory? existingCategory = await unitOfWork.CompanyCategory.GetItemByPredicateAsync(c => c.Code == category.Code, ct: ct);
 
                     if (existingCategory == null)
+                    {
+                        category.Id = 0;
                         unitOfWork.CompanyCategory.Create(category);
+                    }
                     else
                         existingCategory.CopyData(category);
 

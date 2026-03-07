@@ -1,26 +1,15 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Domain.Models.OkdeskEntity;
-using System.Data;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindParamService(IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, ILogger<KindParamService> logger)
+    public class KindParamService(IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, ILogger<KindParamService> logger)
     {
         private async Task<List<KindParam>> GetConnectionsFromCloudDb(CancellationToken ct)
         {
-            const string SQL = "SELECT equipment_kind_id, parameter_id FROM equipment_kind_parameters;";
+            List<KindParam> parameters = await okdeskUnitOfWork.KindParams.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            DataSet ds = await postgresSelect.Select(SQL, ct);
-            DataTable? table = ds.Tables["Table"];
-            if (table == null)
-                return new();
-
-            return table.AsEnumerable().
-                Select(group => new KindParam
-                {
-                    KindId = group.Field<int>("equipment_kind_id"),
-                    KindParameterId = group.Field<int>("parameter_id")
-                }).ToList();
+            return parameters.OrderBy(x => x.KindId).ThenBy(x => x.KindParameterId).ToList();
         }
 
         public async Task UpsertConnectionsFromCloudDb(CancellationToken ct)
@@ -43,7 +32,6 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return;
 
             unitOfWork.KindParams.CreateRange(toAdd);
-
             unitOfWork.KindParams.DeleteRange(toDelete);
 
             await unitOfWork.SaveChangesAsync(ct);

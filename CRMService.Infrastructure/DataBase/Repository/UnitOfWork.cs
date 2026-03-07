@@ -1,4 +1,4 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Abstractions.Database.Repository.Authorization;
 using CRMService.Application.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
@@ -8,33 +8,34 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CRMService.Infrastructure.DataBase.Repository
 {
-    public class UnitOfWork(IAppDbContext context, 
-        ICompanyRepository company, 
-        ICompanyCategoryRepository companyCategory, 
-        IParameterRepository parameter, 
-        IEmployeeGroupRepository employeeGroup, 
-        IEmployeeRepository employee, 
-        IEmployeeRoleRepository employeeRole, 
-        IGroupRepository group, 
-        IIssuePriorityRepository issuePriority, 
-        IIssueRepository issue, 
-        IIssueStatusRepository issueStatus, 
-        IIssueTypeRepository issueType, 
+    public class UnitOfWork(
+        IAppDbContext<CRMService.Infrastructure.DataBase.MainContext> context,
+        ICompanyRepository company,
+        ICompanyCategoryRepository companyCategory,
+        IParameterRepository parameter,
+        IEmployeeGroupRepository employeeGroup,
+        IEmployeeRepository employee,
+        IEmployeeRoleRepository employeeRole,
+        IGroupRepository group,
+        IIssuePriorityRepository issuePriority,
+        IIssueRepository issue,
+        IIssueStatusRepository issueStatus,
+        IIssueTypeRepository issueType,
         IIssueTypeGroupRepository issueTypeGroup,
-        IKindParamsRepository kindParams, 
-        IKindRepository kind, 
-        IKindParameterRepository kindParameter, 
-        IMaintenanceEntityRepository maintenanceEntity, 
-        IManufacturerRepository manufacturer, 
-        IModelRepository model, 
-        IOkdeskRoleRepository okdeskRole, 
-        ITimeEntryRepository timeEntry, 
-        IEquipmentRepository equipment, 
-        IReportRepository report, 
-        IBlockReasonRepository blockReason, 
-        ICrmRoleRepository crmRole, 
-        ISessionRepository session, 
-        IUserRepository user, 
+        IKindParamsRepository kindParams,
+        IKindRepository kind,
+        IKindParameterRepository kindParameter,
+        IMaintenanceEntityRepository maintenanceEntity,
+        IManufacturerRepository manufacturer,
+        IModelRepository model,
+        IOkdeskRoleRepository okdeskRole,
+        ITimeEntryRepository timeEntry,
+        IEquipmentRepository equipment,
+        IReportRepository report,
+        IBlockReasonRepository blockReason,
+        ICrmRoleRepository crmRole,
+        ISessionRepository session,
+        IUserRepository user,
         IUserRoleRepository userRole,
         IPlanRepository plan,
         IGeneralSettingsRepository generalSettings,
@@ -62,7 +63,6 @@ namespace CRMService.Infrastructure.DataBase.Repository
         public IOkdeskRoleRepository OkdeskRole { get; } = okdeskRole;
         public ITimeEntryRepository TimeEntry { get; } = timeEntry;
         public IEquipmentRepository Equipment { get; } = equipment;
-
         public IReportRepository Report { get; } = report;
         public IBlockReasonRepository BlockReason { get; } = blockReason;
         public ICrmRoleRepository CrmRole { get; } = crmRole;
@@ -94,5 +94,3 @@ namespace CRMService.Infrastructure.DataBase.Repository
         }
     }
 }
-
-

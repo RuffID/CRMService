@@ -1,13 +1,15 @@
-﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
 using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class OkdeskRoleRepository(IGetItemByIdRepository<OkdeskRole, int> getItemByid,
-        IGetItemByPredicateRepository<OkdeskRole> getItemByPredicate,
-        ICreateItemRepository<OkdeskRole> create) : IOkdeskRoleRepository
+    public class OkdeskRoleRepository(
+        IGetItemByIdRepository<OkdeskRole, int, MainContext> getItemByid,
+        IGetItemByPredicateRepository<OkdeskRole, MainContext> getItemByPredicate,
+        ICreateItemRepository<OkdeskRole, MainContext> create
+    ) : IOkdeskRoleRepository
     {
         public Task<OkdeskRole?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<OkdeskRole>, IQueryable<OkdeskRole>>? include = null, CancellationToken ct = default)
             => getItemByid.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -18,11 +20,10 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
         public Task<List<OkdeskRole>> GetItemsByPredicateAsync(Expression<Func<OkdeskRole, bool>>? predicate = null, int skip = 0, int? take = null, bool asNoTracking = false, Func<IQueryable<OkdeskRole>, IQueryable<OkdeskRole>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemsByPredicateAsync(predicate, skip, take, asNoTracking, include, ct);
 
-        public void Create(OkdeskRole item) => create.Create(item);
+        public void Create(OkdeskRole item)
+            => create.Create(item);
 
-        public void CreateRange(IEnumerable<OkdeskRole> entities) => create.CreateRange(entities);
+        public void CreateRange(IEnumerable<OkdeskRole> entities)
+            => create.CreateRange(entities);
     }
 }
-
-
-

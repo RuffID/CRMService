@@ -1,32 +1,33 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Abstractions.Database.Repository.Authorization;
 using CRMService.Application.Abstractions.Database.Repository.CrmEntity;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Application.Abstractions.Database.Repository.Report;
 using CRMService.Application.Abstractions.Service;
-using CRMService.Web.Core.Filter;
-using CRMService.Web.Core.Middleware;
+using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Authorization;
+using CRMService.Application.Service.CrmServices;
+using CRMService.Application.Service.Hosted;
+using CRMService.Application.Service.OkdeskEntity;
+using CRMService.Application.Service.Report;
+using CRMService.Application.Service.Sync;
+using CRMService.Application.Service.Webhook;
+using CRMService.Domain.Models.Constants;
 using CRMService.Infrastructure.DataBase;
 using CRMService.Infrastructure.DataBase.Postgresql;
 using CRMService.Infrastructure.DataBase.Repository;
 using CRMService.Infrastructure.DataBase.Repository.Authorization;
 using CRMService.Infrastructure.DataBase.Repository.CrmEntity;
 using CRMService.Infrastructure.DataBase.Repository.Entity;
+using CRMService.Infrastructure.DataBase.Repository.OkdeskEntity;
 using CRMService.Infrastructure.DataBase.Repository.Report;
-using CRMService.Application.Models.ConfigClass;
-using CRMService.Domain.Models.Constants;
-using CRMService.Web.Models.Server;
-using CRMService.Application.Service.Authorization;
-using CRMService.Web.Service.BackgroundServices;
-using CRMService.Application.Service.CrmServices;
-using CRMService.Infrastructure.Service.DataBase;
-using CRMService.Application.Service.Hosted;
-using CRMService.Application.Service.OkdeskEntity;
-using CRMService.Application.Service.Report;
-using CRMService.Infrastructure.Service.Requests;
-using CRMService.Application.Service.Sync;
-using CRMService.Application.Service.Webhook;
 using CRMService.Infrastructure.Service.Authorization;
+using CRMService.Infrastructure.Service.DataBase;
+using CRMService.Infrastructure.Service.Requests;
+using CRMService.Web.Core.Filter;
+using CRMService.Web.Core.Middleware;
+using CRMService.Web.Models.Server;
+using CRMService.Web.Service.BackgroundServices;
 using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.EfCore;
 using EFCoreLibrary.Extensions;
@@ -163,7 +164,7 @@ namespace CRMService.Web.Core
                 .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
                 .SetApplicationName(projectName);
 
-            services.AddDbContext<ApplicationContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")); });
+            services.AddDbContext<MainContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")); });
             services.AddDbContext<OkdeskContext>(options => { options.UseNpgsql(builder.Configuration.GetConnectionString("Postgresql")); });
 
             services.AddHttpClient<IHttpApiClient, HttpApiClient>(client =>
@@ -174,21 +175,22 @@ namespace CRMService.Web.Core
             services.AddSignalR();
 
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
-            services.AddScoped<IAppDbContext>(sp => new EfDbContextAdapter<ApplicationContext>(sp.GetRequiredService<ApplicationContext>()));
+            services.AddScoped<IAppDbContext<MainContext>>(sp => new EfDbContextAdapter<MainContext>(sp.GetRequiredService<MainContext>()));
+            services.AddScoped<IAppDbContext<OkdeskContext>>(sp => new EfDbContextAdapter<OkdeskContext>(sp.GetRequiredService<OkdeskContext>()));
+
             services.AddSingleton(new PGConfig(builder.Configuration.GetConnectionString("Postgresql")!));
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
             services.AddScoped<IPostgresSelect, PGSelect>();
-            services.AddScoped<DataBaseCheckUpService<ApplicationContext>>();
+            services.AddScoped<DataBaseCheckUpService<MainContext>>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddScoped<BackupService<ApplicationContext>>(sp =>
+            services.AddScoped<BackupService<MainContext>>(sp =>
             {
-                ILogger<BackupService<ApplicationContext>> logger = sp.GetRequiredService<ILogger<BackupService<ApplicationContext>>>();
+                ILogger<BackupService<MainContext>> logger = sp.GetRequiredService<ILogger<BackupService<MainContext>>>();
                 string connectionString = builder.Configuration.GetConnectionString("MSSql")!;
                 string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
-                return new BackupService<ApplicationContext>(connectionString, backupFolder, logger);
+                return new BackupService<MainContext>(connectionString, backupFolder, logger);
             });
-
 
             services.AddScoped<CompanyCategoryService>();
             services.AddScoped<CompanyService>();
@@ -205,7 +207,7 @@ namespace CRMService.Web.Core
             services.AddScoped<MaintenanceEntityService>();
             services.AddScoped<ManufacturerService>();
             services.AddScoped<ModelService>();
-            services.AddScoped<CRMService.Application.Service.OkdeskEntity.RoleService>();
+            services.AddScoped<Application.Service.OkdeskEntity.RoleService>();
             services.AddScoped<TimeEntryService>();
 
             services.AddScoped<IReportService, ReportService>();
@@ -217,7 +219,7 @@ namespace CRMService.Web.Core
             services.AddScoped<IAccessTokenService, JwtTokenService>();
             services.AddScoped<IRandomStringGenerator, GenerateRandomString>();
             services.AddScoped<UserService>();
-            services.AddScoped<CRMService.Application.Service.Authorization.RoleService>();
+            services.AddScoped<Application.Service.Authorization.RoleService>();
             services.AddScoped<INotificationService, TelegramNotification>();
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
@@ -237,7 +239,8 @@ namespace CRMService.Web.Core
         private static IServiceCollection AddRepositories(
              this IServiceCollection services)
         {
-            services.AddEfCoreBaseRepositories();
+            services.AddEfCoreBaseRepositories<MainContext>();
+            services.AddEfCoreBaseRepositories<OkdeskContext>();
 
             services.AddScoped<IBlockReasonRepository, BlockReasonRepository>();
             services.AddScoped<ICrmRoleRepository, CrmRoleRepository>();
@@ -266,6 +269,23 @@ namespace CRMService.Web.Core
             services.AddScoped<IOkdeskRoleRepository, OkdeskRoleRepository>();
             services.AddScoped<IParameterRepository, ParameterRepository>();
             services.AddScoped<ITimeEntryRepository, TimeEntryRepository>();
+            services.AddScoped<IOkdeskCompanyCategoryRepository, OkdeskCompanyCategoryRepository>();
+            services.AddScoped<IOkdeskCompanyRepository, OkdeskCompanyRepository>();
+            services.AddScoped<IOkdeskEmployeeRepository, OkdeskEmployeeRepository>();
+            services.AddScoped<IOkdeskGroupRepository, OkdeskGroupRepository>();
+            services.AddScoped<IOkdeskKindRepository, OkdeskKindRepository>();
+            services.AddScoped<IOkdeskKindParameterRepository, OkdeskKindParameterRepository>();
+            services.AddScoped<IOkdeskKindParamsRepository, OkdeskKindParamsRepository>();
+            services.AddScoped<IOkdeskMaintenanceEntityRepository, OkdeskMaintenanceEntityRepository>();
+            services.AddScoped<IOkdeskManufacturerRepository, OkdeskManufacturerRepository>();
+            services.AddScoped<IOkdeskModelRepository, OkdeskModelRepository>();
+            services.AddScoped<IOkdeskEquipmentRepository, OkdeskEquipmentRepository>();
+            services.AddScoped<IOkdeskIssueRepository, OkdeskIssueRepository>();
+            services.AddScoped<IOkdeskIssueStatusRepository, OkdeskIssueStatusRepository>();
+            services.AddScoped<IOkdeskIssuePriorityRepository, OkdeskIssuePriorityRepository>();
+            services.AddScoped<IOkdeskIssueTypeRepository, OkdeskIssueTypeRepository>();
+            services.AddScoped<IOkdeskTimeEntryRepository, OkdeskTimeEntryRepository>();
+            services.AddScoped<IOkdeskUnitOfWork, OkdeskUnitOfWork>();
 
             services.AddScoped<IReportRepository, ReportRepository>();
             services.AddScoped<IPlanRepository, PlanRepository>();
@@ -277,8 +297,3 @@ namespace CRMService.Web.Core
         }
     }
 }
-
-
-
-
-

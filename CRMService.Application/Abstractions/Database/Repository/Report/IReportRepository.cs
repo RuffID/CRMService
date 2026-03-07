@@ -1,4 +1,4 @@
-﻿using CRMService.Application.Models.Report;
+using CRMService.Application.Models.Report;
 using CRMService.Contracts.Models.Request;
 
 namespace CRMService.Application.Abstractions.Database.Repository.Report

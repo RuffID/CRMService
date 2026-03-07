@@ -1,19 +1,18 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Models.ConfigClass;
-using CRMService.Domain.Models.Constants;
+using CRMService.Application.Service.Sync;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
-using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Contracts.Models.Responses.Results;
+using CRMService.Domain.Models.Constants;
+using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
-using CRMService.Application.Common.Mapping.OkdeskEntity;
-using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, IOkdeskEntityRequestService request, EntitySyncService sync, ILogger<EmployeeService> logger)
+    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, IOkdeskEntityRequestService request, EntitySyncService sync, ILogger<EmployeeService> logger)
     {
         public async Task<ServiceResult<List<EmployeeDto>>> GetEmployees(List<int>? groupIds = null, CancellationToken ct = default)
         {
@@ -44,31 +43,14 @@ namespace CRMService.Application.Service.OkdeskEntity
                 yield return employees;
         }
 
-        private async Task<List<Employee>> GetEmployeesFromCloudDb(int limit, int lastSequentialId, CancellationToken ct)
+        private async Task<List<Employee>> GetEmployeesFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = string.Format("SELECT * FROM users " +
-                "WHERE type = 'Employee' " +
-                "AND users.sequential_id > {0} " +
-                "ORDER BY users.sequential_id " +
-                "LIMIT {1};", lastSequentialId, limit);
+            List<Employee> employees = await okdeskUnitOfWork.Employee.GetItemsByPredicateAsync(
+                predicate: e => EF.Property<string>(e, "Type") == "Employee",
+                asNoTracking: true,
+                ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? employeesTable = ds.Tables["Table"];
-            if (employeesTable == null)
-                return new();
-
-            return employeesTable.AsEnumerable().
-                Select(employee => new Employee
-                {
-                    Id = employee.Field<int>("sequential_id"),
-                    FirstName = employee.Field<string>("first_name"),
-                    LastName = employee.Field<string>("last_name"),
-                    Patronymic = employee.Field<string>("patronymic"),
-                    Position = employee.Field<string>("position"),
-                    Active = employee.Field<bool>("active"),
-                    Email = employee.Field<string>("email"),
-                    Login = employee.Field<string>("login") ?? string.Empty
-                }).ToList();
+            return employees.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateEmployeesFromCloudApi(CancellationToken ct)
@@ -99,14 +81,10 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting to update employees from DB.", nameof(UpdateEmployeesFromCloudDb));
 
-            int lastSequentialId = 0;
-            while (true)
+            List<Employee> employees = await GetEmployeesFromCloudDb(ct);
+
+            if (employees.Count != 0)
             {
-                List<Employee> employees = await GetEmployeesFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, lastSequentialId, ct);
-
-                if (employees.Count == 0)
-                    break;
-
                 foreach (Employee employee in employees)
                 {
                     await sync.RunExclusive(employee, async () =>
@@ -120,10 +98,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                         await unitOfWork.SaveChangesAsync(ct);
                     }, ct);
                 }
-
-                lastSequentialId = employees.Last().Id;
             }
-
 
             logger.LogInformation("[Method:{MethodName}] Update employees completed.", nameof(UpdateEmployeesFromCloudDb));
         }

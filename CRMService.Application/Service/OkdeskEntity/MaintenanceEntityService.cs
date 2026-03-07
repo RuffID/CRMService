@@ -1,16 +1,16 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
-        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
+        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
     {
         public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
@@ -26,27 +26,17 @@ namespace CRMService.Application.Service.OkdeskEntity
                 yield return me;
         }
 
-        private async Task<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudDb(long limit, CancellationToken ct)
+        private async Task<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudDb(CancellationToken ct)
         {
-            string sqlCommand = string.Format(
-                "SELECT company_maintenance_entities.sequential_id, company_maintenance_entities.name, companies.sequential_id AS companyId, company_maintenance_entities.active " +
-                "FROM company_maintenance_entities " +
-                "JOIN companies ON company_maintenance_entities.company_id = companies.id " +
-                "ORDER BY company_maintenance_entities.sequential_id  LIMIT '{1}';", limit);
+            List<MaintenanceEntity> maintenanceEntities = await okdeskUnitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(
+                asNoTracking: true,
+                include: query => query.Include(x => x.Company),
+                ct: ct);
 
-            DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-            DataTable? meTable = ds.Tables["Table"];
-            if (meTable == null)
-                return new();
+            foreach (MaintenanceEntity item in maintenanceEntities)
+                item.CompanyId = item.Company?.Id;
 
-            return meTable.AsEnumerable().
-                Select(me => new MaintenanceEntity
-                {
-                    Id = me.Field<int>("sequential_id"),
-                    Name = me.Field<string>("name") ?? string.Empty,
-                    CompanyId = me.Field<int>("companyId"),
-                    Active = me.Field<bool>("active")
-                }).ToList();
+            return maintenanceEntities.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
@@ -84,20 +74,17 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting updating maintenance entities.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
 
-            while (true)
+            List<MaintenanceEntity> maintenanceEntities = await GetMaintenanceEntitiesFromCloudDb(ct);
+
+            if (maintenanceEntities.Count == 0)
+                return;
+
+            foreach (MaintenanceEntity newMaintenanceEntity in maintenanceEntities)
             {
-                List<MaintenanceEntity> me = await GetMaintenanceEntitiesFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
-
-                if (me.Count == 0)
-                    break;
-
-                foreach (MaintenanceEntity newMaintenanceEntity in me)
+                await sync.RunExclusive(newMaintenanceEntity, async () =>
                 {
-                    await sync.RunExclusive(newMaintenanceEntity, async () =>
-                    {
-                        await CreateOrUpdate(newMaintenanceEntity, ct);
-                    }, ct);
-                }
+                    await CreateOrUpdate(newMaintenanceEntity, ct);
+                }, ct);
             }
 
             logger.LogInformation("[Method:{MethodName}] Maintenance entities update completed.", nameof(UpdateMaintenanceEntitiesFromCloudDb));
@@ -126,11 +113,10 @@ namespace CRMService.Application.Service.OkdeskEntity
                     logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for maintenanceEntity with id: {maintenanceEntityId}.",
                         nameof(CheckMaintenanceEntity), maintenanceEntity.Company.Id, maintenanceEntity.Id);
                     maintenanceEntity.CompanyId = null;
-                    maintenanceEntity.Company = null;
                 }
                 else
                 {
-                    maintenanceEntity.CompanyId = company?.Id;
+                    maintenanceEntity.CompanyId = company.Id;
                 }
             }
             else if (maintenanceEntity.CompanyId.HasValue)
@@ -144,9 +130,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                 }
                 else
                 {
-                    maintenanceEntity.CompanyId = company?.Id;
+                    maintenanceEntity.CompanyId = company.Id;
                 }
             }
+
+            maintenanceEntity.Company = null;
         }
     }
 }

@@ -37,7 +37,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 using (IServiceScope scope = app.Services.CreateScope())
 {
-    DataBaseCheckUpService<ApplicationContext> dbCheckUp = scope.ServiceProvider.GetRequiredService<DataBaseCheckUpService<ApplicationContext>>();
+    DataBaseCheckUpService<MainContext> dbCheckUp = scope.ServiceProvider.GetRequiredService<DataBaseCheckUpService<MainContext>>();
     dbCheckUp.CheckOrUpdateDB();
 }
 
@@ -52,6 +52,3 @@ app.MapControllers();
 app.MapRazorPages();
 
 app.Run();
-
-
-

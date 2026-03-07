@@ -18,14 +18,8 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
             builder.Property(e => e.Code)
                 .HasMaxLength(30);
 
-            builder.Property(e => e.FieldType)
-                .HasMaxLength(30);
-
             builder.Property(e => e.Name)
                 .HasMaxLength(200);
         }
     }
 }
-
-
-

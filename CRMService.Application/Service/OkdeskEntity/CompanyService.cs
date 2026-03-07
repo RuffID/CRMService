@@ -1,16 +1,16 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<CompanyService> logger)
+        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<CompanyService> logger)
     {
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
@@ -28,8 +28,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     foreach (Company company in companies)
                     {
-                        company.CategoryId = category.Id;
-                        company.Category = null;
+                        company.CategoryId = null;
+                        company.Category = new CompanyCategory
+                        {
+                            Code = category.Code
+                        };
                     }
 
                     yield return companies;
@@ -37,47 +40,14 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
         }
 
-        private async IAsyncEnumerable<List<Company>> GetCompaniesFromCloudDbByCategory(IEnumerable<CompanyCategory> categories, [EnumeratorCancellation] CancellationToken ct)
+        private async Task<List<Company>> GetCompaniesFromCloudDb(CancellationToken ct)
         {
-            foreach (CompanyCategory category in categories)
-            {
-                while (true)
-                {
-                    string sqlCommand = string.Format(
-                        "SELECT companies.sequential_id AS id, companies.name, companies.additional_name, companies.active " +
-                        "FROM companies " +
-                        "LEFT OUTER JOIN company_categories ON companies.category_id = company_categories.id");
+            List<Company> companies = await okdeskUnitOfWork.Company.GetItemsByPredicateAsync(
+                asNoTracking: true,
+                include: query => query.Include(x => x.Category),
+                ct: ct);
 
-                    if (category.Code == "no_category")
-                        sqlCommand += " AND company_categories.code IS NULL ";
-                    else sqlCommand += $" AND company_categories.code = '{category.Code}' ";
-
-                    sqlCommand += $" ORDER BY companies.sequential_id LIMIT {LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB};";
-
-                    DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-                    DataTable? companyTable = ds.Tables["Table"];
-                    if (companyTable == null)
-                        break;
-
-                    List<Company> companies = companyTable.AsEnumerable().
-                        Select(company => new Company
-                        {
-                            Id = company.Field<int>("id"),
-                            Name = company.Field<string>("name") ?? string.Empty,
-                            AdditionalName = company.Field<string>("additional_name"),
-                            CategoryId = category.Id,
-                            Active = company.Field<bool>("active"),
-                            Equipment = null,
-                            MaintenanceEntities = null,
-                            Issues = null
-                        }).ToList();
-
-                    if (companies == null || companies.Count == 0)
-                        break;
-
-                    yield return companies;
-                }
-            }
+            return companies.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateCompanyFromCloudApi(int companyId, CancellationToken ct)
@@ -99,17 +69,17 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
-            if (categories.Count == 0)
-                return;
-
-            await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
+            if (categories.Count != 0)
             {
-                foreach (Company company in companies)
+                await foreach (List<Company> companies in GetCompaniesFromCloudApiByCategory(categories, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, ct))
                 {
-                    await sync.RunExclusive(company, async () =>
+                    foreach (Company company in companies)
                     {
-                        await CreateOrUpdateAsync(company, ct);
-                    }, ct);
+                        await sync.RunExclusive(company, async () =>
+                        {
+                            await CreateOrUpdateAsync(company, ct);
+                        }, ct);
+                    }
                 }
             }
 
@@ -120,16 +90,10 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting to update companies from DB.", nameof(UpdateCompaniesFromCloudDb));
 
-            IEnumerable<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Company> companies = await GetCompaniesFromCloudDb(ct);
 
-            if (categories == null || !categories.Any())
-                return;
-
-            await foreach (List<Company> companies in GetCompaniesFromCloudDbByCategory(categories, ct))
+            if (companies.Count != 0)
             {
-                if (companies.Count == 0)
-                    continue;
-
                 foreach (Company company in companies)
                 {
                     await sync.RunExclusive(company, async () =>
@@ -164,7 +128,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return;
             }
 
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(company.Category.Id, ct: ct);
+            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByPredicateAsync(c => c.Code == company.Category.Code, ct: ct);
             company.CategoryId = category?.Id;
 
             company.Category = null;

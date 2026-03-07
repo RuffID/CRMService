@@ -4,13 +4,11 @@ using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
-using System.Data;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IPostgresSelect postgresSelect, EntitySyncService sync, ILogger<EquipmentService> logger)
+    public class EquipmentService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<EquipmentService> logger)
     {
         private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApi(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, [EnumeratorCancellation] CancellationToken ct = default)
         {
@@ -25,58 +23,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                 yield return equipments;
         }
 
-        private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudDb(int limit, [EnumeratorCancellation] CancellationToken ct)
+        private async Task<List<Equipment>> GetEquipmentsFromCloudDb(int startId, int limit, CancellationToken ct)
         {
-            int lastId = 0;
+            List<Equipment> equipments = await okdeskUnitOfWork.Equipment.GetSyncItemsAsync(startId, limit, ct);
 
-            while (true)
-            {
-                string sqlCommand = string.Format(
-                    "SELECT equipments.sequential_id, equipments.inventory_number, equipments.serial_number, " +
-                    "equipments.parameters, company_maintenance_entities.sequential_id AS maintenanceEntitiesId, " +
-                    "companies.sequential_id AS companyId, equipment_kinds.id AS kindId, " +
-                    "equipment_manufacturers.id AS manufacturerId, equipment_models.id AS modelId " +
-                    "FROM equipments " +
-                    "LEFT OUTER JOIN companies ON equipments.company_id = companies.id " +
-                    "LEFT OUTER JOIN company_maintenance_entities ON equipments.maintenance_entity_id = company_maintenance_entities.id " +
-                    "LEFT OUTER JOIN equipment_kinds ON equipments.equipment_kind_id = equipment_kinds.id " +
-                    "LEFT OUTER JOIN equipment_manufacturers ON equipments.equipment_manufacturer_id = equipment_manufacturers.id " +
-                    "LEFT OUTER JOIN equipment_models ON equipments.equipment_model_id = equipment_models.id " +
-                    "WHERE equipments.sequential_id > {0} " +
-                    "ORDER BY equipments.sequential_id " +
-                    "LIMIT {1};",
-                    lastId, limit);
-
-                DataSet ds = await postgresSelect.Select(sqlCommand, ct);
-                DataTable? table = ds.Tables["Table"];
-
-                if (table == null || table.Rows.Count == 0)
-                    yield break;
-
-                List<Equipment> equipments = table.AsEnumerable()
-                    .Select(equipment => new Equipment
-                    {
-                        Id = equipment.Field<int>("sequential_id"),
-                        SerialNumber = equipment.Field<string?>("serial_number"),
-                        InventoryNumber = equipment.Field<string?>("inventory_number"),
-                        CompanyId = equipment.Field<int?>("companyId"),
-                        MaintenanceEntitiesId = equipment.Field<int?>("maintenanceEntitiesId"),
-                        KindId = equipment.Field<int?>("kindId"),
-                        ManufacturerId = equipment.Field<int?>("manufacturerId"),
-                        ModelId = equipment.Field<int?>("modelId"),
-                        Parameters = HandleParameters(
-                            equipment.Field<int>("sequential_id"),
-                            equipment.Field<string>("parameters"))
-                    })
-                    .ToList();
-
-                lastId = equipments.Last().Id;
-
-                yield return equipments;
-
-                if (equipments.Count < limit)
-                    yield break;
-            }
+            return equipments.OrderBy(x => x.Id).ToList();
         }
 
         public async Task UpdateEquipmentFromCloudApi(long id, CancellationToken ct)
@@ -120,9 +71,15 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting ti update equipments.", nameof(UpdateEquipmentsFromCloudDb));
 
+            int startId = 0;
 
-            await foreach (List<Equipment> equipments in GetEquipmentsFromCloudDb(LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct))
+            while (true)
             {
+                List<Equipment> equipments = await GetEquipmentsFromCloudDb(startId, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
+
+                if (equipments.Count == 0)
+                    break;
+
                 foreach (Equipment equipment in equipments)
                 {
                     await sync.RunExclusive(equipment, async () =>
@@ -130,6 +87,11 @@ namespace CRMService.Application.Service.OkdeskEntity
                         await CreateOrUpdate(equipment, ct);
                     }, ct);
                 }
+
+                startId = equipments.Last().Id;
+
+                if (equipments.Count < LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB)
+                    break;
             }
 
             logger.LogInformation("[Method:{MethodName}] Equipments update completed.", nameof(UpdateEquipmentsFromCloudDb));
@@ -192,66 +154,5 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
         }
 
-        private static List<EquipmentParameter> HandleParameters(int equipmentId, string? parameters)
-        {
-            List<EquipmentParameter> result = new();
-            if (string.IsNullOrEmpty(parameters))
-                return result;
-
-            using JsonDocument document = JsonDocument.Parse(parameters);
-            JsonElement root = document.RootElement;
-
-            if (root.ValueKind == JsonValueKind.Object)
-            {
-                foreach (JsonProperty property in root.EnumerateObject())
-                {
-                    string? valueStr = property.Value.ValueKind switch
-                    {
-                        JsonValueKind.Null => null,
-                        JsonValueKind.String => property.Value.GetString(),
-                        _ => property.Value.GetRawText()
-                    };
-
-                    if (string.IsNullOrEmpty(valueStr))
-                        continue;
-
-                    result.Add(new EquipmentParameter
-                    {
-                        Code = property.Name,
-                        Value = valueStr,
-                        EquipmentId = equipmentId
-                    });
-                }
-                return result;
-            }
-
-            result.Add(new EquipmentParameter
-            {
-                Code = null,
-                Value = root.ValueKind == JsonValueKind.Array || root.ValueKind == JsonValueKind.Object
-                    ? root.GetRawText()
-                    : ConvertScalarJsonElement(root),
-                EquipmentId = equipmentId
-            });
-
-            return result;
-        }
-
-        private static object? ConvertScalarJsonElement(JsonElement element)
-        {
-            // Сохраняем тип скалярного JSON-значения при переносе с JValue.
-            return element.ValueKind switch
-            {
-                JsonValueKind.String => element.GetString(),
-                JsonValueKind.Number when element.TryGetInt64(out long int64Value) => int64Value,
-                JsonValueKind.Number when element.TryGetDecimal(out decimal decimalValue) => decimalValue,
-                JsonValueKind.Number => element.GetDouble(),
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Null => null,
-                JsonValueKind.Undefined => null,
-                _ => element.GetRawText()
-            };
-        }
     }
 }

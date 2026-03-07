@@ -1,11 +1,13 @@
-﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using Microsoft.EntityFrameworkCore;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Abstractions.Database.Repository.OkdeskEntity
 {
-    public interface IModelRepository : IGetItemByIdRepository<Model, int>, IGetItemByPredicateRepository<Model>, ICreateItemRepository<Model>
+    public interface IModelRepository :
+        IGetItemByIdRepository<Model, int, DbContext>,
+        IGetItemByPredicateRepository<Model, DbContext>,
+        ICreateItemRepository<Model, DbContext>
     {
     }
 }
-
-

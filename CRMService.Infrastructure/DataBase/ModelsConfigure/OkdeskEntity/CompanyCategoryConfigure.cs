@@ -11,7 +11,7 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
             builder.ToTable("CompanyCategory");            
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever();
+                .ValueGeneratedOnAdd();
 
             builder.Property(e => e.Code)
                 .HasMaxLength(50);

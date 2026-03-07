@@ -1,20 +1,21 @@
-﻿using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Application.Abstractions.Database.Repository.Report;
-using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Models.Report;
 using CRMService.Contracts.Models.Request;
+using CRMService.Domain.Models.OkdeskEntity;
+using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Report
 {
-    public class ReportRepository(IQueryRepository<Issue> issues, IQueryRepository<TimeEntry> timeEntries) : IReportRepository
+    public class ReportRepository(
+        IQueryRepository<Issue, MainContext> issues,
+        IQueryRepository<TimeEntry, MainContext> timeEntries) : IReportRepository
     {
         public async Task<List<IssueInfo>> GetInfoForOpenIssuesByEmployee(ReportRequest? filters, CancellationToken ct)
         {
             IQueryable<Issue> query = issues.Query(asNoTracking: true);
 
             query = ApplyIssueFilters(query, filters);
-
             query = query.Where(i => !i.Status!.Code.Equals("completed") && !i.Status.Code.Equals("closed"));
 
             List<IssueInfo> result = await query
@@ -37,7 +38,6 @@ namespace CRMService.Infrastructure.DataBase.Repository.Report
             IQueryable<Issue> query = issues.Query(asNoTracking: true);
 
             query = ApplyIssueFilters(query, filters);
-
             query = query
                 .Where(i => i.AssigneeId != null)
                 .Where(i => i.CompletedAt > dateFrom && i.CompletedAt < dateTo)
@@ -58,7 +58,6 @@ namespace CRMService.Infrastructure.DataBase.Repository.Report
             IQueryable<Issue> query = issues.Query(asNoTracking: true);
 
             query = ApplyIssueFilters(query, filters);
-
             query = query
                 .Where(i => i.AssigneeId != null)
                 .Where(i => i.CompletedAt >= dateFrom && i.CompletedAt <= dateTo)
@@ -99,7 +98,6 @@ namespace CRMService.Infrastructure.DataBase.Repository.Report
             IQueryable<Issue> query = issues.Query(asNoTracking: true);
 
             query = ApplyIssueFilters(query, filters);
-
             query = query
                 .Where(i => i.AssigneeId != null)
                 .Where(i => !i.Status!.Code.Equals("completed") && !i.Status.Code.Equals("closed"));
@@ -137,6 +135,3 @@ namespace CRMService.Infrastructure.DataBase.Repository.Report
         }
     }
 }
-
-
-

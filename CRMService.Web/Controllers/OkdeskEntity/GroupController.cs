@@ -24,6 +24,14 @@ namespace CRMService.Web.Controllers.OkdeskEntity
             return NoContent();
         }
 
+        [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
+        public async Task<IActionResult> UpdateGroupsFromCloudDb(CancellationToken ct)
+        {
+            await service.UpdateGroupsFromCloudDb(ct);
+
+            return NoContent();
+        }
+
         [HttpPut("update_connections_with_employees_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateGroupConnectionsWithEmployeeFromCloudApi(CancellationToken ct)
         {

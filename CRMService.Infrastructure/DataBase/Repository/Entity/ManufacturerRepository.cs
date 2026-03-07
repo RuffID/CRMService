@@ -1,13 +1,15 @@
-﻿using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Domain.Models.OkdeskEntity;
 using System.Linq.Expressions;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class ManufacturerRepository(IGetItemByIdRepository<Manufacturer, int> getItemById,
-        IGetItemByPredicateRepository<Manufacturer> getItemByPredicate,
-        ICreateItemRepository<Manufacturer> create) : IManufacturerRepository
+    public class ManufacturerRepository(
+        IGetItemByIdRepository<Manufacturer, int, MainContext> getItemById,
+        IGetItemByPredicateRepository<Manufacturer, MainContext> getItemByPredicate,
+        ICreateItemRepository<Manufacturer, MainContext> create
+    ) : IManufacturerRepository
     {
         public Task<Manufacturer?> GetItemByPredicateAsync(Expression<Func<Manufacturer, bool>> predicate, bool asNoTracking = false, Func<IQueryable<Manufacturer>, IQueryable<Manufacturer>>? include = null, CancellationToken ct = default)
             => getItemByPredicate.GetItemByPredicateAsync(predicate, asNoTracking, include, ct);
@@ -18,11 +20,10 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
         public Task<Manufacturer?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Manufacturer>, IQueryable<Manufacturer>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
 
-        public void Create(Manufacturer item) => create.Create(item);
+        public void Create(Manufacturer item)
+            => create.Create(item);
 
-        public void CreateRange(IEnumerable<Manufacturer> entities) => create.CreateRange(entities);
+        public void CreateRange(IEnumerable<Manufacturer> entities)
+            => create.CreateRange(entities);
     }
 }
-
-
-

@@ -55,9 +55,24 @@ namespace CRMService.Web.Controllers.OkdeskEntity
             if (dateTo.Hour == 0 && dateTo.Minute == 0 && dateTo.Second == 0)
                 dateTo = new(dateTo.Year, dateTo.Month, dateTo.Day, hour: 23, minute: 59, second: 59);
 
+            dateFrom = ConvertToUtc(dateFrom);
+            dateTo = ConvertToUtc(dateTo);
+
             await service.UpdateIssuesFromCloudDb(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, nameof(IssueController), ct);
 
             return NoContent();
+        }
+
+        private static DateTime ConvertToUtc(DateTime dateTime)
+        {
+            // Обрабатывает локальное время как UTC-границу запроса к PostgreSQL timestamptz.
+            return dateTime.Kind switch
+            {
+                DateTimeKind.Utc => dateTime,
+                DateTimeKind.Local => dateTime.ToUniversalTime(),
+                DateTimeKind.Unspecified => TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dateTime, DateTimeKind.Local)),
+                _ => throw new ArgumentOutOfRangeException(nameof(dateTime), dateTime.Kind, "Unsupported DateTime kind.")
+            };
         }
     }
 }

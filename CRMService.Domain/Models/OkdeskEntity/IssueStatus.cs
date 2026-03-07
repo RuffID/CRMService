@@ -1,4 +1,4 @@
-﻿using EFCoreLibrary.Abstractions.Entity;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CRMService.Domain.Models.OkdeskEntity
 {
@@ -22,5 +22,3 @@ namespace CRMService.Domain.Models.OkdeskEntity
         }
     }
 }
-
-

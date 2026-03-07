@@ -1,6 +1,5 @@
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
-using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -8,9 +7,9 @@ using System.Linq.Expressions;
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
     public class OkdeskIssueRepository(
-        IAppDbContext<OkdeskContext> dbContext,
         IGetItemByIdRepository<Issue, int, OkdeskContext> getItemById,
-        IGetItemByPredicateRepository<Issue, OkdeskContext> getItemByPredicate) : IOkdeskIssueRepository
+        IGetItemByPredicateRepository<Issue, OkdeskContext> getItemByPredicate,
+        IQueryRepository<Issue, OkdeskContext> query) : IOkdeskIssueRepository
     {
         public Task<Issue?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Issue>, IQueryable<Issue>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -23,8 +22,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 
         public async Task<List<Issue>> GetUpdatedItemsAsync(DateTime dateFrom, DateTime dateTo, int startId, int limit, CancellationToken ct = default)
         {
-            List<IssueSyncProjection> rows = await dbContext.Set<Issue>()
-                .AsNoTracking()
+            List<IssueSyncProjection> rows = await query.Query(true)
                 .Where(x =>
                     (((x.EmployeesUpdatedAt >= dateFrom) && (x.EmployeesUpdatedAt <= dateTo)) ||
                     ((x.DeletedAt >= dateFrom) && (x.DeletedAt <= dateTo))) &&
@@ -35,7 +33,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
                 {
                     Id = x.Id,
                     AssigneeId = x.Assignee != null ? x.Assignee.Id : null,
-                    AuthorId = dbContext.Set<Employee>()
+                    AuthorId = query.Query()
                         .Where(e => EF.Property<int>(e, "InternalId") == EF.Property<int?>(x, "AuthorInternalId"))
                         .Select(e => (int?)e.Id)
                         .FirstOrDefault(),

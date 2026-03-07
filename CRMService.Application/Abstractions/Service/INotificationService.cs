@@ -5,6 +5,3 @@
         Task SendMessage(long? chatId, string content, CancellationToken ct = default);
     }
 }
-
-
-

@@ -13,6 +13,3 @@ namespace CRMService.Application.Abstractions.Service
         string GetBase64RandomString();
     }
 }
-
-
-

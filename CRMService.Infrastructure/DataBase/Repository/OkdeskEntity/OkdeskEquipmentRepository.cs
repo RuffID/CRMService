@@ -1,6 +1,5 @@
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Domain.Models.OkdeskEntity;
-using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.Abstractions.Database.Repository.Base;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -9,9 +8,9 @@ using System.Text.Json;
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
     public class OkdeskEquipmentRepository(
-        IAppDbContext<OkdeskContext> dbContext,
         IGetItemByIdRepository<Equipment, int, OkdeskContext> getItemById,
-        IGetItemByPredicateRepository<Equipment, OkdeskContext> getItemByPredicate) : IOkdeskEquipmentRepository
+        IGetItemByPredicateRepository<Equipment, OkdeskContext> getItemByPredicate,
+        IQueryRepository<Equipment, OkdeskContext> query) : IOkdeskEquipmentRepository
     {
         public Task<Equipment?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Equipment>, IQueryable<Equipment>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -24,8 +23,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 
         public async Task<List<Equipment>> GetSyncItemsAsync(int startId, int limit, CancellationToken ct = default)
         {
-            List<EquipmentSyncProjection> rows = await dbContext.Set<Equipment>()
-                .AsNoTracking()
+            List<EquipmentSyncProjection> rows = await query.Query(true)
                 .Where(x => x.Id > startId)
                 .OrderBy(x => x.Id)
                 .Take(limit)

@@ -8,9 +8,9 @@ using System.Linq.Expressions;
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
     public class OkdeskTimeEntryRepository(
-        IAppDbContext<OkdeskContext> dbContext,
         IGetItemByIdRepository<TimeEntry, int, OkdeskContext> getItemById,
-        IGetItemByPredicateRepository<TimeEntry, OkdeskContext> getItemByPredicate) : IOkdeskTimeEntryRepository
+        IGetItemByPredicateRepository<TimeEntry, OkdeskContext> getItemByPredicate,
+        IQueryRepository<TimeEntry, OkdeskContext> query) : IOkdeskTimeEntryRepository
     {
         public Task<TimeEntry?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<TimeEntry>, IQueryable<TimeEntry>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -23,8 +23,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 
         public async Task<List<TimeEntry>> GetLoggedItemsAsync(DateTime dateFrom, DateTime dateTo, long startId, long limit, CancellationToken ct = default)
         {
-            List<TimeEntrySyncProjection> rows = await dbContext.Set<TimeEntry>()
-                .AsNoTracking()
+            List<TimeEntrySyncProjection> rows = await query.Query(true)
                 .Where(x => x.LoggedAt >= dateFrom && x.LoggedAt <= dateTo && x.Id > startId)
                 .OrderBy(x => x.Id)
                 .Take((int)limit)

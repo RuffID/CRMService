@@ -18,5 +18,3 @@ namespace CRMService.Application.Abstractions.Service
         Task<ServiceResult<bool>> SavePlanColorSchemes(Guid planId, List<PlanColorSchemeDto> items, CancellationToken ct = default);
     }
 }
-
-

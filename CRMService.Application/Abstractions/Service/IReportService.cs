@@ -8,6 +8,3 @@ namespace CRMService.Application.Abstractions.Service
         Task<List<ReportInfo>> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, ReportRequest filters, CancellationToken ct);
     }
 }
-
-
-

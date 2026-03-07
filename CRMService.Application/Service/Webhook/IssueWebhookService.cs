@@ -8,12 +8,12 @@ using CRMService.Application.Service.Sync;
 namespace CRMService.Application.Service.Webhook
 {
     public class IssueWebhookService(
-        IssueService issueService, 
+        IssueService issueService,
         TimeEntryService timeEntryService,
         IOptions<ApiEndpointOptions> endp,
         IOptions<TelegramBotOptions> tgSettings,
-        EntitySyncService sync, 
-        INotificationService tgNotif, 
+        EntitySyncService sync,
+        INotificationService tgNotif,
         ILogger<IssueWebhookService> logger) : IWebhookHandler
     {
         private const string AUTHOR_CONTACT_TYPE = "contact";
@@ -103,32 +103,31 @@ namespace CRMService.Application.Service.Webhook
 
                 await issueService.CreateOrUpdate(issue, ct);
 
-                List<TimeEntry> entries = new();
-                if (@event.Event!.Time_entries != null && @event.Event!.Time_entries.Length != 0)
-                {
-                    foreach (TimeEntryWebHook entry in @event.Event.Time_entries)
-                    {
-                        entries.Add(new()
-                        {
-                            Id = entry.Id,
-                            SpentTime = entry.Spent_time,
-                            EmployeeId = entry.Employee.Id,
-                            IssueId = issue.Id,
-                            CreatedAt = DateTime.Now,
-                            LoggedAt = entry.Logged_at
-                        });
-                    }
+                if (@event.Event.Time_entries == null || @event.Event.Time_entries.Length == 0)
+                    return;
 
-                    foreach (TimeEntry item in entries)
-                        await timeEntryService.CreateOrUpdate(item, ct);
-                }
+                List<TimeEntry> entries = new();
 
                 logger.LogInformation("[Method:{MethodName}] Create time entry from webhook: \"{WebhookType}\". Time entries count: {timeEntriesCount}, issueId: {issueId}, assigneeId: {assigneeId}",
                 nameof(UpdateStatusAndSaveTimeEntries),
-                @event.Event!.Event_type,
-                entries.Count,
+                @event.Event.Event_type,
+                @event.Event.Time_entries.Length,
                 @event.Issue.Id,
                 @event.Issue.EffectiveAssignee?.Employee?.Id);
+
+                foreach (TimeEntryWebHook entry in @event.Event.Time_entries)
+                {
+                    TimeEntry newEntry = new()
+                    {
+                        Id = entry.Id,
+                        SpentTime = entry.Spent_time,
+                        EmployeeId = entry.Employee.Id,
+                        IssueId = issue.Id,
+                        LoggedAt = entry.Logged_at
+                    };
+
+                    await timeEntryService.CreateOrUpdate(newEntry, ct);
+                }
             }, ct);
         }
 
@@ -182,10 +181,10 @@ namespace CRMService.Application.Service.Webhook
                 return;
 
             logger.LogInformation("[Method:{MethodName}] New comment from webhook: \"{WebhookType}\". Issue: {issueId}, author: {authorFullName}, companyId: {companyId}",
-                nameof(NewComment), 
-                @event.Event!.Event_type, 
-                @event.Issue!.Id, 
-                FullName(@event.Event.Author), 
+                nameof(NewComment),
+                @event.Event!.Event_type,
+                @event.Issue!.Id,
+                FullName(@event.Event.Author),
                 @event.Issue.Client?.Company?.Id);
 
             DateTime now = DateTime.Now;

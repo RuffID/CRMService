@@ -30,7 +30,7 @@ namespace CRMService.Web.Controllers.WebHook
                 return BadRequest("Invalid JSON");
             }
 
-            if (@event?.Event?.Event_type == null)
+            if (@event == null || @event.Event == null || @event.Event.Event_type == null)
             {
                 logger.LogWarning("[Method:{MethodName}] Empty event or action object. Raw body: {Body}", nameof(WebHookAction), body);
                 return BadRequest("Empty event or action object.");

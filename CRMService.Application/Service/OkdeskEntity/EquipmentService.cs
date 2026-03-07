@@ -69,7 +69,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task UpdateEquipmentsFromCloudDb(CancellationToken ct)
         {
-            logger.LogInformation("[Method:{MethodName}] Starting ti update equipments.", nameof(UpdateEquipmentsFromCloudDb));
+            logger.LogInformation("[Method:{MethodName}] Starting updating equipments.", nameof(UpdateEquipmentsFromCloudDb));
 
             int startId = 0;
 

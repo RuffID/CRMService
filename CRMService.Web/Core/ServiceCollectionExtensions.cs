@@ -14,7 +14,6 @@ using CRMService.Application.Service.Sync;
 using CRMService.Application.Service.Webhook;
 using CRMService.Domain.Models.Constants;
 using CRMService.Infrastructure.DataBase;
-using CRMService.Infrastructure.DataBase.Postgresql;
 using CRMService.Infrastructure.DataBase.Repository;
 using CRMService.Infrastructure.DataBase.Repository.Authorization;
 using CRMService.Infrastructure.DataBase.Repository.CrmEntity;
@@ -178,13 +177,11 @@ namespace CRMService.Web.Core
             services.AddScoped<IAppDbContext<MainContext>>(sp => new EfDbContextAdapter<MainContext>(sp.GetRequiredService<MainContext>()));
             services.AddScoped<IAppDbContext<OkdeskContext>>(sp => new EfDbContextAdapter<OkdeskContext>(sp.GetRequiredService<OkdeskContext>()));
 
-            services.AddSingleton(new PGConfig(builder.Configuration.GetConnectionString("Postgresql")!));
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
-            services.AddScoped<IPostgresSelect, PGSelect>();
             services.AddScoped<DataBaseCheckUpService<MainContext>>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddScoped<BackupService<MainContext>>(sp =>
+            services.AddScoped(sp =>
             {
                 ILogger<BackupService<MainContext>> logger = sp.GetRequiredService<ILogger<BackupService<MainContext>>>();
                 string connectionString = builder.Configuration.GetConnectionString("MSSql")!;

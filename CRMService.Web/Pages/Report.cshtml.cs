@@ -14,7 +14,6 @@ namespace CRMService.Web.Pages
     [CookieAuthorize]
     public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IPlanSettingsService planSettingsService, IReportService reportService) : PageModel
     {
-
         public async Task<IActionResult> OnGetIssuePriorityListAsync(CancellationToken ct)
         {
             ServiceResult<List<PriorityDto>> result = await priorityService.GetIssuePrioritiesAsync(ct);

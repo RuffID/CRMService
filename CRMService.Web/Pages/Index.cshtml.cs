@@ -7,25 +7,10 @@ namespace CRMService.Web.Pages
 {
     [CookieAuthorize]
     [LoadUser]
-    public class IndexModel : PageModel, IHasCurrentUser
+    public class IndexModel(ILogger<IndexModel> logger) : PageModel, IHasCurrentUser
     {
-        private readonly ILogger<IndexModel> _logger;
-
         public User CurrentUser { get; set; } = null!;
 
-        public IndexModel(ILogger<IndexModel> logger)
-        {
-            _logger = logger;
-        }
 
-        public void OnGet()
-        {
-
-        }
     }
 }
-
-
-
-
-

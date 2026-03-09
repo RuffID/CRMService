@@ -33,7 +33,8 @@ namespace CRMService.Application.Abstractions.Database.Repository
 
 #endregion
 
-        IReportRepository Report { get; }
+        IEmployeePerformanceReportRepository EmployeePerformanceReport { get; }
+        ISpentTimeChartReportRepository SpentTimeChartReport { get; }
         IBlockReasonRepository BlockReason { get; }
         ICrmRoleRepository CrmRole { get; }
         ISessionRepository Session { get; }

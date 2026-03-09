@@ -6,7 +6,7 @@ namespace CRMService.Web.Controllers.Report
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ReportController(/*ReportService service*/) : Controller
+    public class ReportController : Controller
     {
         /*[HttpGet]
         public async Task<IActionResult> GetFullReport([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo)

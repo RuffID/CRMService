@@ -31,7 +31,8 @@ namespace CRMService.Infrastructure.DataBase.Repository
         IOkdeskRoleRepository okdeskRole,
         ITimeEntryRepository timeEntry,
         IEquipmentRepository equipment,
-        IReportRepository report,
+        IEmployeePerformanceReportRepository employeePerformanceReport,
+        ISpentTimeChartReportRepository spentTimeChartReport,
         IBlockReasonRepository blockReason,
         ICrmRoleRepository crmRole,
         ISessionRepository session,
@@ -63,7 +64,8 @@ namespace CRMService.Infrastructure.DataBase.Repository
         public IOkdeskRoleRepository OkdeskRole { get; } = okdeskRole;
         public ITimeEntryRepository TimeEntry { get; } = timeEntry;
         public IEquipmentRepository Equipment { get; } = equipment;
-        public IReportRepository Report { get; } = report;
+        public IEmployeePerformanceReportRepository EmployeePerformanceReport { get; } = employeePerformanceReport;
+        public ISpentTimeChartReportRepository SpentTimeChartReport { get; } = spentTimeChartReport;
         public IBlockReasonRepository BlockReason { get; } = blockReason;
         public ICrmRoleRepository CrmRole { get; } = crmRole;
         public ISessionRepository Session { get; } = session;

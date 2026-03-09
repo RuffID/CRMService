@@ -681,13 +681,20 @@ function enableReportFocus() {
     }
 
     const root = document.getElementById("reportFocusRoot");
-    if (root && root.requestFullscreen && !document.fullscreenElement) {
-        root.requestFullscreen().catch(() => { });
+    const viewport = document.getElementById("reportFocusViewport");
+    const FULLSCREEN_TARGET = viewport || root;
+
+    if (FULLSCREEN_TARGET && FULLSCREEN_TARGET.requestFullscreen && !document.fullscreenElement) {
+        FULLSCREEN_TARGET.requestFullscreen().catch(() => { });
     }
 
     if (root) {
         root.style.minHeight = "100vh";
         root.style.overflowY = "auto";
+    }
+
+    if (viewport) {
+        viewport.style.minHeight = "100vh";
     }
 
     const bar = document.getElementById("reportSummaryBar");
@@ -718,10 +725,15 @@ function disableReportFocus() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
 
     const root = document.getElementById("reportFocusRoot");
+    const viewport = document.getElementById("reportFocusViewport");
     if (root) {
         root.style.minHeight = "";
         root.style.overflowY = "";
         root.style.paddingBottom = "";
+    }
+
+    if (viewport) {
+        viewport.style.minHeight = "";
     }
 
     const bar = document.getElementById("reportSummaryBar");

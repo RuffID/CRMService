@@ -866,6 +866,7 @@ function renderCheckboxList(listId, checkboxClass, items, textSelector, idPrefix
         input.type = "checkbox";
         input.value = String(id);
         input.id = inputId;
+        input.name = inputId;
 
         const label = document.createElement("label");
         label.className = "form-check-label";
@@ -908,6 +909,7 @@ function renderEmployeeList(items) {
         input.type = "checkbox";
         input.value = String(id);
         input.id = inputId;
+        input.name = inputId;
 
         const label = document.createElement("label");
         label.className = "form-check-label";
@@ -921,10 +923,10 @@ function renderEmployeeList(items) {
 }
 
 function employeeDisplayName(x) {
-    const ln = (x.lastName ?? x.LastName ?? "").trim();
-    const fn = (x.firstName ?? x.FirstName ?? "").trim();
-    const pn = (x.patronymic ?? x.Patronymic ?? "").trim();
-    return [ln, fn, pn].filter(s => s && s.length > 0).join(" ");
+    const LAST_NAME = String(x.last_name ?? x.lastName ?? x.LastName ?? "").trim();
+    const FIRST_NAME = String(x.first_name ?? x.firstName ?? x.FirstName ?? "").trim();
+    const PATRONYMIC = String(x.patronymic ?? x.Patronymic ?? "").trim();
+    return [LAST_NAME, FIRST_NAME, PATRONYMIC].filter(s => s.length > 0).join(" ");
 }
 
 function applyEmployeeVisibilityByGroups() {
@@ -1053,6 +1055,7 @@ function renderTypesTree(listId, folders, types) {
             input.className = 'form-check-input filter-types';
             input.value = String(t.id);
             input.id = `t${t.id}`;
+            input.name = input.id;
             input.dataset.folderId = '0';
 
             const lb = document.createElement('label');
@@ -1162,6 +1165,7 @@ function renderFolderNode(node, typesByGroupId) {
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.className = 'form-check-input filter-types-folder';
+    cb.name = `types_folder_${node.id}`;
     cb.dataset.folderId = String(node.id);
 
     const label = document.createElement('span');
@@ -1196,6 +1200,7 @@ function renderFolderNode(node, typesByGroupId) {
             input.className = 'form-check-input filter-types';
             input.value = String(t.id);
             input.id = `t${t.id}`;
+            input.name = input.id;
             input.dataset.folderId = String(node.id);
 
             const lb = document.createElement('label');

@@ -1,5 +1,161 @@
-﻿@page
+@page
 @model IndexModel
 @{
     ViewData["Title"] = "Дашборд";
 }
+
+<div class="min-vh-100 bg-light p-3">
+    <div class="d-flex gap-3 align-items-stretch min-vh-100">
+        <aside class="bg-white border rounded-3 shadow-sm p-2 flex-shrink-0" style="width: 220px;">
+            <div class="fw-semibold px-2 py-2 border-bottom mb-2">Графики</div>
+
+            <nav class="list-group list-group-flush gap-1" id="indexGraphsMenu">
+                <button type="button"
+                        id="openSpentTimeChartButton"
+                        class="list-group-item list-group-item-action border-0 rounded text-start">
+                    Динамика списанного времени
+                </button>
+            </nav>
+        </aside>
+
+        <div class="flex-grow-1 d-flex flex-column">
+            <div id="indexGraphsEmptyState" class="bg-white border rounded-3 shadow-sm p-4 flex-grow-1 d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <div class="fw-semibold mb-2">График не выбран</div>
+                    <div class="text-muted">Выберите нужный график в меню слева.</div>
+                </div>
+            </div>
+
+            <div id="spentTimeChartPage" class="d-none">
+                <div id="pageError" class="alert alert-danger d-none mb-3"></div>
+
+                <div class="bg-white border rounded-3 shadow-sm p-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="scopeSelect">Режим</label>
+                            <select id="scopeSelect" name="scopeSelect" class="form-select">
+                                <option value="employee">По сотрудникам</option>
+                                <option value="group">По группам</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="timeAxisSelect">Ось времени</label>
+                            <select id="timeAxisSelect" name="timeAxisSelect" class="form-select">
+                                <option value="createdAt">Время создания списания</option>
+                                <option value="loggedAt">Указанное время списания</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="granularitySelect">Шаг</label>
+                            <select id="granularitySelect" name="granularitySelect" class="form-select">
+                                <option value="hour">По часам</option>
+                                <option value="day" selected>По дням</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="dateFrom">Начало периода</label>
+                            <input id="dateFrom" name="dateFrom" type="date" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="dateTo">Конец периода</label>
+                            <input id="dateTo" name="dateTo" type="date" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2 d-grid">
+                            <button type="button" class="btn btn-primary" id="btnApplyChartFilters">Показать</button>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-12 col-lg-6">
+                            <div class="dropdown w-100">
+                                <button id="groupsDropdownButton"
+                                        class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false">
+                                    <span>Группы</span>
+                                    <span class="badge bg-primary" id="groupsBadge">0</span>
+                                </button>
+
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="groupsSearch" name="groupsSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по группам" />
+
+                                    <div class="d-flex gap-2 mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="groupsSelectAll">Выбрать всё</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="groupsClearAll">Снять всё</button>
+                                    </div>
+
+                                    <div class="text-muted small mb-2 d-none" id="groupsHint"></div>
+
+                                    <div class="overflow-auto px-1" style="max-height: 320px;" id="groupsList"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6" id="employeeFilterColumn">
+                            <div class="dropdown w-100">
+                                <button id="employeesDropdownButton"
+                                        class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false">
+                                    <span>Сотрудники</span>
+                                    <span class="badge bg-primary" id="employeesBadge">0</span>
+                                </button>
+
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="employeesSearch" name="employeesSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по сотрудникам" />
+
+                                    <div class="d-flex gap-2 mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="employeesSelectAll">Выбрать всё</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="employeesClearAll">Снять всё</button>
+                                    </div>
+
+                                    <div class="text-muted small mb-2 d-none" id="employeesHint"></div>
+
+                                    <div class="overflow-auto px-1" style="max-height: 320px;" id="employeesList"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div>
+                            <div class="fw-semibold">Динамика списанного времени</div>
+                            <div class="text-muted small" id="chartSummaryText">Подготовка данных...</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 align-items-stretch">
+                        <div class="col-12 col-xl-10">
+                            <div id="timeChart" style="width: 100%; height: 620px;"></div>
+                        </div>
+
+                        <div class="col-12 col-xl-2">
+                            <div class="border rounded-3 h-100 d-flex flex-column overflow-hidden">
+                                <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between gap-2">
+                                    <div class="fw-semibold">Сотрудники / группы</div>
+                                    <button type="button" id="clearLegendSelectionButton" class="btn btn-sm btn-outline-secondary d-none" aria-label="Сбросить выделение">×</button>
+                                </div>
+                                <div id="chartLegendList" class="overflow-auto px-3 py-2" style="max-height: 620px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/helpers/http.js" asp-append-version="true"></script>
+<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<script src="~/js/index/index.js" asp-append-version="true"></script>
+<script src="~/js/index/index.page.js" asp-append-version="true"></script>

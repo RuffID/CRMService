@@ -6,10 +6,4 @@ namespace CRMService.Application.Abstractions.Service
     {
         string Create(User user);
     }
-
-    public interface IRandomStringGenerator
-    {
-        string GetRandomString(int length = 12);
-        string GetBase64RandomString();
-    }
 }

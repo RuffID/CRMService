@@ -3,7 +3,7 @@ using CRMService.Contracts.Models.Request;
 
 namespace CRMService.Application.Abstractions.Database.Repository.Report
 {
-    public interface IReportRepository
+    public interface IEmployeePerformanceReportRepository
     {
         Task<List<SolvedIssuesCountInfo>> GetOpenIssuesCountByEmployees(ReportRequest? filters, CancellationToken ct);
         Task<List<SolvedIssuesCountInfo>> GetSolvedIssuesCountByEmployees(DateTime dateFrom, DateTime dateTo, ReportRequest? filters, CancellationToken ct);

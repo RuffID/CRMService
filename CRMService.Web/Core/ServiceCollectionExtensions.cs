@@ -207,7 +207,9 @@ namespace CRMService.Web.Core
             services.AddScoped<Application.Service.OkdeskEntity.RoleService>();
             services.AddScoped<TimeEntryService>();
 
-            services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<IEmployeePerformanceReportService, EmployeePerformanceReportService>();
+            services.AddScoped<ISpentTimeChartService, SpentTimeChartService>();
+            services.AddScoped<IIssueDynamicsChartService, IssueDynamicsChartService>();
             services.AddScoped<IPlanSettingsService, PlanSettingsService>();
 
             services.AddScoped<IOkdeskEntityRequestService, GetOkdeskEntityService>();
@@ -284,7 +286,9 @@ namespace CRMService.Web.Core
             services.AddScoped<IOkdeskTimeEntryRepository, OkdeskTimeEntryRepository>();
             services.AddScoped<IOkdeskUnitOfWork, OkdeskUnitOfWork>();
 
-            services.AddScoped<IReportRepository, ReportRepository>();
+            services.AddScoped<IEmployeePerformanceReportRepository, EmployeePerformanceReportRepository>();
+            services.AddScoped<ISpentTimeChartReportRepository, SpentTimeChartReportRepository>();
+            services.AddScoped<IIssueDynamicsChartReportRepository, IssueDynamicsChartReportRepository>();
             services.AddScoped<IPlanRepository, PlanRepository>();
             services.AddScoped<IGeneralSettingsRepository, GeneralSettingsRepository>();
             services.AddScoped<IPlanSettingRepository, PlanSettingRepository>();

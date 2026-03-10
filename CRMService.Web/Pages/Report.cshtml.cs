@@ -1,18 +1,28 @@
-﻿using CRMService.Application.Abstractions.Service;
+using CRMService.Application.Abstractions.Service;
+using CRMService.Application.Models.Report;
+using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Contracts.Models.Dto.CrmEntities;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
-using CRMService.Application.Models.Report;
+using CRMService.Contracts.Models.Dto.Report;
 using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Web.Service.Attributes;
-using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CRMService.Web.Pages
 {
     [CookieAuthorize]
-    public class ReportModel(IssuePriorityService priorityService, IssueStatusService statusService, IssueTypeService typeService, GroupService groupService, EmployeeService employeeService, IPlanSettingsService planSettingsService, IReportService reportService) : PageModel
+    public class ReportModel(
+        IssuePriorityService priorityService, 
+        IssueStatusService statusService, 
+        IssueTypeService typeService, 
+        GroupService groupService, 
+        EmployeeService employeeService, 
+        IPlanSettingsService planSettingsService, 
+        IEmployeePerformanceReportService employeePerformanceReportService, 
+        ISpentTimeChartService spentTimeChartService, 
+        IIssueDynamicsChartService issueDynamicsChartService) : PageModel
     {
         public async Task<IActionResult> OnGetIssuePriorityListAsync(CancellationToken ct)
         {
@@ -77,8 +87,32 @@ namespace CRMService.Web.Pages
             if (request.DateTo <= request.DateFrom)
                 return JsonResultMapper.ToJsonResult(ServiceResult<List<ReportInfo>>.Fail(400, "Incorrect period."));
 
-            List<ReportInfo> data = await reportService.GetFullReportOnEmployees(request.DateFrom, request.DateTo, request, ct);
+            List<ReportInfo> data = await employeePerformanceReportService.GetFullReportOnEmployees(request.DateFrom, request.DateTo, request, ct);
             return JsonResultMapper.ToJsonResult(ServiceResult<List<ReportInfo>>.Ok(data));
+        }
+
+        public async Task<IActionResult> OnPostTimeChartAsync([FromBody] TimeChartRequest request, CancellationToken ct)
+        {
+            if (request.DateTo.Hour == 0 && request.DateTo.Minute == 0 && request.DateTo.Second == 0)
+                request.DateTo = new DateTime(request.DateTo.Year, request.DateTo.Month, request.DateTo.Day, 23, 59, 59);
+
+            if (request.DateTo <= request.DateFrom)
+                return JsonResultMapper.ToJsonResult(ServiceResult<TimeChartDto>.Fail(400, "Некорректный период."));
+
+            TimeChartDto data = await spentTimeChartService.GetSpentTimeChart(request, ct);
+            return JsonResultMapper.ToJsonResult(ServiceResult<TimeChartDto>.Ok(data));
+        }
+
+        public async Task<IActionResult> OnGetIssueDynamicsChartAsync([FromQuery] IssueDynamicsChartRequest request, CancellationToken ct)
+        {
+            if (request.DateTo.Hour == 0 && request.DateTo.Minute == 0 && request.DateTo.Second == 0)
+                request.DateTo = new DateTime(request.DateTo.Year, request.DateTo.Month, request.DateTo.Day, 23, 59, 59);
+
+            if (request.DateTo <= request.DateFrom)
+                return JsonResultMapper.ToJsonResult(ServiceResult<IssueDynamicsChartDto>.Fail(400, "Некорректный период."));
+
+            IssueDynamicsChartDto data = await issueDynamicsChartService.GetIssueDynamicsChartAsync(request, ct);
+            return JsonResultMapper.ToJsonResult(ServiceResult<IssueDynamicsChartDto>.Ok(data));
         }
     }
 }

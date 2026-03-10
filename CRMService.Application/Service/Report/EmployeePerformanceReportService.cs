@@ -1,12 +1,12 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
-using CRMService.Domain.Models.CrmEntities;
-using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.Report;
 using CRMService.Contracts.Models.Request;
+using CRMService.Domain.Models.CrmEntities;
+using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Service.Report
 {
-    public class ReportService(IUnitOfWork unitOfWork) : IReportService
+    public class EmployeePerformanceReportService(IUnitOfWork unitOfWork) : IEmployeePerformanceReportService
     {
         public async Task<List<ReportInfo>> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, ReportRequest filters, CancellationToken ct)
         {
@@ -35,7 +35,7 @@ namespace CRMService.Application.Service.Report
 
             Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
 
-            Dictionary<int, PlanSetting> planMap = new ();
+            Dictionary<int, PlanSetting> planMap = new();
             string? planColor = null;
 
             if (filters.PlanId.HasValue && filters.PlanId.Value != Guid.Empty)
@@ -68,9 +68,9 @@ namespace CRMService.Application.Service.Report
                 HideWithoutTime = filters.HideWithoutTime
             };
 
-            List<SolvedIssuesCountInfo> openCounts = await unitOfWork.Report.GetOpenIssuesCountByEmployees(effectiveFilters, ct);
-            List<SolvedIssuesCountInfo> solvedCounts = await unitOfWork.Report.GetSolvedIssuesCountByEmployees(dateFrom, dateTo, effectiveFilters, ct);
-            List<SpentedTimeInfo> spentTimes = await unitOfWork.Report.GetSpentedTimeByEmployee(dateFrom, dateTo, effectiveFilters, ct);
+            List<SolvedIssuesCountInfo> openCounts = await unitOfWork.EmployeePerformanceReport.GetOpenIssuesCountByEmployees(effectiveFilters, ct);
+            List<SolvedIssuesCountInfo> solvedCounts = await unitOfWork.EmployeePerformanceReport.GetSolvedIssuesCountByEmployees(dateFrom, dateTo, effectiveFilters, ct);
+            List<SpentedTimeInfo> spentTimes = await unitOfWork.EmployeePerformanceReport.GetSpentedTimeByEmployee(dateFrom, dateTo, effectiveFilters, ct);
 
             Dictionary<int, int> currentByEmployee = openCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
             Dictionary<int, int> solvedByEmployee = solvedCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
@@ -84,7 +84,7 @@ namespace CRMService.Application.Service.Report
                 solvedByEmployee.TryGetValue(employeeId, out int solved);
                 spentByEmployee.TryGetValue(employeeId, out double spent);
                 employeeMap.TryGetValue(employeeId, out Employee? employee);
-                planMap.TryGetValue(employeeId, out PlanSetting? ps);
+                planMap.TryGetValue(employeeId, out PlanSetting? planSetting);
 
                 if (effectiveFilters.HideWithoutSolved && solved == 0)
                     continue;
@@ -111,7 +111,7 @@ namespace CRMService.Application.Service.Report
                     SolvedIssues = solved,
                     SpentedTime = spent,
                     PlanId = filters.PlanId,
-                    PlanValue = ps?.PlanValue,
+                    PlanValue = planSetting?.PlanValue,
                     PlanColor = planColor
                 });
             }

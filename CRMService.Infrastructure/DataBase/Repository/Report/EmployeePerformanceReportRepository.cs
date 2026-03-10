@@ -7,32 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Report
 {
-    public class ReportRepository(
+    public class EmployeePerformanceReportRepository(
         IQueryRepository<Issue, MainContext> issues,
-        IQueryRepository<TimeEntry, MainContext> timeEntries) : IReportRepository
+        IQueryRepository<TimeEntry, MainContext> timeEntries) : IEmployeePerformanceReportRepository
     {
-        public async Task<List<IssueInfo>> GetInfoForOpenIssuesByEmployee(ReportRequest? filters, CancellationToken ct)
-        {
-            IQueryable<Issue> query = issues.Query(asNoTracking: true);
-
-            query = ApplyIssueFilters(query, filters);
-            query = query.Where(i => !i.Status!.Code.Equals("completed") && !i.Status.Code.Equals("closed"));
-
-            List<IssueInfo> result = await query
-                .Where(i => i.AssigneeId != null)
-                .Select(i => new IssueInfo
-                {
-                    Id = i.Id,
-                    StatusId = i.StatusId,
-                    PriorityId = i.PriorityId,
-                    TypeId = i.TypeId,
-                    EmployeeId = i.AssigneeId!.Value
-                })
-                .ToListAsync(ct);
-
-            return result;
-        }
-
         public async Task<List<SolvedIssuesCountInfo>> GetSolvedIssuesCountByEmployees(DateTime dateFrom, DateTime dateTo, ReportRequest? filters, CancellationToken ct)
         {
             IQueryable<Issue> query = issues.Query(asNoTracking: true);
@@ -129,7 +107,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.Report
                 query = query.Where(i => i.PriorityId != null && filters.PriorityIds!.Contains(i.PriorityId.Value));
 
             if (filters.HasType)
-                query = query.Where(i => i.TypeId != null && i.TypeId != null && filters.TypeIds!.Contains(i.TypeId.Value));
+                query = query.Where(i => i.TypeId != null && filters.TypeIds!.Contains(i.TypeId.Value));
 
             return query;
         }

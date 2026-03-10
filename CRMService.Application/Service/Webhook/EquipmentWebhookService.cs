@@ -23,7 +23,7 @@ namespace CRMService.Application.Service.Webhook
 
                         await sync.RunExclusive(dto, async () =>
                         {
-                            await service.CreateOrUpdate(dto, ct);
+                            await service.CreateOrUpdateAsync(dto, ct);
                         }, ct);
                     }
                     break;

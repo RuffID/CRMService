@@ -70,7 +70,7 @@ namespace CRMService.Application.Service.Webhook
                     issueJson.Maintenance_entity?.Id,
                     issueJson.EffectiveAssignee?.Employee?.Id);
 
-                await issueService.CreateOrUpdate(issue, ct);
+                await issueService.CreateOrUpdateAsync(issue, ct);
             }, ct);
 
             string content = string.Empty;
@@ -101,7 +101,7 @@ namespace CRMService.Application.Service.Webhook
                     @event.Issue.Maintenance_entity?.Id,
                     @event.Issue.EffectiveAssignee?.Employee?.Id);
 
-                await issueService.CreateOrUpdate(issue, ct);
+                await issueService.CreateOrUpdateAsync(issue, ct);
 
                 if (@event.Event.Time_entries == null || @event.Event.Time_entries.Length == 0)
                     return;
@@ -148,7 +148,7 @@ namespace CRMService.Application.Service.Webhook
                     issueJson.Maintenance_entity?.Id,
                     issueJson.EffectiveAssignee?.Employee?.Id);
 
-                await issueService.CreateOrUpdate(issue, ct);
+                await issueService.CreateOrUpdateAsync(issue, ct);
             }, ct);
         }
 
@@ -171,7 +171,7 @@ namespace CRMService.Application.Service.Webhook
 
                 issue.DeletedAt = DateTime.Now;
 
-                await issueService.CreateOrUpdate(issue, ct);
+                await issueService.CreateOrUpdateAsync(issue, ct);
             }, ct);
         }
 

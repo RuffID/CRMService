@@ -1,5 +1,6 @@
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.OkdeskEntity.Resolvers;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
@@ -8,7 +9,16 @@ using System.Runtime.CompilerServices;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class ModelService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<ModelService> logger)
+    public class ModelService(
+        IOptions<ApiEndpointOptions> endpoint,
+        IOptions<OkdeskOptions> okdeskSettings,
+        IOkdeskEntityRequestService request,
+        IUnitOfWork unitOfWork,
+        IOkdeskUnitOfWork okdeskUnitOfWork,
+        EntitySyncService sync,
+        KindResolverService kindResolver,
+        ManufacturerResolverService manufacturerResolver,
+        ILogger<ModelService> logger)
     {
         private async IAsyncEnumerable<List<Model>> GetModelsFromCloudApi(long limit, [EnumeratorCancellation] CancellationToken ct)
         {
@@ -95,10 +105,10 @@ namespace CRMService.Application.Service.OkdeskEntity
         private async Task CheckModel(Model model, CancellationToken ct)
         {
             if (model.Manufacturer != null)
-                model.ManufacturerId = (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == model.Manufacturer.Code, asNoTracking: true, ct: ct))?.Id;
+                model.ManufacturerId = await manufacturerResolver.ResolveManufacturerIdAsync(model.Manufacturer, "model", model.Id, ct);
 
             if (model.Kind != null)
-                model.KindId = (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == model.Kind.Code, asNoTracking: true, ct: ct))?.Id;
+                model.KindId = await kindResolver.ResolveKindIdAsync(model.Kind, "model", model.Id, ct);
         }
     }
 }

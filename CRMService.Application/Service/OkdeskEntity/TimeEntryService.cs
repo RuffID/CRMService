@@ -103,20 +103,10 @@ namespace CRMService.Application.Service.OkdeskEntity
                 List<TimeEntry> entries = await GetTimeEntriesFromCloudDb(dateFrom, dateTo, startId, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
                 if (entries.Count == 0)
-                    return;
+                    break;
 
-                foreach (TimeEntry item in entries)
-                {
-                    Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(item.IssueId, asNoTracking: true, ct: ct);
-
-                    if (existingIssue == null)
-                    {
-                        logger.LogWarning("[Method:{MethodName}] Issue: {issueId} - not found in local DB.", nameof(UpdateTimeEntriesFromCloudDb), item.IssueId);
-                        continue;
-                    }
-
-                    await CreateOrUpdate(item, ct);
-                }
+                foreach (TimeEntry item in entries)                
+                    await CreateOrUpdate(item, ct);                
 
                 startId = entries.Last().Id;
 
@@ -129,6 +119,14 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task CreateOrUpdate(TimeEntry entry, CancellationToken ct)
         {
+            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(entry.IssueId, asNoTracking: true, ct: ct);
+
+            if (existingIssue == null)
+            {
+                logger.LogWarning("[Method:{MethodName}] Issue: {issueId} - not found in local DB.", nameof(CreateOrUpdate), entry.IssueId);
+                return;
+            }
+
             TimeEntry? existingEntry = await unitOfWork.TimeEntry.GetItemByIdAsync(entry.Id, ct: ct);
 
             if (existingEntry == null)

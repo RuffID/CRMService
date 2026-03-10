@@ -2,7 +2,6 @@
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
-using CRMService.Application.Service.Sync;
 
 namespace CRMService.Web.Service.BackgroundServices
 {
@@ -27,7 +26,9 @@ namespace CRMService.Web.Service.BackgroundServices
                     DateTime dateTo = DateTime.Now;
                     DateTime dateFrom = dateTo.AddDays(-REPORT_WINDOW_DAYS);
 
-                    await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService));
+                    await issueService.UpdateIssuesFromCloudApiAsync(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService), stoppingToken);
+
+                    await timeEntryService.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, stoppingToken);
 
                     List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
                         i => i.DeletedAt == null
@@ -53,7 +54,7 @@ namespace CRMService.Web.Service.BackgroundServices
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(DailyReportHostedService));
+                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop.", nameof(DailyReportHostedService));
                 }
 
                 await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT_HOURS), stoppingToken);
@@ -61,8 +62,3 @@ namespace CRMService.Web.Service.BackgroundServices
         }
     }
 }
-
-
-
-
-

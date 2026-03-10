@@ -44,7 +44,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut]
         public async Task<IActionResult> UpdateEquipmentFromCloudApi([FromQuery] long equipmentId = 0, CancellationToken ct = default)
         {
-            await service.UpdateEquipmentFromCloudApi(equipmentId, ct);
+            await service.UpdateEquipmentFromCloudApiAsync(equipmentId, ct);
 
             return NoContent();
         }
@@ -52,7 +52,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_by_company")]
         public async Task<IActionResult> UpdateEquipmentsByCompanyFromCloudApi([FromQuery] long companyId = 0, CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudApi(companyId: companyId, ct: ct);
+            await service.UpdateEquipmentsFromCloudApiAsnc(companyId: companyId, ct: ct);
 
             return NoContent();
         }
@@ -60,7 +60,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_by_maintenance")]
         public async Task<IActionResult> UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] long maintenanceEntityId = 0, CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudApi(maintenanceEntityId: maintenanceEntityId, ct: ct);
+            await service.UpdateEquipmentsFromCloudApiAsnc(maintenanceEntityId: maintenanceEntityId, ct: ct);
 
             return NoContent();
         }
@@ -68,7 +68,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromCloudApi(CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudApi(ct: ct);
+            await service.UpdateEquipmentsFromCloudApiAsnc(ct: ct);
 
             return NoContent();
         }
@@ -76,7 +76,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk(CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudDb(ct);
+            await service.UpdateEquipmentsFromCloudDbAsync(ct);
 
             return NoContent();
         }

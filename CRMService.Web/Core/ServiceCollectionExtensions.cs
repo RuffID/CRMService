@@ -9,6 +9,7 @@ using CRMService.Application.Service.Authorization;
 using CRMService.Application.Service.CrmServices;
 using CRMService.Application.Service.Hosted;
 using CRMService.Application.Service.OkdeskEntity;
+using CRMService.Application.Service.OkdeskEntity.Resolvers;
 using CRMService.Application.Service.Report;
 using CRMService.Application.Service.Sync;
 using CRMService.Application.Service.Webhook;
@@ -194,7 +195,17 @@ namespace CRMService.Web.Core
             services.AddScoped<EmployeeService>();
             services.AddScoped<EquipmentService>();
             services.AddScoped<GroupService>();
+            services.AddScoped<ReferenceResolveHelper>();
+            services.AddScoped<CompanyResolverService>();
+            services.AddScoped<EmployeeResolverService>();
             services.AddScoped<IssuePriorityService>();
+            services.AddScoped<IssueStatusResolverService>();
+            services.AddScoped<IssueTypeResolverService>();
+            services.AddScoped<IssuePriorityResolverService>();
+            services.AddScoped<KindParameterResolverService>();
+            services.AddScoped<KindResolverService>();
+            services.AddScoped<ManufacturerResolverService>();
+            services.AddScoped<ModelResolverService>();
             services.AddScoped<IssueService>();
             services.AddScoped<IssueStatusService>();
             services.AddScoped<IssueTypeService>();
@@ -204,6 +215,7 @@ namespace CRMService.Web.Core
             services.AddScoped<MaintenanceEntityService>();
             services.AddScoped<ManufacturerService>();
             services.AddScoped<ModelService>();
+            services.AddScoped<MaintenanceEntityResolverService>();
             services.AddScoped<Application.Service.OkdeskEntity.RoleService>();
             services.AddScoped<TimeEntryService>();
 

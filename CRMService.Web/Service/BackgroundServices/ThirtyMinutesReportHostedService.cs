@@ -2,7 +2,6 @@
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
-using CRMService.Application.Service.Sync;
 
 namespace CRMService.Web.Service.BackgroundServices
 {
@@ -28,7 +27,7 @@ namespace CRMService.Web.Service.BackgroundServices
                     DateTime dateFrom = dateTo.AddMinutes(-REPORT_WINDOW_MINUTES);
 
                     // Обновление заявок через API за определённый промежуток
-                    await issueService.UpdateIssuesFromCloudApi(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(ThirtyMinutesReportHostedService));
+                    await issueService.UpdateIssuesFromCloudApiAsync(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(ThirtyMinutesReportHostedService), stoppingToken);
 
                     // Ниже обновляется списанное время по заявкам, которые были обновлены в течении определённого промежутка времени. Это нужно для того, чтобы в отчетах отображалось актуальное списанное время.
                     // Получение из БД заявок, которые были обновлены за определённый промежуток времени
@@ -56,7 +55,7 @@ namespace CRMService.Web.Service.BackgroundServices
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop", nameof(ThirtyMinutesReportHostedService));
+                    logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop.", nameof(ThirtyMinutesReportHostedService));
                 }
 
                 await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT), stoppingToken);
@@ -64,7 +63,3 @@ namespace CRMService.Web.Service.BackgroundServices
         }
     }
 }
-
-
-
-

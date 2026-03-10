@@ -33,6 +33,7 @@ namespace CRMService.Infrastructure.DataBase.Repository
         IEquipmentRepository equipment,
         IEmployeePerformanceReportRepository employeePerformanceReport,
         ISpentTimeChartReportRepository spentTimeChartReport,
+        IIssueDynamicsChartReportRepository issueDynamicsChartReport,
         IBlockReasonRepository blockReason,
         ICrmRoleRepository crmRole,
         ISessionRepository session,
@@ -66,6 +67,7 @@ namespace CRMService.Infrastructure.DataBase.Repository
         public IEquipmentRepository Equipment { get; } = equipment;
         public IEmployeePerformanceReportRepository EmployeePerformanceReport { get; } = employeePerformanceReport;
         public ISpentTimeChartReportRepository SpentTimeChartReport { get; } = spentTimeChartReport;
+        public IIssueDynamicsChartReportRepository IssueDynamicsChartReport { get; } = issueDynamicsChartReport;
         public IBlockReasonRepository BlockReason { get; } = blockReason;
         public ICrmRoleRepository CrmRole { get; } = crmRole;
         public ISessionRepository Session { get; } = session;

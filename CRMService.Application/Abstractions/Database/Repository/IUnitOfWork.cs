@@ -35,6 +35,7 @@ namespace CRMService.Application.Abstractions.Database.Repository
 
         IEmployeePerformanceReportRepository EmployeePerformanceReport { get; }
         ISpentTimeChartReportRepository SpentTimeChartReport { get; }
+        IIssueDynamicsChartReportRepository IssueDynamicsChartReport { get; }
         IBlockReasonRepository BlockReason { get; }
         ICrmRoleRepository CrmRole { get; }
         ISessionRepository Session { get; }

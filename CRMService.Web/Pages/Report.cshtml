@@ -22,6 +22,11 @@
                         class="list-group-item list-group-item-action border-0 rounded text-start">
                     Динамика списанного времени
                 </button>
+                <button type="button"
+                        id="openIssueDynamicsReportButton"
+                        class="list-group-item list-group-item-action border-0 rounded text-start">
+                    Динамика заявок
+                </button>
             </nav>
         </aside>
 
@@ -455,6 +460,45 @@
                     </div>
                 </div>
             </div>
+
+            <div id="issueDynamicsReportPage" class="d-none">
+                <div id="issueDynamicsPageError" class="alert alert-danger d-none mb-3"></div>
+
+                <div class="bg-white border rounded-3 shadow-sm p-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="issueDynamicsGranularitySelect">Шаг</label>
+                            <select id="issueDynamicsGranularitySelect" name="issueDynamicsGranularitySelect" class="form-select">
+                                <option value="hour">По часам</option>
+                                <option value="day" selected>По дням</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="issueDynamicsDateFrom">Начало периода</label>
+                            <input id="issueDynamicsDateFrom" name="issueDynamicsDateFrom" type="date" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2">
+                            <label class="form-label mb-1" for="issueDynamicsDateTo">Конец периода</label>
+                            <input id="issueDynamicsDateTo" name="issueDynamicsDateTo" type="date" class="form-control" />
+                        </div>
+
+                        <div class="col-12 col-md-3 col-xl-2 d-grid">
+                            <button type="button" class="btn btn-primary" id="btnApplyIssueDynamicsFilters">Показать</button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-3">
+                        <div>
+                            <div class="fw-semibold">Динамика созданных и решённых заявок</div>
+                            <div class="text-muted small" id="issueDynamicsSummaryText">Подготовка данных...</div>
+                        </div>
+                    </div>
+
+                    <div id="issueDynamicsChart" style="width: 100%; height: 620px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -465,4 +509,5 @@
 <script src="~/js/reports/employee-productivity-report.page.js" asp-append-version="true"></script>
 <script src="~/js/reports/employee-productivity-report.js" asp-append-version="true"></script>
 <script src="~/js/reports/spent-time-chart-report.js" asp-append-version="true"></script>
+<script src="~/js/reports/issue-dynamics-chart-report.js" asp-append-version="true"></script>
 <script src="~/js/reports/employee-productivity-report.filters.js" asp-append-version="true"></script>

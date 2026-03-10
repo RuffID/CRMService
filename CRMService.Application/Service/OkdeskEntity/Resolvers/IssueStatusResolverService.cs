@@ -9,7 +9,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<IssueStatusResolverService> logger)
     {
-        public Task<int> ResolveStatusIdAsync(IssueStatus issueStatus, int issueId, CancellationToken ct)
+        public Task<int?> ResolveStatusIdAsync(IssueStatus issueStatus, int issueId, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(issueStatus);
 

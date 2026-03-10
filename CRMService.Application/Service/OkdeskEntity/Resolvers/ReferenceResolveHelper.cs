@@ -8,8 +8,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         /// <summary>
         /// Выполняет поиск идентификатора, обновление справочника и повторную проверку.
         /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public async Task<int> ResolveAsync<TKey>(
+        public async Task<int?> ResolveAsync<TKey>(
             // Ключ поиска текущей связанной сущности
             TKey lookupKey,
             // Функция локального поиска идентификатора
@@ -55,12 +54,15 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 
                 // Проверяет отсутствие сущности даже после обновления.
                 if (!synchronizedResolvedId.HasValue)
-                    throw new InvalidOperationException(buildNotFoundExceptionMessage(lookupKey));
+                {
+                    resolvedId = null;
+                    return;
+                }
 
                 resolvedId = synchronizedResolvedId.Value;
             }, ct);
 
-            return resolvedId!.Value;
+            return resolvedId;
         }
 
         // Внутренний тип ключа для использования в механизме блокировки

@@ -9,12 +9,12 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<KindResolverService> logger)
     {
-        public Task<int> ResolveKindIdAsync(Kind kind, int equipmentId, CancellationToken ct)
+        public Task<int?> ResolveKindIdAsync(Kind kind, int equipmentId, CancellationToken ct)
         {
             return ResolveKindIdAsync(kind, "equipment", equipmentId, ct);
         }
 
-        public Task<int> ResolveKindIdAsync(Kind kind, string ownerEntityName, int ownerEntityId, CancellationToken ct)
+        public Task<int?> ResolveKindIdAsync(Kind kind, string ownerEntityName, int ownerEntityId, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(kind);
 

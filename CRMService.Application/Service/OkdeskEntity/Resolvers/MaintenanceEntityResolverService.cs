@@ -9,14 +9,14 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<MaintenanceEntityResolverService> logger)
     {
-        public Task<int> ResolveMaintenanceEntityIdAsync(MaintenanceEntity maintenanceEntity, int issueId, CancellationToken ct)
+        public Task<int?> ResolveMaintenanceEntityIdAsync(MaintenanceEntity maintenanceEntity, int issueId, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(maintenanceEntity);
 
             return ResolveMaintenanceEntityIdAsync(maintenanceEntity.Id, issueId, ct);
         }
 
-        public Task<int> ResolveMaintenanceEntityIdAsync(int maintenanceEntityId, int issueId, CancellationToken ct)
+        public Task<int?> ResolveMaintenanceEntityIdAsync(int maintenanceEntityId, int issueId, CancellationToken ct)
         {
             return referenceResolveHelper.ResolveAsync(
                 maintenanceEntityId,

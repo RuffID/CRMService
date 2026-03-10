@@ -132,8 +132,13 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             foreach (EquipmentParameter parameter in equipment.Parameters)
             {
-                int kindParameterId = parameter.KindParameterId
-                    ?? throw new InvalidOperationException($"Equipment parameter kindParameterId is not set for equipment: {equipment.Id}.");
+                if (!parameter.KindParameterId.HasValue)
+                {
+                    unitOfWork.Parameter.Create(parameter);
+                    continue;
+                }
+
+                int kindParameterId = parameter.KindParameterId.Value;
 
                 if (!existingParametersByKindParameterId.TryGetValue(kindParameterId, out EquipmentParameter? existingParameter))
                     unitOfWork.Parameter.Create(parameter);
@@ -151,12 +156,14 @@ namespace CRMService.Application.Service.OkdeskEntity
                 equipment.CompanyId = batchContext.CompanyIds.Contains(equipment.Company.Id)
                     ? equipment.Company.Id
                     : await companyResolver.ResolveCompanyIdAsync(equipment.Company, equipment.Id, ct);
-                batchContext.CompanyIds.Add(equipment.CompanyId.Value);
+                if (equipment.CompanyId.HasValue)
+                    batchContext.CompanyIds.Add(equipment.CompanyId.Value);
             }
             else if (equipment.CompanyId.HasValue && !batchContext.CompanyIds.Contains(equipment.CompanyId.Value))
             {
                 equipment.CompanyId = await companyResolver.ResolveCompanyIdAsync(equipment.CompanyId.Value, equipment.Id, ct);
-                batchContext.CompanyIds.Add(equipment.CompanyId.Value);
+                if (equipment.CompanyId.HasValue)
+                    batchContext.CompanyIds.Add(equipment.CompanyId.Value);
             }
 
             if (equipment.MaintenanceEntities != null)
@@ -164,21 +171,26 @@ namespace CRMService.Application.Service.OkdeskEntity
                 equipment.MaintenanceEntitiesId = batchContext.MaintenanceEntityIds.Contains(equipment.MaintenanceEntities.Id)
                     ? equipment.MaintenanceEntities.Id
                     : await maintenanceEntityResolver.ResolveMaintenanceEntityIdAsync(equipment.MaintenanceEntities, equipment.Id, ct);
-                batchContext.MaintenanceEntityIds.Add(equipment.MaintenanceEntitiesId.Value);
+                if (equipment.MaintenanceEntitiesId.HasValue)
+                    batchContext.MaintenanceEntityIds.Add(equipment.MaintenanceEntitiesId.Value);
             }
             else if (equipment.MaintenanceEntitiesId.HasValue && !batchContext.MaintenanceEntityIds.Contains(equipment.MaintenanceEntitiesId.Value))
             {
                 equipment.MaintenanceEntitiesId = await maintenanceEntityResolver.ResolveMaintenanceEntityIdAsync(equipment.MaintenanceEntitiesId.Value, equipment.Id, ct);
-                batchContext.MaintenanceEntityIds.Add(equipment.MaintenanceEntitiesId.Value);
+                if (equipment.MaintenanceEntitiesId.HasValue)
+                    batchContext.MaintenanceEntityIds.Add(equipment.MaintenanceEntitiesId.Value);
             }
 
             if (equipment.Manufacturer != null)
             {
                 string manufacturerCode = equipment.Manufacturer.Code;
-                if (!batchContext.ManufacturerIdsByCode.TryGetValue(manufacturerCode, out int manufacturerId))
+                int? manufacturerId = batchContext.ManufacturerIdsByCode.TryGetValue(manufacturerCode, out int existingManufacturerId)
+                    ? existingManufacturerId
+                    : await manufacturerResolver.ResolveManufacturerIdAsync(equipment.Manufacturer, equipment.Id, ct);
+
+                if (manufacturerId.HasValue)
                 {
-                    manufacturerId = await manufacturerResolver.ResolveManufacturerIdAsync(equipment.Manufacturer, equipment.Id, ct);
-                    batchContext.ManufacturerIdsByCode[manufacturerCode] = manufacturerId;
+                    batchContext.ManufacturerIdsByCode[manufacturerCode] = manufacturerId.Value;
                 }
 
                 equipment.ManufacturerId = manufacturerId;
@@ -187,10 +199,13 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (equipment.Kind != null)
             {
                 string kindCode = equipment.Kind.Code;
-                if (!batchContext.KindIdsByCode.TryGetValue(kindCode, out int kindId))
+                int? kindId = batchContext.KindIdsByCode.TryGetValue(kindCode, out int existingKindId)
+                    ? existingKindId
+                    : await kindResolver.ResolveKindIdAsync(equipment.Kind, equipment.Id, ct);
+
+                if (kindId.HasValue)
                 {
-                    kindId = await kindResolver.ResolveKindIdAsync(equipment.Kind, equipment.Id, ct);
-                    batchContext.KindIdsByCode[kindCode] = kindId;
+                    batchContext.KindIdsByCode[kindCode] = kindId.Value;
                 }
 
                 equipment.KindId = kindId;
@@ -199,10 +214,13 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (equipment.Model != null)
             {
                 string modelCode = equipment.Model.Code;
-                if (!batchContext.ModelIdsByCode.TryGetValue(modelCode, out int modelId))
+                int? modelId = batchContext.ModelIdsByCode.TryGetValue(modelCode, out int existingModelId)
+                    ? existingModelId
+                    : await modelResolver.ResolveModelIdAsync(equipment.Model, equipment.Id, ct);
+
+                if (modelId.HasValue)
                 {
-                    modelId = await modelResolver.ResolveModelIdAsync(equipment.Model, equipment.Id, ct);
-                    batchContext.ModelIdsByCode[modelCode] = modelId;
+                    batchContext.ModelIdsByCode[modelCode] = modelId.Value;
                 }
 
                 equipment.ModelId = modelId;
@@ -225,8 +243,17 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                     if (!batchContext.KindParameterIdsByCode.TryGetValue(parameterCode, out int kindParameterId))
                     {
-                        kindParameterId = await kindParameterResolver.ResolveKindParameterIdAsync(parameterCode, equipment.Id, ct);
-                        batchContext.KindParameterIdsByCode[parameterCode] = kindParameterId;
+                        int? resolvedKindParameterId = await kindParameterResolver.ResolveKindParameterIdAsync(parameterCode, equipment.Id, ct);
+                        if (resolvedKindParameterId.HasValue)
+                        {
+                            kindParameterId = resolvedKindParameterId.Value;
+                            batchContext.KindParameterIdsByCode[parameterCode] = kindParameterId;
+                        }
+                        else
+                        {
+                            parameter.KindParameterId = null;
+                            continue;
+                        }
                     }
 
                     parameter.KindParameterId = kindParameterId;

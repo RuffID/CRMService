@@ -9,7 +9,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<IssuePriorityResolverService> logger)
     {
-        public Task<int> ResolvePriorityIdAsync(IssuePriority issuePriority, int issueId, CancellationToken ct)
+        public Task<int?> ResolvePriorityIdAsync(IssuePriority issuePriority, int issueId, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(issuePriority);
 

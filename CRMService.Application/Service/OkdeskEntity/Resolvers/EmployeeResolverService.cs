@@ -8,7 +8,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<EmployeeResolverService> logger)
     {
-        public Task<int> ResolveEmployeeIdAsync(int employeeId, int issueId, CancellationToken ct)
+        public Task<int?> ResolveEmployeeIdAsync(int employeeId, int issueId, CancellationToken ct)
         {
             return referenceResolveHelper.ResolveAsync(
                 employeeId,

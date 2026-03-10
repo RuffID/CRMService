@@ -8,7 +8,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<KindParameterResolverService> logger)
     {
-        public Task<int> ResolveKindParameterIdAsync(string kindParameterCode, int equipmentId, CancellationToken ct)
+        public Task<int?> ResolveKindParameterIdAsync(string kindParameterCode, int equipmentId, CancellationToken ct)
         {
             return referenceResolveHelper.ResolveAsync(
                 kindParameterCode,

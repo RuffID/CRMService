@@ -14,8 +14,9 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.Property(x => x.Id).HasColumnName("id");
             builder.Property(x => x.Code).HasColumnName("code");
             builder.Property(x => x.Name).HasColumnName("name");
-            builder.Property(x => x.FieldType).HasColumnName("field_type");
+            builder.Property(x => x.FieldTypeRaw).HasColumnName("field_type");
             builder.Ignore(x => x.Equipment_kind_codes);
+            builder.Ignore(x => x.FieldType);
             builder.Ignore(x => x.KindParams);
             builder.Ignore(x => x.Parameters);
         }

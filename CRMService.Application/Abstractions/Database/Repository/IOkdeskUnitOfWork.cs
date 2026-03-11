@@ -19,6 +19,7 @@ namespace CRMService.Application.Abstractions.Database.Repository
         IOkdeskIssueStatusRepository IssueStatus { get; }
         IOkdeskIssuePriorityRepository IssuePriority { get; }
         IOkdeskIssueTypeRepository IssueType { get; }
+        IOkdeskIssueTypeGroupRepository IssueTypeGroup { get; }
         IOkdeskTimeEntryRepository TimeEntry { get; }
     }
 }

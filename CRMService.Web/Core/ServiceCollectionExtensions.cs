@@ -1,6 +1,7 @@
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Abstractions.Database.Repository.Authorization;
 using CRMService.Application.Abstractions.Database.Repository.CrmEntity;
+using CRMService.Application.Abstractions.Database.Repository.Entity;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Application.Abstractions.Database.Repository.Report;
 using CRMService.Application.Abstractions.Service;
@@ -295,6 +296,7 @@ namespace CRMService.Web.Core
             services.AddScoped<IOkdeskIssueStatusRepository, OkdeskIssueStatusRepository>();
             services.AddScoped<IOkdeskIssuePriorityRepository, OkdeskIssuePriorityRepository>();
             services.AddScoped<IOkdeskIssueTypeRepository, OkdeskIssueTypeRepository>();
+            services.AddScoped<IOkdeskIssueTypeGroupRepository, OkdeskIssueTypeGroupRepository>();
             services.AddScoped<IOkdeskTimeEntryRepository, OkdeskTimeEntryRepository>();
             services.AddScoped<IOkdeskUnitOfWork, OkdeskUnitOfWork>();
 

@@ -53,11 +53,11 @@ namespace CRMService.Application.Service.Hosted
 
             await role.UpsertEmployeeRoleConnectionsFromApi(ct);
 
-            await priority.UpdateIssuePrioritiesFromCloudApi(ct);
+            await priority.UpdateIssuePrioritiesFromCloudDb(ct);
 
-            await type.UpdateIssueTypesFromCloudApi(ct);
+            await type.UpdateIssueTypesFromCloudDb(ct);
 
-            await status.UpdateIssueStatusesFromCloudApi(ct);
+            await status.UpdateIssueStatusesFromCloudDb(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Directories update completed.", nameof(RunUpdateDirectories));
         }

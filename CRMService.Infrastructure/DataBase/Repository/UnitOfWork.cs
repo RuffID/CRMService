@@ -1,6 +1,7 @@
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Abstractions.Database.Repository.Authorization;
 using CRMService.Application.Abstractions.Database.Repository.CrmEntity;
+using CRMService.Application.Abstractions.Database.Repository.Entity;
 using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 using CRMService.Application.Abstractions.Database.Repository.Report;
 using EFCoreLibrary.Abstractions.Database;

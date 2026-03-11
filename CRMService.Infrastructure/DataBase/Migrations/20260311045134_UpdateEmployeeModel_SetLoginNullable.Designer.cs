@@ -4,6 +4,7 @@ using CRMService.Infrastructure.DataBase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
     [DbContext(typeof(MainContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20260311045134_UpdateEmployeeModel_SetLoginNullable")]
+    partial class UpdateEmployeeModel_SetLoginNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -20,6 +20,11 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
 
             builder.Property(e => e.Name)
                 .HasMaxLength(200);
+
+            builder.Property(e => e.FieldTypeRaw)
+                .HasColumnName("FieldType");
+
+            builder.Ignore(e => e.FieldType);
         }
     }
 }

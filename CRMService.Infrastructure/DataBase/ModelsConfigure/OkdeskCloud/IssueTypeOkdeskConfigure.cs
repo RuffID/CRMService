@@ -16,9 +16,11 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.Property(x => x.Name).HasColumnName("name");
             builder.Property(x => x.IsInner).HasColumnName("inner");
             builder.Property(x => x.GroupId).HasColumnName("group_id");
+            builder.HasOne(x => x.Group)
+                .WithMany(x => x.Types)
+                .HasForeignKey(x => x.GroupId);
             builder.Ignore(x => x.IsDefault);
             builder.Ignore(x => x.AvailableForClient);
-            builder.Ignore(x => x.Group);
             builder.Ignore(x => x.Issues);
         }
     }

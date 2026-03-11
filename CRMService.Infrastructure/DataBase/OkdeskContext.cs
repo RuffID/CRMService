@@ -21,6 +21,7 @@ namespace CRMService.Infrastructure.DataBase
         public DbSet<IssueStatus> IssueStatuses { get; set; }
         public DbSet<IssuePriority> IssuePriorities { get; set; }
         public DbSet<IssueType> IssueTypes { get; set; }
+        public DbSet<IssueTypeGroup> IssueTypeGroups { get; set; }
         public DbSet<TimeEntry> TimeEntries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -41,6 +42,7 @@ namespace CRMService.Infrastructure.DataBase
                 .ApplyConfiguration(new IssueStatusOkdeskConfigure())
                 .ApplyConfiguration(new IssuePriorityOkdeskConfigure())
                 .ApplyConfiguration(new IssueTypeOkdeskConfigure())
+                .ApplyConfiguration(new IssueTypeGroupOkdeskConfigure())
                 .ApplyConfiguration(new TimeEntryOkdeskConfigure());
 
             OnModelCreatingPartial(modelBuilder);

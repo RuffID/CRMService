@@ -16,7 +16,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
             return referenceResolveHelper.ResolveAsync(
                 issueStatus.Code,
                 async token => (await unitOfWork.IssueStatus.GetItemByPredicateAsync(s => s.Code == issueStatus.Code, true, ct: token))?.Id,
-                issueStatusService.UpdateIssueStatusesFromCloudApi,
+                issueStatusService.UpdateIssueStatusesFromCloudDb,
                 code => $"issue-status:{code}",
                 code => $"Status with code: {code} was not found for issue with id: {issueId}. Refreshing statuses from API.",
                 code => $"Status with code '{code}' was not found after refresh for issue '{issueId}'.",

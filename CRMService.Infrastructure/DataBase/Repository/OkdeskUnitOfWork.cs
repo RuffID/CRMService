@@ -19,6 +19,7 @@ namespace CRMService.Infrastructure.DataBase.Repository
         IOkdeskIssueStatusRepository issueStatus,
         IOkdeskIssuePriorityRepository issuePriority,
         IOkdeskIssueTypeRepository issueType,
+        IOkdeskIssueTypeGroupRepository issueTypeGroup,
         IOkdeskTimeEntryRepository timeEntry) : IOkdeskUnitOfWork
     {
         public IOkdeskCompanyCategoryRepository CompanyCategory { get; } = companyCategory;
@@ -36,6 +37,7 @@ namespace CRMService.Infrastructure.DataBase.Repository
         public IOkdeskIssueStatusRepository IssueStatus { get; } = issueStatus;
         public IOkdeskIssuePriorityRepository IssuePriority { get; } = issuePriority;
         public IOkdeskIssueTypeRepository IssueType { get; } = issueType;
+        public IOkdeskIssueTypeGroupRepository IssueTypeGroup { get; set; } = issueTypeGroup;
         public IOkdeskTimeEntryRepository TimeEntry { get; } = timeEntry;
     }
 }

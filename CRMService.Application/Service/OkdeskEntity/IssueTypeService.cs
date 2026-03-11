@@ -1,13 +1,13 @@
 using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Service.Sync;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
-using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Contracts.Models.Responses;
 using CRMService.Contracts.Models.Responses.Results;
+using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using CRMService.Application.Common.Mapping.OkdeskEntity;
-using CRMService.Application.Service.Sync;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
@@ -46,6 +46,13 @@ namespace CRMService.Application.Service.OkdeskEntity
         public async Task<List<IssueType>> GetIssueTypesFromCloudDb(CancellationToken ct)
         {
             List<IssueType> issueTypes = await okdeskUnitOfWork.IssueType.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+
+            return issueTypes.OrderBy(x => x.Id).ToList();
+        }
+
+        public async Task<List<IssueTypeGroup>> GetIssueTypeGroupsFromCloudDb(CancellationToken ct)
+        {
+            List<IssueTypeGroup> issueTypes = await okdeskUnitOfWork.IssueTypeGroup.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             return issueTypes.OrderBy(x => x.Id).ToList();
         }
@@ -97,23 +104,36 @@ namespace CRMService.Application.Service.OkdeskEntity
             logger.LogInformation("[Method:{MethodName}] Starting to update issue types.", nameof(UpdateIssueTypesFromCloudDb));
 
             List<IssueType> types = await GetIssueTypesFromCloudDb(ct);
+            List<IssueTypeGroup> typeGroups = await GetIssueTypeGroupsFromCloudDb(ct);
 
-            if (types.Count != 0)
+            foreach (IssueTypeGroup item in typeGroups)
             {
-                foreach (IssueType item in types)
+                await sync.RunExclusive(item, async () =>
                 {
-                    await sync.RunExclusive(item, async () =>
-                    {
-                        IssueType? existingTypes = await unitOfWork.IssueType.GetItemByPredicateAsync(predicate: t => t.Code == item.Code, ct: ct);
-                        if (existingTypes == null)
-                            unitOfWork.IssueType.Create(item);
-                        else
-                            existingTypes.CopyData(item);
+                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdAsync(item.Id, asNoTracking: true, ct: ct);
 
-                        await unitOfWork.SaveChangesAsync(ct);
-                    }, ct);
-                }
+                    if (existingTypes == null)
+                        unitOfWork.IssueTypeGroup.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
             }
+
+            foreach (IssueType item in types)
+            {
+                await sync.RunExclusive(item, async () =>
+                {
+                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, asNoTracking: true, ct: ct);
+                    if (existingTypes == null)
+                        unitOfWork.IssueType.Create(item);
+                    else
+                        existingTypes.CopyData(item);
+
+                    await unitOfWork.SaveChangesAsync(ct);
+                }, ct);
+            }            
 
             logger.LogInformation("[Method:{MethodName}] Update issue types completed.", nameof(UpdateIssueTypesFromCloudDb));
         }

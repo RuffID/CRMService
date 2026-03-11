@@ -9,7 +9,8 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
     public class OkdeskIssueRepository(
         IGetItemByIdRepository<Issue, int, OkdeskContext> getItemById,
         IGetItemByPredicateRepository<Issue, OkdeskContext> getItemByPredicate,
-        IQueryRepository<Issue, OkdeskContext> query) : IOkdeskIssueRepository
+        IQueryRepository<Issue, OkdeskContext> issueQuery,
+        IQueryRepository<Employee, OkdeskContext> employeeQuery) : IOkdeskIssueRepository
     {
         public Task<Issue?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Issue>, IQueryable<Issue>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -22,7 +23,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 
         public async Task<List<Issue>> GetUpdatedItemsAsync(DateTime dateFrom, DateTime dateTo, int startId, int limit, CancellationToken ct = default)
         {
-            List<IssueSyncProjection> rows = await query.Query(true)
+            List<IssueSyncProjection> rows = await issueQuery.Query(true)
                 .Where(x =>
                     (((x.EmployeesUpdatedAt >= dateFrom) && (x.EmployeesUpdatedAt <= dateTo)) ||
                     ((x.DeletedAt >= dateFrom) && (x.DeletedAt <= dateTo))) &&
@@ -33,7 +34,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
                 {
                     Id = x.Id,
                     AssigneeId = x.Assignee != null ? x.Assignee.Id : null,
-                    AuthorId = query.Query()
+                    AuthorId = employeeQuery.Query()
                         .Where(e => EF.Property<int>(e, "InternalId") == EF.Property<int?>(x, "AuthorInternalId"))
                         .Select(e => (int?)e.Id)
                         .FirstOrDefault(),

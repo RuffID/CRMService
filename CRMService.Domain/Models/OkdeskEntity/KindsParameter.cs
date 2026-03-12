@@ -13,10 +13,8 @@ namespace CRMService.Domain.Models.OkdeskEntity
         public string? Name { get; set; }
 
         [JsonPropertyName("field_type")]
-        public string? FieldTypeRaw { get; set; }
-
-        [NotMapped]
-        public EquipmentParameterFieldType? FieldType => EquipmentParameterFieldTypeMapper.Map(FieldTypeRaw);
+        [JsonConverter(typeof(EquipmentParameterFieldTypeJsonConverter))]
+        public EquipmentParameterFieldType? FieldType { get; set; }
 
         [NotMapped]
         public string[]? Equipment_kind_codes { get; set; }
@@ -29,7 +27,7 @@ namespace CRMService.Domain.Models.OkdeskEntity
         {
             Code = parameter.Code;
             Name = parameter.Name;
-            FieldTypeRaw = parameter.FieldTypeRaw;
+            FieldType = parameter.FieldType;
             Equipment_kind_codes = parameter.Equipment_kind_codes;
         }
     }

@@ -4,6 +4,7 @@ using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Contracts.Models.Dto.CrmEntities;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Contracts.Models.Dto.Report;
+using CRMService.Contracts.Models.Dto.Settings;
 using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Web.Service.Attributes;
@@ -22,8 +23,19 @@ namespace CRMService.Web.Pages
         IPlanSettingsService planSettingsService, 
         IEmployeePerformanceReportService employeePerformanceReportService, 
         ISpentTimeChartService spentTimeChartService, 
-        IIssueDynamicsChartService issueDynamicsChartService) : PageModel
+        IIssueDynamicsChartService issueDynamicsChartService,
+        IReportBackgroundService reportBackgroundService) : PageModel
     {
+        public async Task<IActionResult> OnGetBackgroundFileAsync(CancellationToken ct)
+        {
+            ServiceResult<ReportBackgroundFileContentDto> result = await reportBackgroundService.GetFileContentAsync(ct);
+            if (!result.Success)
+                return JsonResultMapper.ToJsonResult(result);
+
+            ReportBackgroundFileContentDto file = result.Data!;
+            return File(file.Content, file.ContentType);
+        }
+
         public async Task<IActionResult> OnGetIssuePriorityListAsync(CancellationToken ct)
         {
             ServiceResult<List<PriorityDto>> result = await priorityService.GetIssuePrioritiesAsync(ct);

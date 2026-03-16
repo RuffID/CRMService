@@ -1,0 +1,82 @@
+﻿@page "/settings"
+@model CRMService.Web.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Настройки сайта";
+}
+
+<div class="min-vh-100 bg-light d-flex align-items-center justify-content-center p-3">
+    <div class="w-100" style="max-width: 1080px;">
+        <div id="pageError" class="alert alert-danger d-none mb-3"></div>
+        <div id="pageSuccess" class="alert alert-success d-none mb-3"></div>
+
+        <div class="bg-white border rounded-4 shadow-sm overflow-hidden">
+            <div class="border-bottom px-4 py-3">
+                <div class="fw-semibold fs-4">Настройки сайта</div>
+            </div>
+
+            <div class="p-4">
+                <div class="row g-4">
+                    <div class="col-12 col-lg-8">
+                        <div class="border rounded-4 p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                                <div>
+                                    <div class="fw-semibold">Текущий фон</div>
+                                    <div class="text-muted small">Сервис хранит только один файл. Новая загрузка сразу заменяет текущий фон.</div>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="reloadBackgroundsButton">
+                                    Обновить
+                                </button>
+                            </div>
+
+                            <div id="currentBackgroundCard" class="d-flex flex-column gap-3"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-4">
+                        <div class="border rounded-4 p-3 h-100">
+                            <div class="fw-semibold mb-1">Загрузка фона</div>
+                            <div class="text-muted small mb-3">JPG, PNG или WEBP. Можно загрузить только один файл размером до 10 МБ.</div>
+
+                            <div id="uploadDropZone"
+                                 class="border border-2 border-secondary-subtle rounded-4 p-4 text-center bg-light-subtle d-flex flex-column justify-content-center align-items-center gap-3"
+                                 style="min-height: 260px;">
+                                <div class="fs-1 text-secondary">+</div>
+                                <div class="fw-semibold">Перетащите файл сюда</div>
+                                <div class="text-muted small">или выберите изображение вручную</div>
+                                <button type="button" class="btn btn-primary" id="openFileDialogButton">Выбрать файл</button>
+                                <input id="backgroundFileInput"
+                                       name="backgroundFileInput"
+                                       type="file"
+                                       accept=".jpg,.jpeg,.png,.webp"
+                                       class="d-none" />
+                            </div>
+
+                            <div id="uploadStatus" class="text-muted small mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="backgroundPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <div class="modal-title text-white fw-semibold" id="backgroundPreviewTitle">Просмотр изображения</div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex align-items-center justify-content-center p-0">
+                <img id="backgroundPreviewImage"
+                     alt="Просмотр изображения"
+                     class="img-fluid"
+                     style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/helpers/http.js" asp-append-version="true"></script>
+<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
+<script src="~/js/settings/siteSettings.js" asp-append-version="true"></script>

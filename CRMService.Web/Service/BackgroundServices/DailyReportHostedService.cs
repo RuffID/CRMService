@@ -23,7 +23,7 @@ namespace CRMService.Web.Service.BackgroundServices
                     IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                     TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
 
-                    DateTime dateTo = DateTime.Now;
+                    DateTime dateTo = DateTime.UtcNow;
                     DateTime dateFrom = dateTo.AddDays(-REPORT_WINDOW_DAYS);
 
                     await issueService.UpdateIssuesFromCloudApiAsync(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService), stoppingToken);
@@ -57,7 +57,7 @@ namespace CRMService.Web.Service.BackgroundServices
                     logger.LogError(ex, "[HostedService] Unhandled exception in {ClassName} loop.", nameof(DailyReportHostedService));
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(REPORT_TIMEOUT_HOURS), stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(REPORT_TIMEOUT_HOURS), stoppingToken);
             }
         }
     }

@@ -29,6 +29,7 @@ using CRMService.Web.Core.Filter;
 using CRMService.Web.Core.Middleware;
 using CRMService.Web.Models.Server;
 using CRMService.Web.Service.BackgroundServices;
+using CRMService.Web.Service.Settings;
 using EFCoreLibrary.Abstractions.Database;
 using EFCoreLibrary.EfCore;
 using EFCoreLibrary.Extensions;
@@ -160,7 +161,6 @@ namespace CRMService.Web.Core
             // Убедиться, что папка существует
             Directory.CreateDirectory(keyPath);
 
-            // Настроить Data Protection
             services.AddDataProtection()
                 .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
                 .SetApplicationName(projectName);
@@ -224,6 +224,7 @@ namespace CRMService.Web.Core
             services.AddScoped<ISpentTimeChartService, SpentTimeChartService>();
             services.AddScoped<IIssueDynamicsChartService, IssueDynamicsChartService>();
             services.AddScoped<IPlanSettingsService, PlanSettingsService>();
+            services.AddSingleton<IReportBackgroundService, ReportBackgroundService>();
 
             services.AddScoped<IOkdeskEntityRequestService, GetOkdeskEntityService>();
             services.AddScoped<UpdateDirectoriesService>();
@@ -248,8 +249,7 @@ namespace CRMService.Web.Core
             return services;
         }
 
-        private static IServiceCollection AddRepositories(
-             this IServiceCollection services)
+        private static IServiceCollection AddRepositories(this IServiceCollection services)
         {
             services.AddEfCoreBaseRepositories<MainContext>();
             services.AddEfCoreBaseRepositories<OkdeskContext>();

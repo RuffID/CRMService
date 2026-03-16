@@ -92,6 +92,12 @@
                     {
                         <header class="bg-white border-bottom px-3 py-2 d-flex justify-content-end align-items-center">
                             <span class="me-3 fw-semibold text-truncate">@User.Identity?.Name</span>
+                            @if (User.IsInRole(role: RolesConstants.ADMIN))
+                            {
+                                <a class="btn p-0 me-3" asp-area="" asp-page="/Settings" aria-label="Настройки">
+                                    <img src="~/icon/settings.svg" alt="settings" style="width:22px; height:22px;">
+                                </a>
+                            }
                             <form method="post" asp-page="/Logout" class="m-0 p-0">
                                 <button type="submit" class="btn p-0">
                                     <img src="~/icon/door-exit.svg" alt="exit" style="width:22px; height:22px;">

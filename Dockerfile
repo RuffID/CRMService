@@ -25,7 +25,7 @@ RUN dotnet publish "./CRMService.Web/CRMService.csproj" -c $BUILD_CONFIGURATION 
 
 FROM base AS final
 
-RUN mkdir -p /app /app/Config /app/Logs /app/keys-linux && chown -R 1001:1001 /app
+RUN mkdir -p /app /app/Config /app/Logs /app/keys-linux /app/Resources/ && chown -R 1001:1001 /app
 COPY --from=publish --chown=1001:1001 /app/publish .
 
 USER 1001

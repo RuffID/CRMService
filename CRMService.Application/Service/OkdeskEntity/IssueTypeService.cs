@@ -2,7 +2,9 @@ using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.Lookup;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
+using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.OkdeskEntity;
@@ -13,6 +15,8 @@ namespace CRMService.Application.Service.OkdeskEntity
 {
     public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueTypeService> logger)
     {
+        private const int DEFAULT_LOOKUP_LIMIT = 20;
+
         public async Task<ServiceResult<List<TaskTypeDto>>> GetTypes(CancellationToken ct)
         {
             List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAsync(asNoTracking: true,
@@ -27,6 +31,39 @@ namespace CRMService.Application.Service.OkdeskEntity
             List<IssueTypeGroup> types = await unitOfWork.IssueTypeGroup.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             return ServiceResult<List<IssueTypeGroupDto>>.Ok(types.ToDto().ToList());
+        }
+
+        public async Task<ServiceResult<List<LookupOptionDto>>> GetTypeLookupAsync(LookupListRequest requestModel, CancellationToken ct = default)
+        {
+            ServiceResult validationResult = ValidateLookupRequest(requestModel);
+            if (!validationResult.Success)
+                return ServiceResult<List<LookupOptionDto>>.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
+
+            string? normalizedSearch = NormalizeSearch(requestModel.Search);
+
+            List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAsync(
+                predicate: type => normalizedSearch == null || (type.Name != null && type.Name.Contains(normalizedSearch)),
+                asNoTracking: true,
+                ct: ct);
+
+            IEnumerable<IssueType> orderedTypes = normalizedSearch == null
+                ? types.OrderBy(type => type.Id)
+                : types
+                    .OrderBy(type => type.Name != null && type.Name.StartsWith(normalizedSearch, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                    .ThenBy(type => type.Name)
+                    .ThenBy(type => type.Id);
+
+            List<LookupOptionDto> items = orderedTypes
+                .Skip(requestModel.Offset)
+                .Take(requestModel.Limit)
+                .Select(type => new LookupOptionDto
+                {
+                    Id = type.Id,
+                    Text = type.Name ?? $"#{type.Id}"
+                })
+                .ToList();
+
+            return ServiceResult<List<LookupOptionDto>>.Ok(items);
         }
 
         public async Task<(List<IssueType> Types, List<IssueTypeGroup> TypeGroups)> GetIssueTypesFromCloudApi(CancellationToken ct)
@@ -173,6 +210,30 @@ namespace CRMService.Application.Service.OkdeskEntity
                 };
                 types.Add(type);
             }
+        }
+
+        private static ServiceResult ValidateLookupRequest(LookupListRequest request)
+        {
+            if (request.Offset < 0)
+                return ServiceResult.Fail(400, "Смещение не может быть отрицательным.");
+
+            if (request.Limit == 0)
+                request.Limit = DEFAULT_LOOKUP_LIMIT;
+
+            if (request.Limit <= 0 || request.Limit > 100)
+                return ServiceResult.Fail(400, "Лимит должен быть в диапазоне от 1 до 100.");
+
+            return ServiceResult.Ok();
+        }
+
+        private static string? NormalizeSearch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            string normalized = value.Trim();
+            int nonWhitespaceCount = normalized.Count(character => !char.IsWhiteSpace(character));
+            return nonWhitespaceCount >= 2 ? normalized : null;
         }
     }
 }

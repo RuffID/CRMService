@@ -1,6 +1,11 @@
 using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.Lookup;
+using CRMService.Contracts.Models.Dto.OkdeskEntity;
+using CRMService.Contracts.Models.Request;
+using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +17,49 @@ namespace CRMService.Application.Service.OkdeskEntity
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
         IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<CompanyService> logger)
     {
+        private const int DEFAULT_LOOKUP_LIMIT = 20;
+
+        public async Task<ServiceResult<List<CompanyDto>>> GetCompaniesAsync(CancellationToken ct = default)
+        {
+            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            return ServiceResult<List<CompanyDto>>.Ok(companies.OrderBy(company => company.Name).ThenBy(company => company.Id).ToDto().ToList());
+        }
+
+        public async Task<ServiceResult<List<LookupOptionDto>>> GetCompanyLookupAsync(LookupListRequest requestModel, CancellationToken ct = default)
+        {
+            ServiceResult validationResult = ValidateLookupRequest(requestModel);
+            if (!validationResult.Success)
+                return ServiceResult<List<LookupOptionDto>>.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
+
+            string? normalizedSearch = NormalizeSearch(requestModel.Search);
+
+            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(
+                predicate: company => normalizedSearch == null
+                    || company.Name.Contains(normalizedSearch)
+                    || (company.AdditionalName != null && company.AdditionalName.Contains(normalizedSearch)),
+                asNoTracking: true,
+                ct: ct);
+
+            IEnumerable<Company> orderedCompanies = normalizedSearch == null
+                ? companies.OrderBy(company => company.Id)
+                : companies
+                    .OrderBy(company => GetSearchRank(company.Name, normalizedSearch, company.AdditionalName))
+                    .ThenBy(company => company.Name)
+                    .ThenBy(company => company.Id);
+
+            List<LookupOptionDto> items = orderedCompanies
+                .Skip(requestModel.Offset)
+                .Take(requestModel.Limit)
+                .Select(company => new LookupOptionDto
+                {
+                    Id = company.Id,
+                    Text = FormatCompanyText(company)
+                })
+                .ToList();
+
+            return ServiceResult<List<LookupOptionDto>>.Ok(items);
+        }
+
         public async Task<Company?> GetCompanyFromCloudApi(int companyId)
         {
             string link = $"{endpoint.Value.OkdeskApi}/companies?api_token={okdSettings.Value.OkdeskApiToken}&id={companyId}";
@@ -132,6 +180,55 @@ namespace CRMService.Application.Service.OkdeskEntity
             company.CategoryId = category?.Id;
 
             company.Category = null;
+        }
+
+        private static ServiceResult ValidateLookupRequest(LookupListRequest request)
+        {
+            if (request.Offset < 0)
+                return ServiceResult.Fail(400, "Смещение не может быть отрицательным.");
+
+            if (request.Limit == 0)
+                request.Limit = DEFAULT_LOOKUP_LIMIT;
+
+            if (request.Limit <= 0 || request.Limit > 100)
+                return ServiceResult.Fail(400, "Лимит должен быть в диапазоне от 1 до 100.");
+
+            return ServiceResult.Ok();
+        }
+
+        private static string? NormalizeSearch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            string normalized = value.Trim();
+            int nonWhitespaceCount = normalized.Count(character => !char.IsWhiteSpace(character));
+            return nonWhitespaceCount >= 2 ? normalized : null;
+        }
+
+        private static string FormatCompanyText(Company company)
+        {
+            if (string.IsNullOrWhiteSpace(company.AdditionalName))
+                return company.Name;
+
+            return $"{company.Name} ({company.AdditionalName})";
+        }
+
+        private static int GetSearchRank(string value, string search, string? extraValue = null)
+        {
+            if (value.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                return 0;
+
+            if (!string.IsNullOrWhiteSpace(extraValue) && extraValue.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                return 1;
+
+            if (value.Contains(search, StringComparison.OrdinalIgnoreCase))
+                return 2;
+
+            if (!string.IsNullOrWhiteSpace(extraValue) && extraValue.Contains(search, StringComparison.OrdinalIgnoreCase))
+                return 3;
+
+            return 4;
         }
     }
 }

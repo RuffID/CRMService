@@ -2,6 +2,9 @@
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.OkdeskEntity.Resolvers;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.OkdeskEntity;
+using CRMService.Contracts.Models.Request;
+using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -24,6 +27,57 @@ namespace CRMService.Application.Service.OkdeskEntity
         MaintenanceEntityResolverService maintenanceEntityResolver,
         ILogger<IssueService> logger)
     {
+        private const int MAX_PAGE_SIZE = 100;
+        private const int QUICK_COUNT_LIMIT = 1000;
+        private const int QUICK_COUNT_QUERY_LIMIT = QUICK_COUNT_LIMIT + 1;
+
+        public async Task<ServiceResult<IssueListPageDto>> GetIssueListPageAsync(IssueListRequest request, CancellationToken ct = default)
+        {
+            ServiceResult normalizedResult = NormalizeIssueListRequest(request);
+            if (!normalizedResult.Success)
+                return ServiceResult<IssueListPageDto>.Fail(normalizedResult.Error!.StatusCode, normalizedResult.Error.Message);
+
+            int skip = (request.Page - 1) * request.PageSize;
+            List<Issue> issues = await unitOfWork.Issue.GetPageByFilterAsync(request, skip, request.PageSize + 1, ct);
+            int quickCount = await unitOfWork.Issue.GetCountByFilterAsync(request, QUICK_COUNT_QUERY_LIMIT, ct);
+
+            bool hasNextPage = issues.Count > request.PageSize;
+            List<IssueListItemDto> items = issues
+                .Take(request.PageSize)
+                .Select(MapIssueListItem)
+                .ToList();
+
+            bool isTotalCountCapped = quickCount > QUICK_COUNT_LIMIT;
+            int displayTotalCount = isTotalCountCapped ? QUICK_COUNT_LIMIT : quickCount;
+            int totalPages = CalculateVisibleTotalPages(request.Page, request.PageSize, displayTotalCount, hasNextPage);
+
+            return ServiceResult<IssueListPageDto>.Ok(new IssueListPageDto
+            {
+                Items = items,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalPages = totalPages,
+                DisplayTotalCount = displayTotalCount,
+                IsTotalCountCapped = isTotalCountCapped,
+                HasNextPage = hasNextPage
+            });
+        }
+
+        public async Task<ServiceResult<IssueExactCountDto>> GetIssueExactCountAsync(IssueListRequest request, CancellationToken ct = default)
+        {
+            ServiceResult normalizedResult = NormalizeIssueListRequest(request);
+            if (!normalizedResult.Success)
+                return ServiceResult<IssueExactCountDto>.Fail(normalizedResult.Error!.StatusCode, normalizedResult.Error.Message);
+
+            int totalCount = await unitOfWork.Issue.GetCountByFilterAsync(request, maxCount: null, ct);
+
+            return ServiceResult<IssueExactCountDto>.Ok(new IssueExactCountDto
+            {
+                TotalCount = totalCount,
+                TotalPages = CalculateTotalPages(totalCount, request.PageSize)
+            });
+        }
+
         private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApiAsync(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = string.Format("{0}/issues/list?api_token={1}&updated_since={2}&updated_until={3}&assignee_ids[]={4}",
@@ -372,6 +426,100 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return null;
 
             return await employeeResolver.ResolveEmployeeIdAsync(authorId, issueId, ct);
+        }
+
+        private static ServiceResult NormalizeIssueListRequest(IssueListRequest request)
+        {
+            if (request.Page <= 0)
+                return ServiceResult.Fail(400, "Номер страницы должен быть больше нуля.");
+
+            if (request.PageSize != 20 && request.PageSize != 50 && request.PageSize != MAX_PAGE_SIZE)
+                return ServiceResult.Fail(400, "Допустимые размеры страницы: 20, 50, 100.");
+
+            request.AssigneeIds = NormalizeIds(request.AssigneeIds);
+            request.AuthorIds = NormalizeIds(request.AuthorIds);
+            request.TypeIds = NormalizeIds(request.TypeIds);
+            request.StatusIds = NormalizeIds(request.StatusIds);
+            request.CompanyIds = NormalizeIds(request.CompanyIds);
+            request.GroupIds = NormalizeIds(request.GroupIds);
+
+            request.RegistrationDateFrom = NormalizeDateFrom(request.RegistrationDateFrom);
+            request.RegistrationDateTo = NormalizeDateToExclusive(request.RegistrationDateTo);
+            request.ResolutionDateFrom = NormalizeDateFrom(request.ResolutionDateFrom);
+            request.ResolutionDateTo = NormalizeDateToExclusive(request.ResolutionDateTo);
+
+            if (request.RegistrationDateFrom.HasValue && request.RegistrationDateTo.HasValue && request.RegistrationDateFrom.Value >= request.RegistrationDateTo.Value)
+                return ServiceResult.Fail(400, "Некорректный диапазон даты регистрации.");
+
+            if (request.ResolutionDateFrom.HasValue && request.ResolutionDateTo.HasValue && request.ResolutionDateFrom.Value >= request.ResolutionDateTo.Value)
+                return ServiceResult.Fail(400, "Некорректный диапазон даты решения.");
+
+            return ServiceResult.Ok();
+        }
+
+        private static List<int>? NormalizeIds(List<int>? ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return null;
+
+            List<int> values = ids
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            return values.Count == 0 ? null : values;
+        }
+
+        private static DateTime? NormalizeDateFrom(DateTime? value)
+            => value?.Date;
+
+        private static DateTime? NormalizeDateToExclusive(DateTime? value)
+            => value?.Date.AddDays(1);
+
+        private static IssueListItemDto MapIssueListItem(Issue issue)
+        {
+            return new IssueListItemDto
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                CompanyName = issue.Company?.Name ?? "Не указан",
+                CompanyCategoryColor = issue.Company?.Category?.Color ?? string.Empty,
+                AssigneeName = FormatEmployeeName(issue.Assignee),
+                CreatedAt = issue.CreatedAt,
+                CompletedAt = issue.CompletedAt,
+                StatusName = issue.Status?.Name ?? "Не указан"
+            };
+        }
+
+        private static string FormatEmployeeName(Employee? employee)
+        {
+            if (employee == null)
+                return "Не указан";
+
+            string[] parts = new[]
+            {
+                employee.LastName ?? string.Empty,
+                employee.FirstName ?? string.Empty,
+                employee.Patronymic ?? string.Empty
+            };
+
+            string fullName = string.Join(" ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+            return string.IsNullOrWhiteSpace(fullName) ? $"#{employee.Id}" : fullName;
+        }
+
+        private static int CalculateVisibleTotalPages(int page, int pageSize, int displayTotalCount, bool hasNextPage)
+        {
+            int totalPages = CalculateTotalPages(displayTotalCount, pageSize);
+            int minimalVisiblePages = hasNextPage ? page + 1 : page;
+            return Math.Max(totalPages, minimalVisiblePages);
+        }
+
+        private static int CalculateTotalPages(int totalCount, int pageSize)
+        {
+            if (totalCount <= 0)
+                return 1;
+
+            return (int)Math.Ceiling(totalCount / (double)pageSize);
         }
 
         private sealed class IssueBatchContext(

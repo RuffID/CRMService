@@ -1,0 +1,200 @@
+@page
+@model CRMService.Web.Pages.IssuesModel
+@{
+    ViewData["Title"] = "Заявки";
+}
+
+<div class="min-vh-100 bg-light p-3">
+    <div id="pageError" class="alert alert-danger d-none mb-3"></div>
+    <div id="pageSuccess" class="alert alert-success d-none mb-3"></div>
+
+    <div class="bg-white border rounded-3 shadow-sm p-3 mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="h5 mb-1">Список заявок</div>
+                <div class="text-muted small">Фильтры применяются сразу после изменения.</div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="resetFiltersButton">Сбросить фильтры</button>
+                <button class="btn btn-outline-secondary"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#issueFiltersCollapse"
+                        aria-expanded="true"
+                        aria-controls="issueFiltersCollapse">
+                    Настройка фильтрации
+                </button>
+            </div>
+        </div>
+
+        <div class="collapse show mt-3" id="issueFiltersCollapse">
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label" for="filterIssueId">№ заявки</label>
+                    <input id="filterIssueId" name="filterIssueId" type="number" min="1" class="form-control" placeholder="Введите id">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label d-block">Ответственный</label>
+                    <div class="dropdown w-100">
+                        <button id="filterAssigneeToggle" class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="filterAssigneeToggleLabel">Ответственный</span>
+                            <span class="badge bg-primary" id="filterAssigneeToggleCount">0</span>
+                        </button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="filterAssigneeSearch" name="filterAssigneeSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                            <div id="filterAssigneeSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                            <div id="filterAssigneeList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label d-block">Автор</label>
+                    <div class="dropdown w-100">
+                        <button id="filterAuthorToggle" class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="filterAuthorToggleLabel">Автор</span>
+                            <span class="badge bg-primary" id="filterAuthorToggleCount">0</span>
+                        </button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="filterAuthorSearch" name="filterAuthorSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                            <div id="filterAuthorSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                            <div id="filterAuthorList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label d-block">Тип</label>
+                    <div class="dropdown w-100">
+                        <button id="filterTypeToggle" class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="filterTypeToggleLabel">Тип</span>
+                            <span class="badge bg-primary" id="filterTypeToggleCount">0</span>
+                        </button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="filterTypeSearch" name="filterTypeSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                            <div id="filterTypeSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                            <div id="filterTypeList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label d-block">Статус</label>
+                    <div class="dropdown w-100">
+                        <button id="filterStatusToggle" class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="filterStatusToggleLabel">Статус</span>
+                            <span class="badge bg-primary" id="filterStatusToggleCount">0</span>
+                        </button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="filterStatusSearch" name="filterStatusSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                            <div id="filterStatusSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                            <div id="filterStatusList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label d-block">Клиент</label>
+                    <div class="dropdown w-100">
+                        <button id="filterCompanyToggle" class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="filterCompanyToggleLabel">Клиент</span>
+                            <span class="badge bg-primary" id="filterCompanyToggleCount">0</span>
+                        </button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="filterCompanySearch" name="filterCompanySearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                            <div id="filterCompanySelected" class="small text-muted mb-2">Выбрано: 0</div>
+                            <div id="filterCompanyList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label d-block">Ответственная группа</label>
+                    <div class="dropdown w-100">
+                        <button id="filterGroupToggle" class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="filterGroupToggleLabel">Ответственная группа</span>
+                            <span class="badge bg-primary" id="filterGroupToggleCount">0</span>
+                        </button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="filterGroupSearch" name="filterGroupSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                            <div id="filterGroupSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                            <div id="filterGroupList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label" for="filterRegistrationDateFrom">Дата регистрации: с</label>
+                    <input id="filterRegistrationDateFrom" name="filterRegistrationDateFrom" type="date" class="form-control">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label" for="filterRegistrationDateTo">Дата регистрации: по</label>
+                    <input id="filterRegistrationDateTo" name="filterRegistrationDateTo" type="date" class="form-control">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label" for="filterResolutionDateFrom">Дата решения: с</label>
+                    <input id="filterResolutionDateFrom" name="filterResolutionDateFrom" type="date" class="form-control">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label" for="filterResolutionDateTo">Дата решения: по</label>
+                    <input id="filterResolutionDateTo" name="filterResolutionDateTo" type="date" class="form-control">
+                </div>
+
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2 justify-content-end align-items-end">
+                        <div class="ms-auto" style="min-width: 180px;">
+                            <label class="form-label" for="filterPageSize">На странице</label>
+                            <select id="filterPageSize" name="filterPageSize" class="form-select">
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white border rounded-3 shadow-sm p-3">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle mb-0" id="issuesGrid" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col id="issuesCol0" style="width: 120px;">
+                    <col id="issuesCol1" style="width: 340px;">
+                    <col id="issuesCol2" style="width: 280px;">
+                    <col id="issuesCol3" style="width: 220px;">
+                    <col id="issuesCol4" style="width: 170px;">
+                    <col id="issuesCol5" style="width: 170px;">
+                    <col id="issuesCol6" style="width: 180px;">
+                </colgroup>
+                <thead class="table-light">
+                    <tr>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">№ заявки</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тема</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Клиент</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Ответственный</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="4"><span class="d-block text-truncate px-2 fw-normal">Дата регистрации</span><span class="position-absolute top-0 h-100" data-column-resizer="4" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="5"><span class="d-block text-truncate px-2 fw-normal">Дата решения</span><span class="position-absolute top-0 h-100" data-column-resizer="5" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="6"><span class="d-block text-truncate px-2 fw-normal">Статус</span></th>
+                    </tr>
+                </thead>
+                <tbody id="issuesRows"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex flex-column align-items-center gap-3 mt-4">
+            <div class="fs-5" id="issuesTotalCount"></div>
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" id="issuesPagination"></div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/helpers/http.js" asp-append-version="true"></script>
+<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
+<script src="~/js/issues/issues.js" asp-append-version="true"></script>

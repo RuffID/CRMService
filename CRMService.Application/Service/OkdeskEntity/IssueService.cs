@@ -440,8 +440,16 @@ namespace CRMService.Application.Service.OkdeskEntity
             request.AuthorIds = NormalizeIds(request.AuthorIds);
             request.TypeIds = NormalizeIds(request.TypeIds);
             request.StatusIds = NormalizeIds(request.StatusIds);
+            request.PriorityIds = NormalizeIds(request.PriorityIds);
             request.CompanyIds = NormalizeIds(request.CompanyIds);
             request.GroupIds = NormalizeIds(request.GroupIds);
+
+            request.NumberFrom = NormalizeIssueNumber(request.NumberFrom);
+            request.NumberTo = NormalizeIssueNumber(request.NumberTo);
+            request.Search = NormalizeSearch(request.Search);
+
+            if (request.NumberFrom.HasValue && request.NumberTo.HasValue && request.NumberFrom.Value > request.NumberTo.Value)
+                return ServiceResult.Fail(400, "Некорректный диапазон номера заявки.");
 
             request.RegistrationDateFrom = NormalizeDateFrom(request.RegistrationDateFrom);
             request.RegistrationDateTo = NormalizeDateToExclusive(request.RegistrationDateTo);
@@ -470,6 +478,19 @@ namespace CRMService.Application.Service.OkdeskEntity
             return values.Count == 0 ? null : values;
         }
 
+        private static int? NormalizeIssueNumber(int? value)
+            => value.HasValue && value.Value > 0 ? value.Value : null;
+
+        private static string? NormalizeSearch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            string normalized = value.Trim();
+            int nonWhitespaceCount = normalized.Count(character => !char.IsWhiteSpace(character));
+            return nonWhitespaceCount >= 2 ? normalized : null;
+        }
+
         private static DateTime? NormalizeDateFrom(DateTime? value)
             => value?.Date;
 
@@ -487,7 +508,10 @@ namespace CRMService.Application.Service.OkdeskEntity
                 AssigneeName = FormatEmployeeName(issue.Assignee),
                 CreatedAt = issue.CreatedAt,
                 CompletedAt = issue.CompletedAt,
-                StatusName = issue.Status?.Name ?? "Не указан"
+                StatusName = issue.Status?.Name ?? "Не указан",
+                StatusColor = issue.Status?.Color ?? string.Empty,
+                PriorityName = issue.Priority?.Name ?? "Не указан",
+                PriorityColor = issue.Priority?.Color ?? string.Empty
             };
         }
 

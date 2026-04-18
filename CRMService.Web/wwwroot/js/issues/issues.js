@@ -1,5 +1,5 @@
 const LOOKUP_PAGE_SIZE = 20;
-const ISSUES_FILTERS_STORAGE_KEY = "crm_issues_filters_v1";
+const ISSUES_FILTERS_STORAGE_KEY = "crm_issues_filters_v2";
 const ISSUES_GRID_COLUMNS_STORAGE_KEY = "crm_issues_grid_columns_v1";
 
 let antiForgeryToken = null;
@@ -9,6 +9,7 @@ let issuesExactCountRequestId = 0;
 let issuesFilterDebounceTimer = 0;
 let issuesLookupStates = createLookupStates();
 let issuesGridResizeCleanup = null;
+let issueSearchWarningModal = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initIssuesPage();
@@ -39,6 +40,7 @@ function createLookupStates() {
         author: createLookupState("AuthorLookup", "filterAuthorSearch", "filterAuthorList", "filterAuthorSelected"),
         type: createLookupState("TypeLookup", "filterTypeSearch", "filterTypeList", "filterTypeSelected"),
         status: createLookupState("StatusLookup", "filterStatusSearch", "filterStatusList", "filterStatusSelected"),
+        priority: createLookupState("PriorityLookup", "filterPrioritySearch", "filterPriorityList", "filterPrioritySelected"),
         company: createLookupState("CompanyLookup", "filterCompanySearch", "filterCompanyList", "filterCompanySelected"),
         group: createLookupState("GroupLookup", "filterGroupSearch", "filterGroupList", "filterGroupSelected")
     };
@@ -63,6 +65,7 @@ function createLookupState(handler, searchId, listId, selectedId) {
 
 async function initIssuesPage() {
     antiForgeryToken = getRequestVerificationToken();
+    initIssueSearchWarningModal();
     restoreIssuesFiltersState();
     bindIssuesEvents();
     applyStateToFilters();
@@ -73,9 +76,40 @@ async function initIssuesPage() {
 }
 
 function bindIssuesEvents() {
-    const idInput = document.getElementById("filterIssueId");
-    if (idInput) {
-        idInput.addEventListener("input", () => {
+    const quickSearchInput = document.getElementById("filterQuickSearch");
+    if (quickSearchInput) {
+        quickSearchInput.addEventListener("keydown", async event => {
+            if (event.key !== "Enter") {
+                return;
+            }
+
+            event.preventDefault();
+            const quickSearchValue = getTrimmedValue("filterQuickSearch");
+            if (quickSearchValue && getNonWhitespaceCount(quickSearchValue) < 2) {
+                showIssueSearchWarningModal();
+                return;
+            }
+
+            issuesState.page = 1;
+            issuesState.exactTotalCount = null;
+            issuesState.exactTotalPages = null;
+            syncIssuesFilterStateFromInputs();
+            await reloadIssues(true);
+        });
+    }
+
+    const numberInputIds = [
+        "filterIssueNumberFrom",
+        "filterIssueNumberTo"
+    ];
+
+    for (const id of numberInputIds) {
+        const input = document.getElementById(id);
+        if (!input) {
+            continue;
+        }
+
+        input.addEventListener("input", () => {
             scheduleIssuesReload();
         });
     }
@@ -119,8 +153,20 @@ function bindIssuesEvents() {
     bindLookupEvents("author");
     bindLookupEvents("type");
     bindLookupEvents("status");
+    bindLookupEvents("priority");
     bindLookupEvents("company");
     bindLookupEvents("group");
+
+    const filtersCollapseElement = document.getElementById("issueFiltersCollapse");
+    if (filtersCollapseElement) {
+        filtersCollapseElement.addEventListener("shown.bs.collapse", () => {
+            updateIssueFiltersToggleButton(true);
+        });
+
+        filtersCollapseElement.addEventListener("hidden.bs.collapse", () => {
+            updateIssueFiltersToggleButton(false);
+        });
+    }
 
     const resetButton = document.getElementById("resetFiltersButton");
     if (resetButton) {
@@ -188,6 +234,7 @@ async function loadInitialLookups() {
         loadLookupOptions("author", true),
         loadLookupOptions("type", true),
         loadLookupOptions("status", true),
+        loadLookupOptions("priority", true),
         loadLookupOptions("company", true),
         loadLookupOptions("group", true)
     ]);
@@ -342,15 +389,25 @@ function normalizeLookupSearch(value) {
 }
 
 function applyStateToFilters() {
-    const issueId = document.getElementById("filterIssueId");
+    const quickSearch = document.getElementById("filterQuickSearch");
+    const issueNumberFrom = document.getElementById("filterIssueNumberFrom");
+    const issueNumberTo = document.getElementById("filterIssueNumberTo");
     const pageSize = document.getElementById("filterPageSize");
     const registrationDateFrom = document.getElementById("filterRegistrationDateFrom");
     const registrationDateTo = document.getElementById("filterRegistrationDateTo");
     const resolutionDateFrom = document.getElementById("filterResolutionDateFrom");
     const resolutionDateTo = document.getElementById("filterResolutionDateTo");
 
-    if (issueId) {
-        issueId.value = issuesState.filters.issueId;
+    if (quickSearch) {
+        quickSearch.value = issuesState.filters.quickSearch;
+    }
+
+    if (issueNumberFrom) {
+        issueNumberFrom.value = issuesState.filters.issueNumberFrom;
+    }
+
+    if (issueNumberTo) {
+        issueNumberTo.value = issuesState.filters.issueNumberTo;
     }
 
     if (pageSize) {
@@ -382,11 +439,15 @@ function applyStateToFilters() {
 
         updateLookupSelectedCounter(key);
     }
+
+    updateIssueFiltersToggleButton(isIssueFiltersExpanded());
 }
 
 function resetIssuesFilters() {
     const ids = [
-        "filterIssueId",
+        "filterIssueNumberFrom",
+        "filterIssueNumberTo",
+        "filterQuickSearch",
         "filterRegistrationDateFrom",
         "filterRegistrationDateTo",
         "filterResolutionDateFrom",
@@ -395,6 +456,7 @@ function resetIssuesFilters() {
         "filterAuthorSearch",
         "filterTypeSearch",
         "filterStatusSearch",
+        "filterPrioritySearch",
         "filterCompanySearch",
         "filterGroupSearch"
     ];
@@ -496,15 +558,17 @@ async function reloadIssues(resetPage) {
 
 function collectIssuesRequest() {
     syncIssuesFilterStateFromInputs();
-    const idValue = issuesState.filters.issueId;
     const pageSize = Number(getTrimmedValue("filterPageSize") || "20");
 
     return {
-        id: idValue ? Number(idValue) : null,
+        numberFrom: issuesState.filters.issueNumberFrom ? Number(issuesState.filters.issueNumberFrom) : null,
+        numberTo: issuesState.filters.issueNumberTo ? Number(issuesState.filters.issueNumberTo) : null,
+        search: issuesState.filters.quickSearch,
         assigneeIds: Array.from(issuesLookupStates.assignee.selectedIds),
         authorIds: Array.from(issuesLookupStates.author.selectedIds),
         typeIds: Array.from(issuesLookupStates.type.selectedIds),
         statusIds: Array.from(issuesLookupStates.status.selectedIds),
+        priorityIds: Array.from(issuesLookupStates.priority.selectedIds),
         companyIds: Array.from(issuesLookupStates.company.selectedIds),
         groupIds: Array.from(issuesLookupStates.group.selectedIds),
         registrationDateFrom: issuesState.filters.registrationDateFrom,
@@ -519,11 +583,14 @@ function collectIssuesRequest() {
 function buildIssuesRequestUrl(handler, request) {
     const params = new URLSearchParams();
 
-    appendNumberParam(params, "id", request.id);
+    appendNumberParam(params, "numberFrom", request.numberFrom);
+    appendNumberParam(params, "numberTo", request.numberTo);
+    appendTextParam(params, "search", request.search);
     appendListParam(params, "assigneeIds", request.assigneeIds);
     appendListParam(params, "authorIds", request.authorIds);
     appendListParam(params, "typeIds", request.typeIds);
     appendListParam(params, "statusIds", request.statusIds);
+    appendListParam(params, "priorityIds", request.priorityIds);
     appendListParam(params, "companyIds", request.companyIds);
     appendListParam(params, "groupIds", request.groupIds);
     appendTextParam(params, "registrationDateFrom", request.registrationDateFrom);
@@ -577,13 +644,13 @@ function renderIssuesTable() {
 
     for (const item of issuesState.list.items) {
         const tr = document.createElement("tr");
-        tr.appendChild(buildCell(String(item.id || ""), 0, true));
+        tr.appendChild(buildIssueIdCell(item, 0));
         tr.appendChild(buildCell(String(item.title || ""), 1));
         tr.appendChild(buildCompanyCell(item, 2));
         tr.appendChild(buildCell(String(item.assigneeName || "Не указан"), 3));
         tr.appendChild(buildCell(formatDateTime(item.createdAt), 4));
         tr.appendChild(buildCell(formatDateTime(item.completedAt), 5));
-        tr.appendChild(buildCell(String(item.statusName || "Не указан"), 6, true));
+        tr.appendChild(buildStatusCell(item, 6));
         tbody.appendChild(tr);
     }
 }
@@ -595,7 +662,7 @@ function renderIssuesTotalCount() {
     container.textContent = "";
 
     const label = document.createElement("span");
-    label.textContent = "Всего: ";
+    label.textContent = "Всего заявок: ";
     container.appendChild(label);
 
     if (issuesState.exactTotalCount !== null) {
@@ -609,6 +676,10 @@ function renderIssuesTotalCount() {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "btn btn-link p-0 align-baseline";
+        button.style.fontSize = "inherit";
+        button.style.lineHeight = "inherit";
+        button.style.fontWeight = "inherit";
+        button.style.textDecoration = "none";
         button.textContent = "1000+";
         button.addEventListener("click", async () => {
             await ensureExactCountLoaded();
@@ -806,7 +877,7 @@ function ensureArray(value) {
 
 function buildCell(text, columnIndex, isCentered = false) {
     const td = document.createElement("td");
-    td.style.fontSize = "0.875rem";
+    td.style.fontSize = "1rem";
     td.className = "pe-3 ps-3";
     td.setAttribute("data-column-cell", String(columnIndex));
 
@@ -822,9 +893,77 @@ function buildCell(text, columnIndex, isCentered = false) {
     return td;
 }
 
+function buildIssueIdCell(item, columnIndex) {
+    const td = document.createElement("td");
+    td.style.fontSize = "1rem";
+    td.className = "pe-3 ps-0";
+    td.setAttribute("data-column-cell", String(columnIndex));
+    td.style.position = "relative";
+
+    const priorityName = String(item.priorityName || "").trim();
+    if (priorityName) {
+        td.title = `Приоритет: ${priorityName}`;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "d-flex align-items-stretch";
+    wrapper.style.minHeight = "1.75rem";
+
+    const priorityIndicator = document.createElement("span");
+    priorityIndicator.className = "position-absolute top-0 bottom-0 flex-shrink-0";
+    priorityIndicator.style.left = "0";
+    priorityIndicator.style.width = "6px";
+    priorityIndicator.style.backgroundColor = normalizeHexColor(item.priorityColor) || "transparent";
+
+    const content = document.createElement("div");
+    content.className = "text-truncate flex-grow-1";
+    content.style.paddingLeft = "18px";
+    content.style.width = "100%";
+    content.textContent = String(item.id || "");
+
+    wrapper.appendChild(priorityIndicator);
+    wrapper.appendChild(content);
+    td.appendChild(wrapper);
+    return td;
+}
+
+function buildStatusCell(item, columnIndex) {
+    const td = document.createElement("td");
+    td.style.fontSize = "1rem";
+    td.className = "pe-3 ps-3";
+    td.setAttribute("data-column-cell", String(columnIndex));
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "d-flex justify-content-center";
+
+    const badge = document.createElement("span");
+    badge.style.padding = "0.45rem 0.9rem";
+    badge.style.minWidth = "95px";
+    badge.style.minHeight = "17px";
+    badge.className = "badge rounded-pill text-bg-light border";
+    badge.textContent = String(item.statusName || "Не указан");
+    badge.style.color = "#6A747C";
+
+    const statusColor = normalizeHexColor(item.statusColor);
+    if (statusColor) {
+        badge.style.backgroundColor = statusColor;
+        badge.style.color = "#ffffff";
+        badge.style.borderColor = statusColor;
+    }
+
+    const priorityName = String(item.priorityName || "").trim();
+    if (priorityName) {
+        badge.title = `Приоритет: ${priorityName}`;
+    }
+
+    wrapper.appendChild(badge);
+    td.appendChild(wrapper);
+    return td;
+}
+
 function buildCompanyCell(item, columnIndex) {
     const td = document.createElement("td");
-    td.style.fontSize = "0.875rem";
+    td.style.fontSize = "1rem";
     td.className = "pe-3 ps-3";
     td.setAttribute("data-column-cell", String(columnIndex));
 
@@ -833,11 +972,10 @@ function buildCompanyCell(item, columnIndex) {
     wrapper.style.minWidth = "0";
 
     const marker = document.createElement("span");
-    marker.textContent = "●";
-    marker.style.fontSize = "1.35rem";
-    marker.style.lineHeight = "1";
-    marker.style.color = item.companyCategoryColor || "transparent";
-    marker.style.flexShrink = "0";
+    marker.className = "rounded-circle flex-shrink-0";
+    marker.style.width = "0.75rem";
+    marker.style.height = "0.75rem";
+    marker.style.backgroundColor = normalizeHexColor(item.companyCategoryColor) || "#6c757d";
 
     const text = document.createElement("div");
     text.className = "text-truncate";
@@ -853,6 +991,11 @@ function buildCompanyCell(item, columnIndex) {
 function clearPageMessages() {
     hideMessage("pageError");
     hideMessage("pageSuccess");
+}
+
+function normalizeHexColor(value) {
+    const normalizedValue = String(value || "").trim().toUpperCase();
+    return /^#([0-9A-F]{6})$/.test(normalizedValue) ? normalizedValue : "";
 }
 
 function initIssuesGridColumnResize() {
@@ -1012,7 +1155,8 @@ function restoreIssuesFiltersState() {
     try {
         const parsed = JSON.parse(raw);
         issuesState.pageSize = isAllowedPageSize(parsed.pageSize) ? parsed.pageSize : 20;
-        issuesState.filters.issueId = parsed.issueId ? String(parsed.issueId) : "";
+        issuesState.filters.issueNumberFrom = parsed.issueNumberFrom ? String(parsed.issueNumberFrom) : "";
+        issuesState.filters.issueNumberTo = parsed.issueNumberTo ? String(parsed.issueNumberTo) : "";
         issuesState.filters.registrationDateFrom = parsed.registrationDateFrom ? String(parsed.registrationDateFrom) : "";
         issuesState.filters.registrationDateTo = parsed.registrationDateTo ? String(parsed.registrationDateTo) : "";
         issuesState.filters.resolutionDateFrom = parsed.resolutionDateFrom ? String(parsed.resolutionDateFrom) : "";
@@ -1022,6 +1166,7 @@ function restoreIssuesFiltersState() {
         restoreLookupSelection("author", parsed.authorIds, parsed.authorSearch);
         restoreLookupSelection("type", parsed.typeIds, parsed.typeSearch);
         restoreLookupSelection("status", parsed.statusIds, parsed.statusSearch);
+        restoreLookupSelection("priority", parsed.priorityIds, parsed.prioritySearch);
         restoreLookupSelection("company", parsed.companyIds, parsed.companySearch);
         restoreLookupSelection("group", parsed.groupIds, parsed.groupSearch);
     } catch (error) {
@@ -1041,7 +1186,8 @@ function saveIssuesFiltersState() {
 
     const payload = {
         pageSize: issuesState.pageSize,
-        issueId: issuesState.filters.issueId,
+        issueNumberFrom: issuesState.filters.issueNumberFrom,
+        issueNumberTo: issuesState.filters.issueNumberTo,
         registrationDateFrom: issuesState.filters.registrationDateFrom,
         registrationDateTo: issuesState.filters.registrationDateTo,
         resolutionDateFrom: issuesState.filters.resolutionDateFrom,
@@ -1050,12 +1196,14 @@ function saveIssuesFiltersState() {
         authorIds: Array.from(issuesLookupStates.author.selectedIds),
         typeIds: Array.from(issuesLookupStates.type.selectedIds),
         statusIds: Array.from(issuesLookupStates.status.selectedIds),
+        priorityIds: Array.from(issuesLookupStates.priority.selectedIds),
         companyIds: Array.from(issuesLookupStates.company.selectedIds),
         groupIds: Array.from(issuesLookupStates.group.selectedIds),
         assigneeSearch: issuesLookupStates.assignee.search,
         authorSearch: issuesLookupStates.author.search,
         typeSearch: issuesLookupStates.type.search,
         statusSearch: issuesLookupStates.status.search,
+        prioritySearch: issuesLookupStates.priority.search,
         companySearch: issuesLookupStates.company.search,
         groupSearch: issuesLookupStates.group.search
     };
@@ -1068,7 +1216,9 @@ function syncIssuesFilterStateFromInputs() {
         issuesState.filters = createDefaultFilterState();
     }
 
-    issuesState.filters.issueId = getTrimmedValue("filterIssueId");
+    issuesState.filters.issueNumberFrom = getTrimmedValue("filterIssueNumberFrom");
+    issuesState.filters.issueNumberTo = getTrimmedValue("filterIssueNumberTo");
+    issuesState.filters.quickSearch = getTrimmedValue("filterQuickSearch");
     issuesState.filters.registrationDateFrom = getTrimmedValue("filterRegistrationDateFrom");
     issuesState.filters.registrationDateTo = getTrimmedValue("filterRegistrationDateTo");
     issuesState.filters.resolutionDateFrom = getTrimmedValue("filterResolutionDateFrom");
@@ -1078,7 +1228,9 @@ function syncIssuesFilterStateFromInputs() {
 
 function createDefaultFilterState() {
     return {
-        issueId: "",
+        quickSearch: "",
+        issueNumberFrom: "",
+        issueNumberTo: "",
         registrationDateFrom: "",
         registrationDateTo: "",
         resolutionDateFrom: "",
@@ -1100,6 +1252,7 @@ function getLookupToggleLabel(key, count) {
         author: "Автор",
         type: "Тип",
         status: "Статус",
+        priority: "Приоритет",
         company: "Клиент",
         group: "Группа"
     };
@@ -1129,4 +1282,38 @@ function hideMessage(id) {
 
     element.textContent = "";
     element.classList.add("d-none");
+}
+
+function updateIssueFiltersToggleButton(isExpanded) {
+    const button = document.getElementById("toggleIssueFiltersButton");
+    if (!button) {
+        return;
+    }
+
+    button.textContent = isExpanded ? "Свернуть фильтры" : "Развернуть фильтры";
+    button.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+}
+
+function isIssueFiltersExpanded() {
+    const collapse = document.getElementById("issueFiltersCollapse");
+    return collapse ? collapse.classList.contains("show") : false;
+}
+
+function initIssueSearchWarningModal() {
+    const modalElement = document.getElementById("issueSearchWarningModal");
+    if (!modalElement || !window.bootstrap) {
+        return;
+    }
+
+    issueSearchWarningModal = new bootstrap.Modal(modalElement);
+}
+
+function showIssueSearchWarningModal() {
+    if (issueSearchWarningModal) {
+        issueSearchWarningModal.show();
+    }
+}
+
+function getNonWhitespaceCount(value) {
+    return String(value || "").replace(/\s+/g, "").length;
 }

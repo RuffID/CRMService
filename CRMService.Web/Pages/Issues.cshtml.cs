@@ -14,6 +14,7 @@ namespace CRMService.Web.Pages
     public class IssuesModel(
         IssueService issueService,
         IssueStatusService issueStatusService,
+        IssuePriorityService issuePriorityService,
         IssueTypeService issueTypeService,
         GroupService groupService,
         EmployeeService employeeService,
@@ -47,6 +48,11 @@ namespace CRMService.Web.Pages
         public async Task<IActionResult> OnGetStatusLookupAsync([FromQuery] LookupListRequest request, CancellationToken ct)
         {
             return JsonResultMapper.ToJsonResult(await issueStatusService.GetIssueStatusLookupAsync(request, ct));
+        }
+
+        public async Task<IActionResult> OnGetPriorityLookupAsync([FromQuery] LookupListRequest request, CancellationToken ct)
+        {
+            return JsonResultMapper.ToJsonResult(await issuePriorityService.GetIssuePriorityLookupAsync(request, ct));
         }
 
         public async Task<IActionResult> OnGetCompanyLookupAsync([FromQuery] LookupListRequest request, CancellationToken ct)

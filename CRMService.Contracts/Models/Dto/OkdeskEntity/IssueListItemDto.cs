@@ -17,5 +17,11 @@ namespace CRMService.Contracts.Models.Dto.OkdeskEntity
         public DateTime? CompletedAt { get; set; }
 
         public string StatusName { get; set; } = string.Empty;
+
+        public string StatusColor { get; set; } = string.Empty;
+
+        public string PriorityName { get; set; } = string.Empty;
+
+        public string PriorityColor { get; set; } = string.Empty;
     }
 }

@@ -21,7 +21,9 @@ namespace CRMService.Domain.Models.OkdeskEntity
             Name = priority.Name;
             Code = priority.Code;
             Position = priority.Position;
-            Color = priority.Color;
+
+            if (!string.IsNullOrEmpty(priority.Color))
+                Color = priority.Color;
         }
     }
 }

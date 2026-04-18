@@ -43,8 +43,9 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
         {
             IQueryable<Issue> items = ApplyFilters(query.Query(asNoTracking: true), request)
                 .Include(issue => issue.Company)
-                .ThenInclude(company => company.Category)
+                .ThenInclude(company => company!.Category)
                 .Include(issue => issue.Assignee)
+                .Include(issue => issue.Priority)
                 .Include(issue => issue.Status)
                 .OrderByDescending(issue => issue.CreatedAt)
                 .ThenByDescending(issue => issue.Id)
@@ -58,8 +59,21 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
         {
             query = query.Where(issue => issue.DeletedAt == null);
 
-            if (request.Id.HasValue)
-                query = query.Where(issue => issue.Id == request.Id.Value);
+            if (request.NumberFrom.HasValue)
+                query = query.Where(issue => issue.Id >= request.NumberFrom.Value);
+
+            if (request.NumberTo.HasValue)
+                query = query.Where(issue => issue.Id <= request.NumberTo.Value);
+
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                string search = request.Search.Trim();
+                bool isIssueNumber = int.TryParse(search, out int issueNumber);
+
+                query = query.Where(issue =>
+                    (issue.Title != null && issue.Title.Contains(search))
+                    || (isIssueNumber && issue.Id == issueNumber));
+            }
 
             if (request.AssigneeIds != null && request.AssigneeIds.Count > 0)
                 query = query.Where(issue => issue.AssigneeId.HasValue && request.AssigneeIds.Contains(issue.AssigneeId.Value));
@@ -72,6 +86,9 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
 
             if (request.StatusIds != null && request.StatusIds.Count > 0)
                 query = query.Where(issue => issue.StatusId.HasValue && request.StatusIds.Contains(issue.StatusId.Value));
+
+            if (request.PriorityIds != null && request.PriorityIds.Count > 0)
+                query = query.Where(issue => issue.PriorityId.HasValue && request.PriorityIds.Contains(issue.PriorityId.Value));
 
             if (request.CompanyIds != null && request.CompanyIds.Count > 0)
                 query = query.Where(issue => issue.CompanyId.HasValue && request.CompanyIds.Contains(issue.CompanyId.Value));

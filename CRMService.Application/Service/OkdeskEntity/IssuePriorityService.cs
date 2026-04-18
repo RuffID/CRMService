@@ -6,16 +6,53 @@ using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.Extensions.Options;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.Lookup;
+using CRMService.Contracts.Models.Request;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssuePriorityService> logger)
     {
+        private const int DEFAULT_LOOKUP_LIMIT = 20;
+
         public async Task<ServiceResult<List<PriorityDto>>> GetIssuePrioritiesAsync(CancellationToken ct)
         {
             List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 
             return ServiceResult<List<PriorityDto>>.Ok(priorities.ToDto().ToList());
+        }
+
+        public async Task<ServiceResult<List<LookupOptionDto>>> GetIssuePriorityLookupAsync(LookupListRequest requestModel, CancellationToken ct = default)
+        {
+            ServiceResult validationResult = ValidateLookupRequest(requestModel);
+            if (!validationResult.Success)
+                return ServiceResult<List<LookupOptionDto>>.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
+
+            string? normalizedSearch = NormalizeSearch(requestModel.Search);
+
+            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(
+                predicate: priority => normalizedSearch == null || (priority.Name != null && priority.Name.Contains(normalizedSearch)),
+                asNoTracking: true,
+                ct: ct);
+
+            IEnumerable<IssuePriority> orderedPriorities = normalizedSearch == null
+                ? priorities.OrderBy(priority => priority.Id)
+                : priorities
+                    .OrderBy(priority => priority.Name != null && priority.Name.StartsWith(normalizedSearch, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                    .ThenBy(priority => priority.Name)
+                    .ThenBy(priority => priority.Id);
+
+            List<LookupOptionDto> items = orderedPriorities
+                .Skip(requestModel.Offset)
+                .Take(requestModel.Limit)
+                .Select(priority => new LookupOptionDto
+                {
+                    Id = priority.Id,
+                    Text = priority.Name ?? $"#{priority.Id}"
+                })
+                .ToList();
+
+            return ServiceResult<List<LookupOptionDto>>.Ok(items);
         }
 
         public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudApi(CancellationToken ct)
@@ -88,6 +125,30 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             logger.LogInformation("[Method:{MethodName}] Update issue priorities completed.", nameof(UpdateIssuePrioritiesFromCloudDb));
+        }
+
+        private static ServiceResult ValidateLookupRequest(LookupListRequest request)
+        {
+            if (request.Offset < 0)
+                return ServiceResult.Fail(400, "Смещение не может быть отрицательным.");
+
+            if (request.Limit == 0)
+                request.Limit = DEFAULT_LOOKUP_LIMIT;
+
+            if (request.Limit <= 0 || request.Limit > 100)
+                return ServiceResult.Fail(400, "Лимит должен быть в диапазоне от 1 до 100.");
+
+            return ServiceResult.Ok();
+        }
+
+        private static string? NormalizeSearch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            string normalized = value.Trim();
+            int nonWhitespaceCount = normalized.Count(character => !char.IsWhiteSpace(character));
+            return nonWhitespaceCount >= 2 ? normalized : null;
         }
     }
 }

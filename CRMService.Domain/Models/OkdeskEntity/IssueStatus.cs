@@ -18,7 +18,9 @@ namespace CRMService.Domain.Models.OkdeskEntity
         {
             Code = status.Code;
             Name = status.Name;
-            Color = status.Color;
+
+            if (!string.IsNullOrEmpty(status.Color))
+                Color = status.Color;
         }
     }
 }

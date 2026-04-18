@@ -2,7 +2,11 @@ namespace CRMService.Contracts.Models.Request
 {
     public class IssueListRequest
     {
-        public int? Id { get; set; }
+        public int? NumberFrom { get; set; }
+
+        public int? NumberTo { get; set; }
+
+        public string? Search { get; set; }
 
         public List<int>? AssigneeIds { get; set; }
 
@@ -11,6 +15,8 @@ namespace CRMService.Contracts.Models.Request
         public List<int>? TypeIds { get; set; }
 
         public List<int>? StatusIds { get; set; }
+
+        public List<int>? PriorityIds { get; set; }
 
         public List<int>? CompanyIds { get; set; }
 

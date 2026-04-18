@@ -39,6 +39,29 @@
 
 Для запуска `CLEAR.bat` из браузера можно использовать обычные ссылки вида `clearbat://iiko@host:port@login:password` и формат V2.
 
+Справочник аргументов:
+- официальный список типов и форматов запуска: `https://clearbat.iiko.online/ru/other/arguments`;
+- эту ссылку стоит сохранять рядом с логикой генерации `clearbat`-ссылок как опорный источник по форматам.
+
+Поддерживаемые типы подключения по справочнику:
+- `iiko` — формат `iiko@ip:port@login:password`;
+- `rdp` — формат `rdp@ip:port@login:password`;
+- `anydesk` — формат `anydesk@login:password`;
+- `teamviewer` — формат `teamviewer@login:password`;
+- `customconnection` — кастомный тип подключения;
+- `supremo` — тип подключения Supremo;
+- `rustdesk` — тип подключения RustDesk;
+- `rudesktop` — тип подключения RuDesktop;
+- `ammyy` — тип подключения Ammyy;
+- `litemanager` — формат `litemanager@login:password`;
+- `assistant` — формат `assistant@login:password`;
+- `aspia` — формат `aspia@ip@login:password`;
+- `radmin` — тип подключения Radmin.
+
+Правило по обязательности `password`:
+- `password` обязателен только для типов `rdp`, `teamviewer`, `anydesk`, `litemanager`;
+- для остальных типов подключений можно пробовать запуск без пароля, если это допускает конкретный сценарий и формат ссылки.
+
 Кратко по аргументам V2 (`6.6.1.23+`):
 - формат V2: `clearbat:/?type=iiko?url=test.iiko.it:443?login=admin?password=1234567890?encode=full`;
 - `?encode=...` всегда ставится в самом конце ссылки, иначе обработка пойдет по обычному сценарию;

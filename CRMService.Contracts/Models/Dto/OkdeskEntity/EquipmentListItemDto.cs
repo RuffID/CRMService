@@ -19,5 +19,7 @@ namespace CRMService.Contracts.Models.Dto.OkdeskEntity
         public string CompanyCategoryColor { get; set; } = string.Empty;
 
         public string MaintenanceEntityName { get; set; } = string.Empty;
+
+        public List<EquipmentParameterDto> Parameters { get; set; } = new();
     }
 }

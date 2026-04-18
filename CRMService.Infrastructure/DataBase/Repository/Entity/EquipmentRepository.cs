@@ -48,6 +48,8 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
                 .Include(equipment => equipment.Company)
                 .ThenInclude(company => company!.Category)
                 .Include(equipment => equipment.MaintenanceEntities)
+                .Include(equipment => equipment.Parameters)
+                .ThenInclude(parameter => parameter.KindParameter)
                 .OrderByDescending(equipment => equipment.Id)
                 .Skip(skip)
                 .Take(take);

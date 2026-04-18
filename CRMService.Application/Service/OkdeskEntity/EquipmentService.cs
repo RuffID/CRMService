@@ -432,7 +432,15 @@ namespace CRMService.Application.Service.OkdeskEntity
                 SerialNumber = string.IsNullOrWhiteSpace(equipment.SerialNumber) ? "Не указан" : equipment.SerialNumber,
                 CompanyName = equipment.Company?.Name ?? "Не указан",
                 CompanyCategoryColor = equipment.Company?.Category?.Color ?? string.Empty,
-                MaintenanceEntityName = equipment.MaintenanceEntities?.Name ?? "Не указан"
+                MaintenanceEntityName = equipment.MaintenanceEntities?.Name ?? "Не указан",
+                Parameters = equipment.Parameters
+                    .Where(parameter => parameter.KindParameter != null && !string.IsNullOrWhiteSpace(parameter.KindParameter.Code))
+                    .Select(parameter => new EquipmentParameterDto
+                    {
+                        Code = parameter.KindParameter!.Code,
+                        Value = parameter.Value?.ToString()
+                    })
+                    .ToList()
             };
         }
 

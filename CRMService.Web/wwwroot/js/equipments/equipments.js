@@ -11,6 +11,18 @@ const GRID_LAST_COLUMN_INDEX = 6;
 const LAST_RESIZABLE_COLUMN_INDEX = 5;
 const AUTO_EXPANDING_COLUMN_INDEX = 6;
 const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 240;
+const ACCESS_VALUE_SEPARATOR = "/";
+const TERMINAL_ACCESS_BUTTONS = [
+    { parameterCode: "AnyDesk", clearbatType: "anydesk", buttonText: "AD", iconPath: "/icon/equipments/anydesk.png?v=1", iconAlt: "AnyDesk", displayName: "ЭниДеск", requirePassword: true },
+    { parameterCode: "AA", clearbatType: "ammyy", buttonText: "AA", iconPath: "/icon/equipments/ammyadmin.png?v=1", iconAlt: "АмиАдмин", displayName: "АмиАдмин", requirePassword: false },
+    { parameterCode: "AC", clearbatType: "assistant", buttonText: "AC", iconPath: "/icon/equipments/assistant.png?v=1", iconAlt: "Ассистент", displayName: "Ассистент", requirePassword: false },
+    { parameterCode: "rust", clearbatType: "rustdesk", buttonText: "RD", iconPath: "/icon/equipments/rustdesk.ico?v=1", iconAlt: "RustDesk", displayName: "Растдеск", requirePassword: false }
+];
+const IIKO_CREDENTIALS_PARAMETER_CODE = "0008";
+const SERVER_ACCESS_BUTTONS = [
+    { addressParameterCode: "srv_addr", iconPath: "/icon/equipments/iikoOffice_icon.ico?v=1", iconAlt: "RMS", displayName: "RMS" },
+    { addressParameterCode: "0017", iconPath: "/icon/equipments/iikoChain_icon.ico?v=1", iconAlt: "Чейн", displayName: "Чейн" }
+];
 
 let antiForgeryToken = null;
 let equipmentsState = createDefaultState();
@@ -546,7 +558,7 @@ function renderEquipmentsTable() {
         tr.appendChild(buildCell(String(item.serialNumber || "Не указан"), 3));
         tr.appendChild(buildCompanyCell(item, 4));
         tr.appendChild(buildCell(String(item.maintenanceEntityName || "Не указан"), 5));
-        tr.appendChild(buildCell("", 6));
+        tr.appendChild(buildAccessesCell(item));
         tbody.appendChild(tr);
     }
 
@@ -803,6 +815,277 @@ function buildEquipmentInfoCell(item) {
     const combinedText = `${typeName} ${manufacturerName} ${modelName}`;
 
     return buildCell(combinedText, 1, item.id);
+}
+
+function buildAccessesCell(item) {
+    const td = document.createElement("td");
+    td.className = "px-3 py-2";
+    td.setAttribute("data-column-cell", String(AUTO_EXPANDING_COLUMN_INDEX));
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "d-flex flex-wrap align-items-center gap-2";
+
+    for (const accessButton of TERMINAL_ACCESS_BUTTONS) {
+        const parameterValue = getEquipmentParameterValue(item, accessButton.parameterCode);
+        const credentials = parseAccessCredentials(parameterValue, accessButton.requirePassword);
+        if (credentials === null) {
+            continue;
+        }
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-sm p-0 border-0 bg-transparent shadow-none d-inline-flex align-items-center justify-content-center overflow-hidden rounded-1";
+        button.style.width = "31px";
+        button.style.height = "31px";
+        button.style.minWidth = "31px";
+        button.style.minHeight = "31px";
+        button.title = accessButton.displayName;
+        button.setAttribute("aria-label", accessButton.iconAlt);
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "top");
+
+        const icon = document.createElement("img");
+        icon.src = accessButton.iconPath;
+        icon.alt = accessButton.iconAlt;
+        icon.className = "d-block w-100 h-100";
+        icon.style.objectFit = "fill";
+        button.appendChild(icon);
+
+        bindAccessButtonHoverState(button);
+        button.addEventListener("click", () => {
+            openClearbatLink(buildClearbatUrl(accessButton.clearbatType, credentials));
+        });
+        wrapper.appendChild(button);
+    }
+
+    const iikoCredentialsValue = getEquipmentParameterValue(item, IIKO_CREDENTIALS_PARAMETER_CODE);
+    const iikoCredentials = parseAccessCredentials(iikoCredentialsValue, false);
+    if (iikoCredentials !== null) {
+        for (const accessButton of SERVER_ACCESS_BUTTONS) {
+            const serverAccess = parseServerAccess(getEquipmentParameterValue(item, accessButton.addressParameterCode));
+            if (serverAccess === null) {
+                continue;
+            }
+
+            const button = buildAccessIconButton(accessButton);
+            bindAccessButtonHoverState(button);
+            button.addEventListener("click", () => {
+                openClearbatLink(buildIikoClearbatUrl(serverAccess.address, {
+                    login: iikoCredentials.login,
+                    password: serverAccess.password || iikoCredentials.password
+                }));
+            });
+            wrapper.appendChild(button);
+        }
+    }
+
+    td.appendChild(wrapper);
+    initializeAccessTooltips(td);
+    return td;
+}
+
+function buildAccessIconButton(accessButton) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn-sm p-0 border-0 bg-transparent shadow-none d-inline-flex align-items-center justify-content-center overflow-hidden rounded-1";
+    button.style.width = "31px";
+    button.style.height = "31px";
+    button.style.minWidth = "31px";
+    button.style.minHeight = "31px";
+    button.title = accessButton.displayName;
+    button.setAttribute("aria-label", accessButton.iconAlt);
+    button.setAttribute("data-bs-toggle", "tooltip");
+    button.setAttribute("data-bs-placement", "top");
+
+    const icon = document.createElement("img");
+    icon.src = accessButton.iconPath;
+    icon.alt = accessButton.iconAlt;
+    icon.className = "d-block w-100 h-100";
+    icon.style.objectFit = "fill";
+    button.appendChild(icon);
+
+    return button;
+}
+
+function bindAccessButtonHoverState(button) {
+    const activate = () => {
+        button.classList.add("rounded-1");
+        button.style.outline = "2px solid var(--bs-primary)";
+        button.style.outlineOffset = "1px";
+    };
+
+    const deactivate = () => {
+        button.style.outline = "";
+        button.style.outlineOffset = "";
+    };
+
+    button.addEventListener("mouseenter", activate);
+    button.addEventListener("mouseleave", deactivate);
+    button.addEventListener("focus", activate);
+    button.addEventListener("blur", deactivate);
+}
+
+function initializeAccessTooltips(container) {
+    if (!container || !window.bootstrap?.Tooltip) {
+        return;
+    }
+
+    const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+    for (const tooltipElement of tooltipElements) {
+        new bootstrap.Tooltip(tooltipElement);
+    }
+}
+
+function getEquipmentParameterValue(item, parameterCode) {
+    if (!item || !Array.isArray(item.parameters) || !parameterCode) {
+        return "";
+    }
+
+    const parameter = item.parameters.find(current =>
+        typeof current?.code === "string"
+        && current.code === parameterCode);
+
+    return typeof parameter?.value === "string" ? parameter.value : "";
+}
+
+function parseServerAccess(value) {
+    const normalizedValue = String(value || "").trim();
+    if (!normalizedValue) {
+        return null;
+    }
+
+    const compactValue = normalizedValue.replace(/\s+/g, "");
+    const separatorIndex = compactValue.indexOf(ACCESS_VALUE_SEPARATOR);
+    const rawAddress = separatorIndex >= 0
+        ? compactValue.slice(0, separatorIndex)
+        : compactValue;
+    const password = separatorIndex >= 0
+        ? compactValue.slice(separatorIndex + ACCESS_VALUE_SEPARATOR.length)
+        : "";
+
+    if (!rawAddress) {
+        return null;
+    }
+
+    const address = ensureServerPort(rawAddress);
+    if (!address) {
+        return null;
+    }
+
+    return {
+        address,
+        password
+    };
+}
+
+function ensureServerPort(address) {
+    const normalizedAddress = String(address || "").trim();
+    if (!normalizedAddress) {
+        return "";
+    }
+
+    if (hasExplicitPort(normalizedAddress)) {
+        return normalizedAddress;
+    }
+
+    return `${normalizedAddress}:443`;
+}
+
+function hasExplicitPort(address) {
+    if (!address) {
+        return false;
+    }
+
+    const lastColonIndex = address.lastIndexOf(":");
+    if (lastColonIndex < 0 || lastColonIndex === address.length - 1) {
+        return false;
+    }
+
+    const portPart = address.slice(lastColonIndex + 1);
+    return /^\d+$/.test(portPart);
+}
+
+function parseAccessCredentials(value, requirePassword) {
+    const normalizedValue = String(value || "").replace(/\s+/g, "");
+    if (!normalizedValue) {
+        return null;
+    }
+
+    const separatorIndex = normalizedValue.indexOf(ACCESS_VALUE_SEPARATOR);
+    if (separatorIndex < 0) {
+        return requirePassword
+            ? null
+            : {
+                login: normalizedValue,
+                password: ""
+            };
+    }
+
+    const login = normalizedValue.slice(0, separatorIndex);
+    const password = normalizedValue.slice(separatorIndex + ACCESS_VALUE_SEPARATOR.length);
+    if (login.length === 0) {
+        return null;
+    }
+
+    if (requirePassword && password.length === 0) {
+        return null;
+    }
+
+    return {
+        login,
+        password
+    };
+}
+
+function buildClearbatUrl(clearbatType, credentials) {
+    const payloadParts = [
+        `?type=${clearbatType}`,
+        `?login=${credentials.login}`
+    ];
+
+    if (credentials.password) {
+        payloadParts.push(`?password=${credentials.password}`);
+    }
+
+    const payload = payloadParts.join("");
+    return `clearbat:/${toBase64Utf8(payload)}?encode=full`;
+}
+
+function buildIikoClearbatUrl(address, credentials) {
+    const payloadParts = [
+        "?type=iiko",
+        `?url=${address}`
+    ];
+
+    if (credentials.login) {
+        payloadParts.push(`?login=${credentials.login}`);
+    }
+
+    if (credentials.password) {
+        payloadParts.push(`?password=${credentials.password}`);
+    }
+
+    const payload = payloadParts.join("");
+    return `clearbat:/${toBase64Utf8(payload)}?encode=full`;
+}
+
+function toBase64Utf8(value) {
+    const bytes = new TextEncoder().encode(String(value || ""));
+    let binary = "";
+
+    for (const byte of bytes) {
+        binary += String.fromCharCode(byte);
+    }
+
+    return window.btoa(binary);
+}
+
+function openClearbatLink(url) {
+    if (!url) {
+        return;
+    }
+
+    window.location.assign(url);
 }
 
 function makeEquipmentCellNavigable(element, equipmentId) {

@@ -38,6 +38,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     || company.Name.Contains(normalizedSearch)
                     || (company.AdditionalName != null && company.AdditionalName.Contains(normalizedSearch)),
                 asNoTracking: true,
+                include: query => query.Include(company => company.Category),
                 ct: ct);
 
             IEnumerable<Company> orderedCompanies = normalizedSearch == null
@@ -53,7 +54,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 .Select(company => new LookupOptionDto
                 {
                     Id = company.Id,
-                    Text = FormatCompanyText(company)
+                    Text = FormatCompanyText(company),
+                    Color = company.Category?.Color ?? string.Empty
                 })
                 .ToList();
 

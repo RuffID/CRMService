@@ -1,6 +1,9 @@
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.Lookup;
+using CRMService.Contracts.Models.Request;
+using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +15,45 @@ namespace CRMService.Application.Service.OkdeskEntity
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
         IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
     {
+        private const int DEFAULT_LOOKUP_LIMIT = 20;
+
+        public async Task<ServiceResult<List<LookupOptionDto>>> GetMaintenanceEntityLookupAsync(LookupListRequest requestModel, CancellationToken ct = default)
+        {
+            ServiceResult validationResult = ValidateLookupRequest(requestModel);
+            if (!validationResult.Success)
+                return ServiceResult<List<LookupOptionDto>>.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
+
+            string? normalizedSearch = NormalizeSearch(requestModel.Search);
+
+            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(
+                predicate: maintenanceEntity => normalizedSearch == null
+                    || maintenanceEntity.Name.Contains(normalizedSearch)
+                    || (maintenanceEntity.Address != null && maintenanceEntity.Address.Contains(normalizedSearch))
+                    || (maintenanceEntity.Company != null && maintenanceEntity.Company.Name.Contains(normalizedSearch)),
+                asNoTracking: true,
+                include: query => query.Include(maintenanceEntity => maintenanceEntity.Company),
+                ct: ct);
+
+            IEnumerable<MaintenanceEntity> orderedMaintenanceEntities = normalizedSearch == null
+                ? maintenanceEntities.OrderBy(maintenanceEntity => maintenanceEntity.Id)
+                : maintenanceEntities
+                    .OrderBy(maintenanceEntity => GetSearchRank(maintenanceEntity, normalizedSearch))
+                    .ThenBy(maintenanceEntity => maintenanceEntity.Name)
+                    .ThenBy(maintenanceEntity => maintenanceEntity.Id);
+
+            List<LookupOptionDto> items = orderedMaintenanceEntities
+                .Skip(requestModel.Offset)
+                .Take(requestModel.Limit)
+                .Select(maintenanceEntity => new LookupOptionDto
+                {
+                    Id = maintenanceEntity.Id,
+                    Text = FormatMaintenanceEntityText(maintenanceEntity)
+                })
+                .ToList();
+
+            return ServiceResult<List<LookupOptionDto>>.Ok(items);
+        }
+
         public async Task<MaintenanceEntity?> GetMaintenanceEntityFromCloudApi(int maintenanceEntityId, CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/maintenance_entities/{maintenanceEntityId}?api_token={okdeskSettings.Value.OkdeskApiToken}";
@@ -135,6 +177,61 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             maintenanceEntity.Company = null;
+        }
+
+        private static ServiceResult ValidateLookupRequest(LookupListRequest request)
+        {
+            if (request.Offset < 0)
+                return ServiceResult.Fail(400, "Смещение не может быть отрицательным.");
+
+            if (request.Limit == 0)
+                request.Limit = DEFAULT_LOOKUP_LIMIT;
+
+            if (request.Limit <= 0 || request.Limit > 100)
+                return ServiceResult.Fail(400, "Лимит должен быть в диапазоне от 1 до 100.");
+
+            return ServiceResult.Ok();
+        }
+
+        private static string? NormalizeSearch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            string normalized = value.Trim();
+            int nonWhitespaceCount = normalized.Count(character => !char.IsWhiteSpace(character));
+            return nonWhitespaceCount >= 2 ? normalized : null;
+        }
+
+        private static string FormatMaintenanceEntityText(MaintenanceEntity maintenanceEntity)
+        {
+            if (maintenanceEntity.Company == null || string.IsNullOrWhiteSpace(maintenanceEntity.Company.Name))
+                return maintenanceEntity.Name;
+
+            return $"{maintenanceEntity.Name} ({maintenanceEntity.Company.Name})";
+        }
+
+        private static int GetSearchRank(MaintenanceEntity maintenanceEntity, string search)
+        {
+            if (maintenanceEntity.Name.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                return 0;
+
+            if (!string.IsNullOrWhiteSpace(maintenanceEntity.Company?.Name) && maintenanceEntity.Company.Name.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                return 1;
+
+            if (!string.IsNullOrWhiteSpace(maintenanceEntity.Address) && maintenanceEntity.Address.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                return 2;
+
+            if (maintenanceEntity.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+                return 3;
+
+            if (!string.IsNullOrWhiteSpace(maintenanceEntity.Company?.Name) && maintenanceEntity.Company.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+                return 4;
+
+            if (!string.IsNullOrWhiteSpace(maintenanceEntity.Address) && maintenanceEntity.Address.Contains(search, StringComparison.OrdinalIgnoreCase))
+                return 5;
+
+            return 6;
         }
     }
 }

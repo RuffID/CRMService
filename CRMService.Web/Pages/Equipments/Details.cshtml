@@ -1,0 +1,11 @@
+@page "/equipments/{id:int}"
+@model CRMService.Web.Pages.Equipments.DetailsModel
+@{
+    ViewData["Title"] = "Оборудование";
+}
+
+<div class="min-vh-100 bg-light p-3">
+    <div class="bg-white border rounded-3 shadow-sm p-3">
+        <a class="btn btn-outline-secondary" href="@Model.BackUrl">Назад к списку оборудования</a>
+    </div>
+</div>

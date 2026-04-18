@@ -1,0 +1,143 @@
+@page
+@model CRMService.Web.Pages.Equipments.IndexModel
+@{
+    ViewData["Title"] = "Оборудование";
+}
+
+<div class="min-vh-100 bg-light p-3 w-100 overflow-hidden">
+    <div id="pageError" class="alert alert-danger d-none mb-3"></div>
+    <div id="pageSuccess" class="alert alert-success d-none mb-3"></div>
+
+    <div class="bg-white border rounded-3 shadow-sm p-3 mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <div>
+                    <div class="h5 mb-1">Список оборудования</div>
+                </div>
+
+                <div style="min-width: 280px;">
+                    <label class="form-label visually-hidden" for="filterQuickSearch">Поиск по id оборудования</label>
+                    <input id="filterQuickSearch" name="filterQuickSearch" type="text" class="form-control form-control-sm" placeholder="Поиск по id оборудования">
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="resetFiltersButton">Сбросить фильтры</button>
+                <button class="btn btn-outline-secondary"
+                        id="toggleEquipmentFiltersButton"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#equipmentFiltersCollapse"
+                        aria-expanded="true"
+                        aria-controls="equipmentFiltersCollapse">
+                    Свернуть фильтры
+                </button>
+            </div>
+        </div>
+
+        <div class="collapse show mt-3 small" id="equipmentFiltersCollapse">
+            <div class="row gx-0 gy-3">
+                <div class="col-12 col-xl-3">
+                    <div class="d-flex flex-column gap-3">
+                        <div>
+                            <label class="form-label d-block">Клиент</label>
+                            <div class="dropdown col-10">
+                                <button id="filterCompanyToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="filterCompanyToggleLabel">Клиент</span>
+                                    <span class="badge bg-primary" id="filterCompanyToggleCount">0</span>
+                                </button>
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="filterCompanySearch" name="filterCompanySearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                                    <div id="filterCompanySelected" class="small text-muted mb-2">Выбрано: 0</div>
+                                    <div id="filterCompanyList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label d-block">Объект обслуживания</label>
+                            <div class="dropdown col-10">
+                                <button id="filterMaintenanceEntityToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="filterMaintenanceEntityToggleLabel">Объект обслуживания</span>
+                                    <span class="badge bg-primary" id="filterMaintenanceEntityToggleCount">0</span>
+                                </button>
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="filterMaintenanceEntitySearch" name="filterMaintenanceEntitySearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                                    <div id="filterMaintenanceEntitySelected" class="small text-muted mb-2">Выбрано: 0</div>
+                                    <div id="filterMaintenanceEntityList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2 justify-content-end align-items-end">
+                        <div class="ms-auto" style="min-width: 180px;">
+                            <label class="form-label" for="filterPageSize">На странице</label>
+                            <select id="filterPageSize" name="filterPageSize" class="form-select form-select-sm">
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white border rounded-3 shadow-sm p-3 w-100 overflow-hidden">
+        <div class="table-responsive w-100 overflow-x-auto">
+            <table class="table table-sm table-bordered table-hover align-middle mb-0 w-auto small" id="equipmentsGrid">
+                <colgroup>
+                    <col id="equipmentsCol0">
+                    <col id="equipmentsCol1">
+                    <col id="equipmentsCol2" style="width: 200px;">
+                    <col id="equipmentsCol3" style="width: 200px;">
+                    <col id="equipmentsCol4" style="width: 300px;">
+                    <col id="equipmentsCol5" style="width: 300px;">
+                    <col id="equipmentsCol6">
+                </colgroup>
+                <thead class="table-light">
+                    <tr>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">Id</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тип / Производитель / Модель</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Инвентарный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Серийный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="4"><span class="d-block text-truncate px-2 fw-normal">Клиент</span><span class="position-absolute top-0 h-100" data-column-resizer="4" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="5"><span class="d-block text-truncate px-2 fw-normal">Объект</span><span class="position-absolute top-0 h-100" data-column-resizer="5" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                        <th class="fw-normal px-3 py-2 text-nowrap">Доступы</th>
+                    </tr>
+                </thead>
+                <tbody id="equipmentsRows"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex flex-column align-items-center gap-3 mt-4">
+            <div class="fs-5" id="equipmentsTotalCount"></div>
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" id="equipmentsPagination"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="equipmentSearchWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title fw-semibold">Предупреждение</div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Для поиска введите корректный id оборудования.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/helpers/http.js" asp-append-version="true"></script>
+<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
+<script src="~/js/equipments/equipments.js" asp-append-version="true"></script>

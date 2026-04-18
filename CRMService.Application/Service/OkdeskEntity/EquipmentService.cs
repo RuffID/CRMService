@@ -2,6 +2,9 @@
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Application.Service.OkdeskEntity.Resolvers;
 using CRMService.Application.Service.Sync;
+using CRMService.Contracts.Models.Dto.OkdeskEntity;
+using CRMService.Contracts.Models.Request;
+using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Options;
@@ -24,6 +27,57 @@ namespace CRMService.Application.Service.OkdeskEntity
         ModelResolverService modelResolver,
         ILogger<EquipmentService> logger)
     {
+        private const int MAX_PAGE_SIZE = 100;
+        private const int QUICK_COUNT_LIMIT = 1000;
+        private const int QUICK_COUNT_QUERY_LIMIT = QUICK_COUNT_LIMIT + 1;
+
+        public async Task<ServiceResult<EquipmentListPageDto>> GetEquipmentListPageAsync(EquipmentListRequest request, CancellationToken ct = default)
+        {
+            ServiceResult normalizedResult = NormalizeEquipmentListRequest(request);
+            if (!normalizedResult.Success)
+                return ServiceResult<EquipmentListPageDto>.Fail(normalizedResult.Error!.StatusCode, normalizedResult.Error.Message);
+
+            int skip = (request.Page - 1) * request.PageSize;
+            List<Equipment> equipments = await unitOfWork.Equipment.GetPageByFilterAsync(request, skip, request.PageSize + 1, ct);
+            int quickCount = await unitOfWork.Equipment.GetCountByFilterAsync(request, QUICK_COUNT_QUERY_LIMIT, ct);
+
+            bool hasNextPage = equipments.Count > request.PageSize;
+            List<EquipmentListItemDto> items = equipments
+                .Take(request.PageSize)
+                .Select(MapEquipmentListItem)
+                .ToList();
+
+            bool isTotalCountCapped = quickCount > QUICK_COUNT_LIMIT;
+            int displayTotalCount = isTotalCountCapped ? QUICK_COUNT_LIMIT : quickCount;
+            int totalPages = CalculateVisibleTotalPages(request.Page, request.PageSize, displayTotalCount, hasNextPage);
+
+            return ServiceResult<EquipmentListPageDto>.Ok(new EquipmentListPageDto
+            {
+                Items = items,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalPages = totalPages,
+                DisplayTotalCount = displayTotalCount,
+                IsTotalCountCapped = isTotalCountCapped,
+                HasNextPage = hasNextPage
+            });
+        }
+
+        public async Task<ServiceResult<EquipmentExactCountDto>> GetEquipmentExactCountAsync(EquipmentListRequest request, CancellationToken ct = default)
+        {
+            ServiceResult normalizedResult = NormalizeEquipmentListRequest(request);
+            if (!normalizedResult.Success)
+                return ServiceResult<EquipmentExactCountDto>.Fail(normalizedResult.Error!.StatusCode, normalizedResult.Error.Message);
+
+            int totalCount = await unitOfWork.Equipment.GetCountByFilterAsync(request, maxCount: null, ct);
+
+            return ServiceResult<EquipmentExactCountDto>.Ok(new EquipmentExactCountDto
+            {
+                TotalCount = totalCount,
+                TotalPages = CalculateTotalPages(totalCount, request.PageSize)
+            });
+        }
+
         private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApiAsync(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, [EnumeratorCancellation] CancellationToken ct = default)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/list?api_token={okdeskSettings.Value.OkdeskApiToken}";
@@ -334,6 +388,67 @@ namespace CRMService.Application.Service.OkdeskEntity
             public Dictionary<string, int> KindIdsByCode { get; } = kindIdsByCode;
             public Dictionary<string, int> ModelIdsByCode { get; } = modelIdsByCode;
             public Dictionary<string, int> KindParameterIdsByCode { get; } = kindParameterIdsByCode;
+        }
+
+        private static ServiceResult NormalizeEquipmentListRequest(EquipmentListRequest request)
+        {
+            if (request.Page <= 0)
+                return ServiceResult.Fail(400, "Номер страницы должен быть больше нуля.");
+
+            if (request.PageSize != 20 && request.PageSize != 50 && request.PageSize != MAX_PAGE_SIZE)
+                return ServiceResult.Fail(400, "Допустимые размеры страницы: 20, 50, 100.");
+
+            request.EquipmentId = request.EquipmentId.HasValue && request.EquipmentId.Value > 0
+                ? request.EquipmentId.Value
+                : null;
+            request.CompanyIds = NormalizeIds(request.CompanyIds);
+            request.MaintenanceEntityIds = NormalizeIds(request.MaintenanceEntityIds);
+
+            return ServiceResult.Ok();
+        }
+
+        private static List<int>? NormalizeIds(List<int>? ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return null;
+
+            List<int> values = ids
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            return values.Count == 0 ? null : values;
+        }
+
+        private static EquipmentListItemDto MapEquipmentListItem(Equipment equipment)
+        {
+            return new EquipmentListItemDto
+            {
+                Id = equipment.Id,
+                TypeName = equipment.Kind?.Name ?? "Не указан",
+                ManufacturerName = equipment.Manufacturer?.Name ?? "Не указан",
+                ModelName = equipment.Model?.Name ?? "Не указан",
+                InventoryNumber = string.IsNullOrWhiteSpace(equipment.InventoryNumber) ? "Не указан" : equipment.InventoryNumber,
+                SerialNumber = string.IsNullOrWhiteSpace(equipment.SerialNumber) ? "Не указан" : equipment.SerialNumber,
+                CompanyName = equipment.Company?.Name ?? "Не указан",
+                CompanyCategoryColor = equipment.Company?.Category?.Color ?? string.Empty,
+                MaintenanceEntityName = equipment.MaintenanceEntities?.Name ?? "Не указан"
+            };
+        }
+
+        private static int CalculateVisibleTotalPages(int page, int pageSize, int displayTotalCount, bool hasNextPage)
+        {
+            int totalPages = CalculateTotalPages(displayTotalCount, pageSize);
+            int minimalVisiblePages = hasNextPage ? page + 1 : page;
+            return Math.Max(totalPages, minimalVisiblePages);
+        }
+
+        private static int CalculateTotalPages(int totalCount, int pageSize)
+        {
+            if (totalCount <= 0)
+                return 1;
+
+            return (int)Math.Ceiling(totalCount / (double)pageSize);
         }
     }
 }

@@ -68,11 +68,12 @@ async function initIssuesPage() {
     initIssueSearchWarningModal();
     restoreIssuesFiltersState();
     bindIssuesEvents();
+    restoreIssuesPageFromUrl();
     applyStateToFilters();
     initIssuesGridColumnResize();
     restoreIssuesGridColumnWidths();
     await loadInitialLookups();
-    await reloadIssues(true);
+    await reloadIssues(false);
 }
 
 function bindIssuesEvents() {
@@ -544,6 +545,7 @@ async function reloadIssues(resetPage) {
             issuesState.list.totalPages = issuesState.exactTotalPages;
         }
 
+        updateIssuesPageUrl();
         renderIssuesTable();
         renderIssuesTotalCount();
         renderIssuesPagination();
@@ -1063,6 +1065,20 @@ function initIssuesGridColumnResize() {
             dispose();
         }
     };
+}
+
+function restoreIssuesPageFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const page = Number.parseInt(params.get("page") || "", 10);
+    if (Number.isInteger(page) && page > 0) {
+        issuesState.page = page;
+    }
+}
+
+function updateIssuesPageUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", String(issuesState.page || 1));
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
 }
 
 function syncIssuesGridColumnWidths() {

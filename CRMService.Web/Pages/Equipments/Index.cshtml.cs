@@ -14,7 +14,10 @@ namespace CRMService.Web.Pages.Equipments
     public class IndexModel(
         EquipmentService equipmentService,
         MaintenanceEntityService maintenanceEntityService,
-        CompanyService companyService) : PageModel
+        CompanyService companyService,
+        KindService kindService,
+        ManufacturerService manufacturerService,
+        ModelService modelService) : PageModel
     {
         public async Task<IActionResult> OnGetListAsync([FromQuery] EquipmentListRequest request, CancellationToken ct)
         {
@@ -31,7 +34,22 @@ namespace CRMService.Web.Pages.Equipments
             return JsonResultMapper.ToJsonResult(await companyService.GetCompanyLookupAsync(request, ct));
         }
 
-        public async Task<IActionResult> OnGetMaintenanceEntityLookupAsync([FromQuery] LookupListRequest request, CancellationToken ct)
+        public async Task<IActionResult> OnGetTypeLookupAsync([FromQuery] EquipmentLookupListRequest request, CancellationToken ct)
+        {
+            return JsonResultMapper.ToJsonResult(await kindService.GetKindLookupAsync(request, ct));
+        }
+
+        public async Task<IActionResult> OnGetManufacturerLookupAsync([FromQuery] EquipmentLookupListRequest request, CancellationToken ct)
+        {
+            return JsonResultMapper.ToJsonResult(await manufacturerService.GetManufacturerLookupAsync(request, ct));
+        }
+
+        public async Task<IActionResult> OnGetModelLookupAsync([FromQuery] EquipmentLookupListRequest request, CancellationToken ct)
+        {
+            return JsonResultMapper.ToJsonResult(await modelService.GetModelLookupAsync(request, ct));
+        }
+
+        public async Task<IActionResult> OnGetMaintenanceEntityLookupAsync([FromQuery] EquipmentLookupListRequest request, CancellationToken ct)
         {
             return JsonResultMapper.ToJsonResult(await maintenanceEntityService.GetMaintenanceEntityLookupAsync(request, ct));
         }

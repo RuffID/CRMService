@@ -1,9 +1,7 @@
 namespace CRMService.Contracts.Models.Request
 {
-    public class EquipmentListRequest
+    public class EquipmentLookupListRequest : LookupListRequest
     {
-        public int? EquipmentId { get; set; }
-
         public List<int>? TypeIds { get; set; }
 
         public List<int>? ManufacturerIds { get; set; }
@@ -11,11 +9,5 @@ namespace CRMService.Contracts.Models.Request
         public List<int>? ModelIds { get; set; }
 
         public List<int>? CompanyIds { get; set; }
-
-        public List<int>? MaintenanceEntityIds { get; set; }
-
-        public int Page { get; set; } = 1;
-
-        public int PageSize { get; set; } = 20;
     }
 }

@@ -15,6 +15,7 @@ const AUTO_EXPANDING_COLUMN_INDEX = 6;
 const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 240;
 const AUTO_EXPANDING_COLUMN_MAX_WIDTH = 320;
 const ACCESS_VALUE_SEPARATOR = "/";
+const INVALID_PLACEHOLDER_VALUES = new Set(["-", "\u043D\u0435\u0443\u043A\u0430\u0437\u0430\u043D\u043E"]);
 const TERMINAL_ACCESS_BUTTONS = [
     { parameterCode: "AnyDesk", clearbatType: "anydesk", buttonText: "AD", iconPath: "/icon/equipments/anydesk.png?v=1", iconAlt: "AnyDesk", displayName: "ЭниДеск", requirePassword: true },
     { parameterCode: "AA", clearbatType: "ammyy", buttonText: "AA", iconPath: "/icon/equipments/ammyadmin.png?v=1", iconAlt: "АмиАдмин", displayName: "АмиАдмин", requirePassword: false },
@@ -27,7 +28,7 @@ const SERVER_ACCESS_BUTTONS = [
     { addressParameterCode: "srv_addr", iconPath: "/icon/equipments/iikoOffice_icon.ico?v=1", iconAlt: "RMS", displayName: "RMS" },
     { addressParameterCode: "0017", iconPath: "/icon/equipments/iikoChain_icon.ico?v=1", iconAlt: "Чейн", displayName: "Чейн" }
 ];
-const WEB_ACCESS_BUTTON = { iconPath: "/icon/equipments/iikoOffice_icon.ico?v=1", iconAlt: "iiko WEB", displayName: "iiko WEB" };
+const WEB_ACCESS_BUTTON = { iconPath: "/icon/equipments/internet.svg?v=1", iconAlt: "iiko WEB", displayName: "iiko WEB" };
 
 let antiForgeryToken = null;
 let equipmentsState = createDefaultState();
@@ -70,7 +71,10 @@ function createDefaultFilterState() {
 function createLookupStates() {
     return {
         company: createLookupState("CompanyLookup", "filterCompanySearch", "filterCompanyList", "filterCompanySelected"),
-        maintenanceEntity: createLookupState("MaintenanceEntityLookup", "filterMaintenanceEntitySearch", "filterMaintenanceEntityList", "filterMaintenanceEntitySelected")
+        maintenanceEntity: createLookupState("MaintenanceEntityLookup", "filterMaintenanceEntitySearch", "filterMaintenanceEntityList", "filterMaintenanceEntitySelected"),
+        type: createLookupState("TypeLookup", "filterTypeSearch", "filterTypeList", "filterTypeSelected"),
+        manufacturer: createLookupState("ManufacturerLookup", "filterManufacturerSearch", "filterManufacturerList", "filterManufacturerSelected"),
+        model: createLookupState("ModelLookup", "filterModelSearch", "filterModelList", "filterModelSelected")
     };
 }
 
@@ -142,6 +146,9 @@ function bindEquipmentsEvents() {
 
     bindLookupEvents("company");
     bindLookupEvents("maintenanceEntity");
+    bindLookupEvents("type");
+    bindLookupEvents("manufacturer");
+    bindLookupEvents("model");
 
     const filtersCollapseElement = document.getElementById("equipmentFiltersCollapse");
     if (filtersCollapseElement) {
@@ -217,7 +224,10 @@ function bindLookupEvents(key) {
 async function loadInitialLookups() {
     await Promise.all([
         loadLookupOptions("company", true),
-        loadLookupOptions("maintenanceEntity", true)
+        loadLookupOptions("maintenanceEntity", true),
+        loadLookupOptions("type", true),
+        loadLookupOptions("manufacturer", true),
+        loadLookupOptions("model", true)
     ]);
 }
 
@@ -250,6 +260,8 @@ async function loadLookupOptions(key, reset) {
         if (lookup.search) {
             params.append("search", lookup.search);
         }
+
+        appendLookupRequestParams(params, key);
 
         const url = `?handler=${lookup.handler}&${params.toString()}`;
         const response = await sendJsonRequest(url, "GET", buildJsonHeaders(antiForgeryToken));
@@ -313,6 +325,7 @@ function renderLookupList(key) {
                 lookup.selectedIds.delete(item.id);
             }
 
+            await handleLookupSelectionChange(key);
             updateLookupSelectedCounter(key);
             equipmentsState.page = 1;
             equipmentsState.exactTotalCount = null;
@@ -378,6 +391,64 @@ function normalizeLookupSearch(value) {
     return nonWhitespaceCount >= 2 ? normalized : "";
 }
 
+function appendLookupRequestParams(params, key) {
+    if (key === "maintenanceEntity") {
+        appendListParam(params, "companyIds", Array.from(equipmentsLookupStates.company.selectedIds));
+        return;
+    }
+
+    if (key === "type") {
+        appendListParam(params, "modelIds", Array.from(equipmentsLookupStates.model.selectedIds));
+        return;
+    }
+
+    if (key === "manufacturer") {
+        appendListParam(params, "modelIds", Array.from(equipmentsLookupStates.model.selectedIds));
+        return;
+    }
+
+    if (key === "model") {
+        appendListParam(params, "typeIds", Array.from(equipmentsLookupStates.type.selectedIds));
+        appendListParam(params, "manufacturerIds", Array.from(equipmentsLookupStates.manufacturer.selectedIds));
+    }
+}
+
+async function handleLookupSelectionChange(key) {
+    if (key === "company") {
+        clearLookupSelection("maintenanceEntity");
+        await loadLookupOptions("maintenanceEntity", true);
+        return;
+    }
+
+    if (key === "type" || key === "manufacturer") {
+        clearLookupSelection("model");
+        await Promise.all([
+            loadLookupOptions("model", true),
+            loadLookupOptions("type", key === "manufacturer"),
+            loadLookupOptions("manufacturer", key === "type")
+        ]);
+        return;
+    }
+
+    if (key === "model") {
+        await Promise.all([
+            loadLookupOptions("type", true),
+            loadLookupOptions("manufacturer", true)
+        ]);
+    }
+}
+
+function clearLookupSelection(key) {
+    const lookup = equipmentsLookupStates[key];
+    lookup.selectedIds.clear();
+    lookup.items = [];
+    lookup.offset = 0;
+    lookup.hasMore = true;
+    lookup.requestId += 1;
+    updateLookupSelectedCounter(key);
+    renderLookupList(key);
+}
+
 function applyStateToFilters() {
     const quickSearch = document.getElementById("filterQuickSearch");
     const pageSize = document.getElementById("filterPageSize");
@@ -407,7 +478,10 @@ function resetEquipmentsFilters() {
     const ids = [
         "filterQuickSearch",
         "filterCompanySearch",
-        "filterMaintenanceEntitySearch"
+        "filterMaintenanceEntitySearch",
+        "filterTypeSearch",
+        "filterManufacturerSearch",
+        "filterModelSearch"
     ];
 
     for (const id of ids) {
@@ -510,6 +584,9 @@ function collectEquipmentsRequest() {
 
     return {
         equipmentId,
+        typeIds: Array.from(equipmentsLookupStates.type.selectedIds),
+        manufacturerIds: Array.from(equipmentsLookupStates.manufacturer.selectedIds),
+        modelIds: Array.from(equipmentsLookupStates.model.selectedIds),
         companyIds: Array.from(equipmentsLookupStates.company.selectedIds),
         maintenanceEntityIds: Array.from(equipmentsLookupStates.maintenanceEntity.selectedIds),
         page: equipmentsState.page,
@@ -521,6 +598,9 @@ function buildEquipmentsRequestUrl(handler, request) {
     const params = new URLSearchParams();
 
     appendNumberParam(params, "equipmentId", request.equipmentId);
+    appendListParam(params, "typeIds", request.typeIds);
+    appendListParam(params, "manufacturerIds", request.manufacturerIds);
+    appendListParam(params, "modelIds", request.modelIds);
     appendListParam(params, "companyIds", request.companyIds);
     appendListParam(params, "maintenanceEntityIds", request.maintenanceEntityIds);
     appendNumberParam(params, "page", request.page);
@@ -1018,37 +1098,60 @@ function getEquipmentWebLink(item) {
 
 function parseServerAccess(value) {
     const normalizedValue = String(value || "").trim();
-    if (!normalizedValue) {
+    if (!isMeaningfulAccessValue(normalizedValue) || /\s/.test(normalizedValue)) {
         return null;
     }
 
-    const compactValue = normalizedValue.replace(/\s+/g, "");
-    const separatorIndex = compactValue.indexOf(ACCESS_VALUE_SEPARATOR);
-    const rawAddress = separatorIndex >= 0
-        ? compactValue.slice(0, separatorIndex)
-        : compactValue;
-    const password = separatorIndex >= 0
-        ? compactValue.slice(separatorIndex + ACCESS_VALUE_SEPARATOR.length)
-        : "";
-
-    if (!rawAddress) {
+    const parsedValue = splitServerAccessValue(normalizedValue);
+    if (parsedValue === null || !isMeaningfulAccessValue(parsedValue.address)) {
         return null;
     }
 
-    const address = ensureServerPort(rawAddress);
+    const address = ensureServerPort(parsedValue.address);
     if (!address) {
         return null;
     }
 
     return {
         address,
-        password
+        password: parsedValue.password
     };
 }
 
 function ensureServerPort(address) {
     const normalizedAddress = String(address || "").trim();
-    if (!normalizedAddress) {
+    if (!isMeaningfulAccessValue(normalizedAddress) || /\s/.test(normalizedAddress)) {
+        return "";
+    }
+
+    if (/^https?:\/\//i.test(normalizedAddress)) {
+        try {
+            const url = new URL(normalizedAddress);
+            if (url.protocol !== "http:" && url.protocol !== "https:") {
+                return "";
+            }
+
+            if (!url.hostname) {
+                return "";
+            }
+
+            if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+                return "";
+            }
+
+            if (url.port) {
+                return url.toString().replace(/\/$/, "");
+            }
+
+            url.port = "443";
+            return url.toString().replace(/\/$/, "");
+        }
+        catch {
+            return "";
+        }
+    }
+
+    if (normalizedAddress.includes("://") || normalizedAddress.includes("?") || normalizedAddress.includes("#")) {
         return "";
     }
 
@@ -1166,7 +1269,54 @@ function openEquipmentWebLink(url) {
 
 function normalizeEquipmentWebLink(value) {
     const normalizedValue = String(value || "").trim();
-    return normalizedValue || "";
+    if (!isMeaningfulAccessValue(normalizedValue) || /[\u0400-\u04FF]/u.test(normalizedValue) || /\s/.test(normalizedValue)) {
+        return "";
+    }
+
+    try {
+        const url = new URL(normalizedValue);
+        if ((url.protocol !== "http:" && url.protocol !== "https:") || !url.hostname || /[^\x00-\x7F]/.test(url.hostname)) {
+            return "";
+        }
+
+        return url.toString();
+    }
+    catch {
+        return "";
+    }
+}
+
+function splitServerAccessValue(value) {
+    const protocolMatch = value.match(/^https?:\/\//i);
+    const searchStartIndex = protocolMatch !== null ? protocolMatch[0].length : 0;
+    const separatorIndex = value.indexOf(ACCESS_VALUE_SEPARATOR, searchStartIndex);
+    if (separatorIndex < 0) {
+        return {
+            address: value,
+            password: ""
+        };
+    }
+
+    const address = value.slice(0, separatorIndex);
+    const password = value.slice(separatorIndex + ACCESS_VALUE_SEPARATOR.length);
+    if (!address || !password) {
+        return null;
+    }
+
+    return {
+        address,
+        password
+    };
+}
+
+function isMeaningfulAccessValue(value) {
+    const normalizedValue = String(value || "").trim();
+    if (!normalizedValue) {
+        return false;
+    }
+
+    const collapsedValue = normalizedValue.replace(/\s+/g, "").toLowerCase();
+    return !INVALID_PLACEHOLDER_VALUES.has(collapsedValue);
 }
 
 function makeEquipmentCellNavigable(element, equipmentId) {
@@ -1345,6 +1495,9 @@ function restoreEquipmentsFiltersState() {
 
         restoreLookupSelection("company", parsed.companyIds, parsed.companySearch);
         restoreLookupSelection("maintenanceEntity", parsed.maintenanceEntityIds, parsed.maintenanceEntitySearch);
+        restoreLookupSelection("type", parsed.typeIds, parsed.typeSearch);
+        restoreLookupSelection("manufacturer", parsed.manufacturerIds, parsed.manufacturerSearch);
+        restoreLookupSelection("model", parsed.modelIds, parsed.modelSearch);
     } catch (error) {
         console.error(error);
         localStorage.removeItem(EQUIPMENTS_FILTERS_STORAGE_KEY);
@@ -1363,8 +1516,14 @@ function saveEquipmentsFiltersState() {
     const payload = {
         pageSize: equipmentsState.pageSize,
         quickSearch: equipmentsState.filters.quickSearch,
+        typeIds: Array.from(equipmentsLookupStates.type.selectedIds),
+        manufacturerIds: Array.from(equipmentsLookupStates.manufacturer.selectedIds),
+        modelIds: Array.from(equipmentsLookupStates.model.selectedIds),
         companyIds: Array.from(equipmentsLookupStates.company.selectedIds),
         maintenanceEntityIds: Array.from(equipmentsLookupStates.maintenanceEntity.selectedIds),
+        typeSearch: equipmentsLookupStates.type.search,
+        manufacturerSearch: equipmentsLookupStates.manufacturer.search,
+        modelSearch: equipmentsLookupStates.model.search,
         companySearch: equipmentsLookupStates.company.search,
         maintenanceEntitySearch: equipmentsLookupStates.maintenanceEntity.search
     };
@@ -1394,6 +1553,10 @@ function getLookupToggleLabel(key, count) {
         company: "Клиент",
         maintenanceEntity: "Объект обслуживания"
     };
+
+    baseLabels.type = "\u0422\u0438\u043F";
+    baseLabels.manufacturer = "\u041F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C";
+    baseLabels.model = "\u041C\u043E\u0434\u0435\u043B\u044C";
 
     if (count <= 0) {
         return baseLabels[key] || "";

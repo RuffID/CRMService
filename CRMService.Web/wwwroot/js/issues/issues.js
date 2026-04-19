@@ -680,7 +680,6 @@ function renderIssuesTable() {
         const companyCell = buildCompanyCell(item, 2);
         makeIssueCellNavigable(idCell, item.id);
         makeIssueCellNavigable(titleCell, item.id);
-        makeIssueCellNavigable(companyCell, item.id);
         tr.appendChild(idCell);
         tr.appendChild(titleCell);
         tr.appendChild(companyCell);

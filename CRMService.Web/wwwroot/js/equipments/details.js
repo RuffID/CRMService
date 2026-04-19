@@ -1,4 +1,5 @@
 const ACCESS_VALUE_SEPARATOR = "/";
+const INVALID_PLACEHOLDER_VALUES = new Set(["-", "\u043D\u0435\u0443\u043A\u0430\u0437\u0430\u043D\u043E"]);
 const TERMINAL_ACCESS_BUTTONS = [
     { parameterCode: "AnyDesk", clearbatType: "anydesk", iconPath: "/icon/equipments/anydesk.png?v=1", iconAlt: "AnyDesk", displayName: "ЭниДеск", requirePassword: true },
     { parameterCode: "AA", clearbatType: "ammyy", iconPath: "/icon/equipments/ammyadmin.png?v=1", iconAlt: "АмиАдмин", displayName: "АмиАдмин", requirePassword: false },
@@ -314,42 +315,79 @@ function getEquipmentParameterValue(parameterCode) {
 
 function normalizeEquipmentWebLink(value) {
     const normalizedValue = String(value || "").trim();
-    return normalizedValue || "";
+    if (!isMeaningfulAccessValue(normalizedValue) || /[\u0400-\u04FF]/u.test(normalizedValue) || /\s/.test(normalizedValue)) {
+        return "";
+    }
+
+    try {
+        const url = new URL(normalizedValue);
+        if ((url.protocol !== "http:" && url.protocol !== "https:") || !url.hostname || /[^\x00-\x7F]/.test(url.hostname)) {
+            return "";
+        }
+
+        return url.toString();
+    }
+    catch {
+        return "";
+    }
 }
 
 function parseServerAccess(value) {
     const normalizedValue = String(value || "").trim();
-    if (!normalizedValue) {
+    if (!isMeaningfulAccessValue(normalizedValue) || /\s/.test(normalizedValue)) {
         return null;
     }
 
-    const compactValue = normalizedValue.replace(/\s+/g, "");
-    const separatorIndex = compactValue.indexOf(ACCESS_VALUE_SEPARATOR);
-    const rawAddress = separatorIndex >= 0
-        ? compactValue.slice(0, separatorIndex)
-        : compactValue;
-    const password = separatorIndex >= 0
-        ? compactValue.slice(separatorIndex + ACCESS_VALUE_SEPARATOR.length)
-        : "";
-
-    if (!rawAddress) {
+    const parsedValue = splitServerAccessValue(normalizedValue);
+    if (parsedValue === null || !isMeaningfulAccessValue(parsedValue.address)) {
         return null;
     }
 
-    const address = ensureServerPort(rawAddress);
+    const address = ensureServerPort(parsedValue.address);
     if (!address) {
         return null;
     }
 
     return {
         address,
-        password
+        password: parsedValue.password
     };
 }
 
 function ensureServerPort(address) {
     const normalizedAddress = String(address || "").trim();
-    if (!normalizedAddress) {
+    if (!isMeaningfulAccessValue(normalizedAddress) || /\s/.test(normalizedAddress)) {
+        return "";
+    }
+
+    if (/^https?:\/\//i.test(normalizedAddress)) {
+        try {
+            const url = new URL(normalizedAddress);
+            if (url.protocol !== "http:" && url.protocol !== "https:") {
+                return "";
+            }
+
+            if (!url.hostname) {
+                return "";
+            }
+
+            if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+                return "";
+            }
+
+            if (url.port) {
+                return url.toString().replace(/\/$/, "");
+            }
+
+            url.port = "443";
+            return url.toString().replace(/\/$/, "");
+        }
+        catch {
+            return "";
+        }
+    }
+
+    if (normalizedAddress.includes("://") || normalizedAddress.includes("?") || normalizedAddress.includes("#")) {
         return "";
     }
 
@@ -372,6 +410,39 @@ function hasExplicitPort(address) {
 
     const portPart = address.slice(lastColonIndex + 1);
     return /^\d+$/.test(portPart);
+}
+
+function splitServerAccessValue(value) {
+    const protocolMatch = value.match(/^https?:\/\//i);
+    const searchStartIndex = protocolMatch !== null ? protocolMatch[0].length : 0;
+    const separatorIndex = value.indexOf(ACCESS_VALUE_SEPARATOR, searchStartIndex);
+    if (separatorIndex < 0) {
+        return {
+            address: value,
+            password: ""
+        };
+    }
+
+    const address = value.slice(0, separatorIndex);
+    const password = value.slice(separatorIndex + ACCESS_VALUE_SEPARATOR.length);
+    if (!address || !password) {
+        return null;
+    }
+
+    return {
+        address,
+        password
+    };
+}
+
+function isMeaningfulAccessValue(value) {
+    const normalizedValue = String(value || "").trim();
+    if (!normalizedValue) {
+        return false;
+    }
+
+    const collapsedValue = normalizedValue.replace(/\s+/g, "").toLowerCase();
+    return !INVALID_PLACEHOLDER_VALUES.has(collapsedValue);
 }
 
 function parseAccessCredentials(value, requirePassword) {

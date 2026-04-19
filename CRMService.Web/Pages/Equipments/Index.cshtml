@@ -71,6 +71,59 @@
                     </div>
                 </div>
 
+                <div class="col-12 col-xl-3">
+                    <div class="d-flex flex-column gap-3">
+                        <div>
+                            <label class="form-label d-block">Тип</label>
+                            <div class="dropdown col-10">
+                                <button id="filterTypeToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="filterTypeToggleLabel">Тип</span>
+                                    <span class="badge bg-primary" id="filterTypeToggleCount">0</span>
+                                </button>
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="filterTypeSearch" name="filterTypeSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                                    <div id="filterTypeSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                                    <div id="filterTypeList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label d-block">Производитель</label>
+                            <div class="dropdown col-10">
+                                <button id="filterManufacturerToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="filterManufacturerToggleLabel">Производитель</span>
+                                    <span class="badge bg-primary" id="filterManufacturerToggleCount">0</span>
+                                </button>
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="filterManufacturerSearch" name="filterManufacturerSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                                    <div id="filterManufacturerSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                                    <div id="filterManufacturerList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-3">
+                    <div class="d-flex flex-column gap-3">
+                        <div>
+                            <label class="form-label d-block">Модель</label>
+                            <div class="dropdown col-10">
+                                <button id="filterModelToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="filterModelToggleLabel">Модель</span>
+                                    <span class="badge bg-primary" id="filterModelToggleCount">0</span>
+                                </button>
+                                <div class="dropdown-menu p-2 w-100">
+                                    <input id="filterModelSearch" name="filterModelSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов">
+                                    <div id="filterModelSelected" class="small text-muted mb-2">Выбрано: 0</div>
+                                    <div id="filterModelList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-12">
                     <div class="d-flex flex-wrap gap-2 justify-content-end align-items-end">
                         <div class="ms-auto" style="min-width: 180px;">

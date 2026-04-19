@@ -430,6 +430,9 @@ namespace CRMService.Application.Service.OkdeskEntity
             request.EquipmentId = request.EquipmentId.HasValue && request.EquipmentId.Value > 0
                 ? request.EquipmentId.Value
                 : null;
+            request.TypeIds = NormalizeIds(request.TypeIds);
+            request.ManufacturerIds = NormalizeIds(request.ManufacturerIds);
+            request.ModelIds = NormalizeIds(request.ModelIds);
             request.CompanyIds = NormalizeIds(request.CompanyIds);
             request.MaintenanceEntityIds = NormalizeIds(request.MaintenanceEntityIds);
 

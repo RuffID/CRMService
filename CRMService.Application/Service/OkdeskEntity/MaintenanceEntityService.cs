@@ -17,19 +17,22 @@ namespace CRMService.Application.Service.OkdeskEntity
     {
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
-        public async Task<ServiceResult<List<LookupOptionDto>>> GetMaintenanceEntityLookupAsync(LookupListRequest requestModel, CancellationToken ct = default)
+        public async Task<ServiceResult<List<LookupOptionDto>>> GetMaintenanceEntityLookupAsync(EquipmentLookupListRequest requestModel, CancellationToken ct = default)
         {
             ServiceResult validationResult = ValidateLookupRequest(requestModel);
             if (!validationResult.Success)
                 return ServiceResult<List<LookupOptionDto>>.Fail(validationResult.Error!.StatusCode, validationResult.Error.Message);
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
+            List<int>? companyIds = NormalizeIds(requestModel.CompanyIds);
 
             List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(
-                predicate: maintenanceEntity => normalizedSearch == null
-                    || maintenanceEntity.Name.Contains(normalizedSearch)
-                    || (maintenanceEntity.Address != null && maintenanceEntity.Address.Contains(normalizedSearch))
-                    || (maintenanceEntity.Company != null && maintenanceEntity.Company.Name.Contains(normalizedSearch)),
+                predicate: maintenanceEntity =>
+                    (companyIds == null || (maintenanceEntity.CompanyId.HasValue && companyIds.Contains(maintenanceEntity.CompanyId.Value)))
+                    && (normalizedSearch == null
+                        || maintenanceEntity.Name.Contains(normalizedSearch)
+                        || (maintenanceEntity.Address != null && maintenanceEntity.Address.Contains(normalizedSearch))
+                        || (maintenanceEntity.Company != null && maintenanceEntity.Company.Name.Contains(normalizedSearch))),
                 asNoTracking: true,
                 include: query => query.Include(maintenanceEntity => maintenanceEntity.Company),
                 ct: ct);
@@ -201,6 +204,19 @@ namespace CRMService.Application.Service.OkdeskEntity
             string normalized = value.Trim();
             int nonWhitespaceCount = normalized.Count(character => !char.IsWhiteSpace(character));
             return nonWhitespaceCount >= 2 ? normalized : null;
+        }
+
+        private static List<int>? NormalizeIds(List<int>? ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return null;
+
+            List<int> values = ids
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            return values.Count == 0 ? null : values;
         }
 
         private static string FormatMaintenanceEntityText(MaintenanceEntity maintenanceEntity)

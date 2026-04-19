@@ -65,6 +65,15 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
             if (request.EquipmentId.HasValue)
                 query = query.Where(equipment => equipment.Id == request.EquipmentId.Value);
 
+            if (request.TypeIds != null && request.TypeIds.Count > 0)
+                query = query.Where(equipment => equipment.KindId.HasValue && request.TypeIds.Contains(equipment.KindId.Value));
+
+            if (request.ManufacturerIds != null && request.ManufacturerIds.Count > 0)
+                query = query.Where(equipment => equipment.ManufacturerId.HasValue && request.ManufacturerIds.Contains(equipment.ManufacturerId.Value));
+
+            if (request.ModelIds != null && request.ModelIds.Count > 0)
+                query = query.Where(equipment => equipment.ModelId.HasValue && request.ModelIds.Contains(equipment.ModelId.Value));
+
             if (request.CompanyIds != null && request.CompanyIds.Count > 0)
                 query = query.Where(equipment => equipment.CompanyId.HasValue && request.CompanyIds.Contains(equipment.CompanyId.Value));
 

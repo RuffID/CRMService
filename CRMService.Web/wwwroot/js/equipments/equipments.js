@@ -1,16 +1,19 @@
 const LOOKUP_PAGE_SIZE = 20;
 const EQUIPMENTS_FILTERS_STORAGE_KEY = "crm_equipments_filters_v1";
-const EQUIPMENTS_GRID_COLUMNS_STORAGE_KEY = "crm_equipments_grid_columns_v3";
 const DEFAULT_COLUMN_MIN_WIDTH = 90;
 const ID_COLUMN_MIN_WIDTH = 60;
 const ID_COLUMN_MAX_WIDTH = 150;
 const EQUIPMENT_INFO_COLUMN_WIDTH = 200;
+const EQUIPMENT_INFO_COLUMN_MAX_WIDTH = 360;
 const INVENTORY_AND_SERIAL_COLUMN_WIDTH = 200;
+const INVENTORY_AND_SERIAL_COLUMN_MAX_WIDTH = 260;
 const COMPANY_AND_OBJECT_COLUMN_WIDTH = 300;
+const COMPANY_AND_OBJECT_COLUMN_MAX_WIDTH = 420;
 const GRID_LAST_COLUMN_INDEX = 6;
 const LAST_RESIZABLE_COLUMN_INDEX = 5;
 const AUTO_EXPANDING_COLUMN_INDEX = 6;
 const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 240;
+const AUTO_EXPANDING_COLUMN_MAX_WIDTH = 320;
 const ACCESS_VALUE_SEPARATOR = "/";
 const TERMINAL_ACCESS_BUTTONS = [
     { parameterCode: "AnyDesk", clearbatType: "anydesk", buttonText: "AD", iconPath: "/icon/equipments/anydesk.png?v=1", iconAlt: "AnyDesk", displayName: "ЭниДеск", requirePassword: true },
@@ -18,11 +21,13 @@ const TERMINAL_ACCESS_BUTTONS = [
     { parameterCode: "AC", clearbatType: "assistant", buttonText: "AC", iconPath: "/icon/equipments/assistant.png?v=1", iconAlt: "Ассистент", displayName: "Ассистент", requirePassword: false },
     { parameterCode: "rust", clearbatType: "rustdesk", buttonText: "RD", iconPath: "/icon/equipments/rustdesk.ico?v=1", iconAlt: "RustDesk", displayName: "Растдеск", requirePassword: false }
 ];
+const WEB_LINK_PARAMETER_CODE = "1212";
 const IIKO_CREDENTIALS_PARAMETER_CODE = "0008";
 const SERVER_ACCESS_BUTTONS = [
     { addressParameterCode: "srv_addr", iconPath: "/icon/equipments/iikoOffice_icon.ico?v=1", iconAlt: "RMS", displayName: "RMS" },
     { addressParameterCode: "0017", iconPath: "/icon/equipments/iikoChain_icon.ico?v=1", iconAlt: "Чейн", displayName: "Чейн" }
 ];
+const WEB_ACCESS_BUTTON = { iconPath: "/icon/equipments/iikoOffice_icon.ico?v=1", iconAlt: "iiko WEB", displayName: "iiko WEB" };
 
 let antiForgeryToken = null;
 let equipmentsState = createDefaultState();
@@ -30,6 +35,7 @@ let equipmentsListRequestId = 0;
 let equipmentsExactCountRequestId = 0;
 let equipmentsLookupStates = createLookupStates();
 let equipmentsGridResizeCleanup = null;
+let equipmentsGridLayoutResizeCleanup = null;
 let equipmentSearchWarningModal = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -93,8 +99,8 @@ async function initEquipmentsPage() {
     restoreEquipmentsPageFromUrl();
     applyStateToFilters();
     initEquipmentsGridColumnResize();
+    initEquipmentsGridLayoutResize();
     applyDefaultEquipmentsGridColumnWidths();
-    restoreEquipmentsGridColumnWidths();
     await loadInitialLookups();
     await reloadEquipments(false);
 }
@@ -152,9 +158,6 @@ function bindEquipmentsEvents() {
     if (resetButton) {
         resetButton.addEventListener("click", async () => {
             resetEquipmentsFilters();
-            if (hasStoredEquipmentsGridColumnWidths()) {
-                resetEquipmentsGridColumnWidths();
-            }
             await loadInitialLookups();
             await reloadEquipments(true);
         });
@@ -449,6 +452,7 @@ async function reloadEquipments(resetPage) {
 
     try {
         clearPageMessages();
+        toggleEquipmentsListLoading(true);
 
         const url = buildEquipmentsRequestUrl("List", request);
         const response = await sendJsonRequest(url, "GET", buildJsonHeaders(antiForgeryToken));
@@ -485,6 +489,17 @@ async function reloadEquipments(resetPage) {
         renderEquipmentsTable();
         renderEquipmentsTotalCount();
         renderEquipmentsPagination();
+    } finally {
+        if (requestId === equipmentsListRequestId) {
+            toggleEquipmentsListLoading(false);
+            requestAnimationFrame(() => {
+                if (requestId !== equipmentsListRequestId) {
+                    return;
+                }
+
+                applyEquipmentsRemainingWidthDistribution(true);
+            });
+        }
     }
 }
 
@@ -562,10 +577,43 @@ function renderEquipmentsTable() {
         tbody.appendChild(tr);
     }
 
-    applyCurrentEquipmentsGridColumnWidths();
+    applyDefaultEquipmentsGridColumnWidths();
     applyIdColumnAutoWidth();
     applyEquipmentInfoColumnAutoWidth();
+    applyEquipmentsRemainingWidthDistribution(true);
+}
 
+function renderEquipmentsTableLoadingState() {
+    const tbody = document.getElementById("equipmentsRows");
+    if (!tbody) {
+        return;
+    }
+
+    const preservedHeight = Math.max(Math.ceil(tbody.getBoundingClientRect().height), 220);
+    tbody.textContent = "";
+
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.className = "py-0";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "d-flex flex-column justify-content-center align-items-center gap-3 text-muted";
+    wrapper.style.minHeight = `${preservedHeight}px`;
+
+    const spinner = document.createElement("div");
+    spinner.className = "spinner-border text-secondary";
+    spinner.setAttribute("role", "status");
+    spinner.setAttribute("aria-hidden", "true");
+
+    const text = document.createElement("div");
+    text.textContent = "Загрузка оборудования...";
+
+    wrapper.appendChild(spinner);
+    wrapper.appendChild(text);
+    td.appendChild(wrapper);
+    tr.appendChild(td);
+    tbody.appendChild(tr);
 }
 
 function renderEquipmentsTotalCount() {
@@ -667,7 +715,7 @@ function createPageButton(text, onClick, isActive) {
 function getEquipmentsPageRange(currentPage, totalPages) {
     let start = 1;
 
-    if (currentPage > 5) {
+    if (currentPage >= 5) {
         start = currentPage - 2;
     }
 
@@ -763,6 +811,7 @@ function hasEquipmentsNextPage() {
 function buildCell(text, columnIndex, equipmentId = null) {
     const td = document.createElement("td");
     td.className = columnIndex === 0 ? "px-2 py-2" : "px-3 py-2";
+    td.style.fontSize = "1rem";
     td.setAttribute("data-column-cell", String(columnIndex));
 
     const content = document.createElement("div");
@@ -781,6 +830,7 @@ function buildCell(text, columnIndex, equipmentId = null) {
 function buildCompanyCell(item, columnIndex) {
     const td = document.createElement("td");
     td.className = "px-3 py-2";
+    td.style.fontSize = "1rem";
     td.setAttribute("data-column-cell", String(columnIndex));
 
     const wrapper = document.createElement("div");
@@ -820,10 +870,13 @@ function buildEquipmentInfoCell(item) {
 function buildAccessesCell(item) {
     const td = document.createElement("td");
     td.className = "px-3 py-2";
+    td.style.fontSize = "1rem";
     td.setAttribute("data-column-cell", String(AUTO_EXPANDING_COLUMN_INDEX));
 
     const wrapper = document.createElement("div");
-    wrapper.className = "d-flex flex-wrap align-items-center gap-2";
+    wrapper.className = "d-flex flex-nowrap align-items-center justify-content-center gap-2";
+    wrapper.style.minWidth = "max-content";
+    wrapper.style.minHeight = "31px";
 
     for (const accessButton of TERMINAL_ACCESS_BUTTONS) {
         const parameterValue = getEquipmentParameterValue(item, accessButton.parameterCode);
@@ -877,6 +930,16 @@ function buildAccessesCell(item) {
             });
             wrapper.appendChild(button);
         }
+    }
+
+    const webLink = getEquipmentWebLink(item);
+    if (webLink) {
+        const button = buildAccessIconButton(WEB_ACCESS_BUTTON);
+        bindAccessButtonHoverState(button);
+        button.addEventListener("click", () => {
+            openEquipmentWebLink(webLink);
+        });
+        wrapper.appendChild(button);
     }
 
     td.appendChild(wrapper);
@@ -946,6 +1009,11 @@ function getEquipmentParameterValue(item, parameterCode) {
         && current.code === parameterCode);
 
     return typeof parameter?.value === "string" ? parameter.value : "";
+}
+
+function getEquipmentWebLink(item) {
+    const value = getEquipmentParameterValue(item, WEB_LINK_PARAMETER_CODE);
+    return normalizeEquipmentWebLink(value);
 }
 
 function parseServerAccess(value) {
@@ -1088,6 +1156,19 @@ function openClearbatLink(url) {
     window.location.assign(url);
 }
 
+function openEquipmentWebLink(url) {
+    if (!url) {
+        return;
+    }
+
+    window.open(url, "_blank", "noopener");
+}
+
+function normalizeEquipmentWebLink(value) {
+    const normalizedValue = String(value || "").trim();
+    return normalizedValue || "";
+}
+
 function makeEquipmentCellNavigable(element, equipmentId) {
     element.style.cursor = "pointer";
     element.tabIndex = 0;
@@ -1156,6 +1237,47 @@ function clearPageMessages() {
 
 function showPageError(message) {
     showMessage("pageError", message);
+}
+
+function toggleEquipmentsListLoading(isLoading) {
+    const loading = document.getElementById("equipmentsListLoading");
+    const table = document.getElementById("equipmentsGrid");
+
+    if (isLoading) {
+        if (loading) {
+            loading.classList.add("d-none");
+        }
+
+        if (table) {
+            table.setAttribute("aria-busy", "true");
+        }
+
+        renderEquipmentsTableLoadingState();
+        setEquipmentsPaginationDisabled(true);
+        return;
+    }
+
+    if (loading) {
+        loading.classList.add("d-none");
+    }
+
+    if (table) {
+        table.removeAttribute("aria-busy");
+    }
+
+    setEquipmentsPaginationDisabled(false);
+}
+
+function setEquipmentsPaginationDisabled(isDisabled) {
+    const container = document.getElementById("equipmentsPagination");
+    if (!container) {
+        return;
+    }
+
+    const buttons = container.querySelectorAll("button");
+    for (const button of buttons) {
+        button.disabled = isDisabled;
+    }
 }
 
 function showMessage(id, message) {
@@ -1326,7 +1448,6 @@ function initEquipmentsGridColumnResize() {
             const onMouseUp = () => {
                 document.removeEventListener("mousemove", onMouseMove);
                 document.removeEventListener("mouseup", onMouseUp);
-                saveEquipmentsGridColumnWidths();
             };
 
             document.addEventListener("mousemove", onMouseMove);
@@ -1338,6 +1459,70 @@ function initEquipmentsGridColumnResize() {
     }
 
     equipmentsGridResizeCleanup = () => {
+        for (const dispose of handlers) {
+            dispose();
+        }
+    };
+}
+
+function initEquipmentsGridLayoutResize() {
+    if (typeof equipmentsGridLayoutResizeCleanup === "function") {
+        equipmentsGridLayoutResizeCleanup();
+    }
+
+    const handlers = [];
+    let resizeFrameId = 0;
+
+    const scheduleGridLayoutRefresh = () => {
+        if (resizeFrameId !== 0) {
+            cancelAnimationFrame(resizeFrameId);
+        }
+
+        resizeFrameId = requestAnimationFrame(() => {
+            resizeFrameId = 0;
+            applyEquipmentsRemainingWidthDistribution(true);
+        });
+    };
+
+    const onWindowResize = () => {
+        scheduleGridLayoutRefresh();
+    };
+
+    window.addEventListener("resize", onWindowResize);
+    handlers.push(() => window.removeEventListener("resize", onWindowResize));
+
+    const resizeTarget = document.querySelector("#equipmentsListContent .table-responsive")
+        || document.getElementById("equipmentsListContent");
+
+    if (resizeTarget && typeof ResizeObserver !== "undefined") {
+        const observer = new ResizeObserver(() => {
+            scheduleGridLayoutRefresh();
+        });
+
+        observer.observe(resizeTarget);
+        handlers.push(() => observer.disconnect());
+    }
+
+    const side = document.getElementById("side");
+    if (side) {
+        const onSideTransitionEnd = event => {
+            if (event.propertyName !== "width") {
+                return;
+            }
+
+            scheduleGridLayoutRefresh();
+        };
+
+        side.addEventListener("transitionend", onSideTransitionEnd);
+        handlers.push(() => side.removeEventListener("transitionend", onSideTransitionEnd));
+    }
+
+    equipmentsGridLayoutResizeCleanup = () => {
+        if (resizeFrameId !== 0) {
+            cancelAnimationFrame(resizeFrameId);
+            resizeFrameId = 0;
+        }
+
         for (const dispose of handlers) {
             dispose();
         }
@@ -1484,6 +1669,166 @@ function applyCurrentEquipmentsGridColumnWidths() {
     }
 }
 
+function applyEquipmentsRemainingWidthDistribution(shouldStretchColumns) {
+    const table = document.getElementById("equipmentsGrid");
+    if (!table) {
+        return;
+    }
+
+    const availableWidth = getEquipmentsAvailableGridWidth(table);
+    if (!Number.isFinite(availableWidth) || availableWidth <= 0) {
+        return;
+    }
+
+    const columnWidths = [];
+    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
+        const width = index === AUTO_EXPANDING_COLUMN_INDEX
+            ? getEquipmentsAccessesColumnBaseWidth()
+            : getEquipmentsGridColumnWidth(index);
+        if (!Number.isFinite(width) || width <= 0) {
+            return;
+        }
+
+        columnWidths[index] = width;
+    }
+
+    fitEquipmentsColumnsToAvailableWidth(columnWidths, availableWidth);
+
+    if (shouldStretchColumns) {
+        distributeEquipmentsRemainingWidth(columnWidths, availableWidth);
+    }
+
+    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
+        setEquipmentsGridColumnWidth(index, columnWidths[index]);
+    }
+
+    const tableWidth = Math.max(getEquipmentsColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX), availableWidth);
+    table.style.tableLayout = "fixed";
+    table.style.width = `${tableWidth}px`;
+    table.style.minWidth = `${tableWidth}px`;
+}
+
+function distributeEquipmentsRemainingWidth(columnWidths, availableWidth) {
+    let remainingWidth = availableWidth - getEquipmentsColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX);
+    if (!Number.isFinite(remainingWidth) || remainingWidth <= 0) {
+        return;
+    }
+
+    const distributableColumns = [1, 2, 3, 4, 5, AUTO_EXPANDING_COLUMN_INDEX];
+
+    while (remainingWidth > 0.5) {
+        const expandableColumns = distributableColumns.filter(index => {
+            const maxWidth = getEquipmentsColumnMaxWidth(index);
+            return maxWidth !== null && columnWidths[index] < maxWidth;
+        });
+
+        if (expandableColumns.length === 0) {
+            return;
+        }
+
+        const widthPerColumn = remainingWidth / expandableColumns.length;
+        let consumedWidth = 0;
+
+        for (const columnIndex of expandableColumns) {
+            const maxWidth = getEquipmentsColumnMaxWidth(columnIndex);
+            if (maxWidth === null) {
+                continue;
+            }
+
+            const availableColumnWidth = maxWidth - columnWidths[columnIndex];
+            if (availableColumnWidth <= 0) {
+                continue;
+            }
+
+            const addedWidth = Math.min(availableColumnWidth, widthPerColumn);
+            columnWidths[columnIndex] += addedWidth;
+            consumedWidth += addedWidth;
+        }
+
+        if (consumedWidth <= 0) {
+            return;
+        }
+
+        remainingWidth -= consumedWidth;
+    }
+}
+
+function fitEquipmentsColumnsToAvailableWidth(columnWidths, availableWidth) {
+    let overflowWidth = getEquipmentsColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX) - availableWidth;
+    if (!Number.isFinite(overflowWidth) || overflowWidth <= 0) {
+        return;
+    }
+
+    const shrinkableColumns = [1, 4, 5, 2, 3, 0, AUTO_EXPANDING_COLUMN_INDEX];
+
+    while (overflowWidth > 0.5) {
+        const reducibleColumns = shrinkableColumns.filter(index => columnWidths[index] > getEquipmentsColumnMinWidth(index));
+        if (reducibleColumns.length === 0) {
+            return;
+        }
+
+        const widthPerColumn = overflowWidth / reducibleColumns.length;
+        let releasedWidth = 0;
+
+        for (const columnIndex of reducibleColumns) {
+            const minWidth = getEquipmentsColumnMinWidth(columnIndex);
+            const reducibleWidth = columnWidths[columnIndex] - minWidth;
+            if (reducibleWidth <= 0) {
+                continue;
+            }
+
+            const reducedWidth = Math.min(reducibleWidth, widthPerColumn);
+            columnWidths[columnIndex] -= reducedWidth;
+            releasedWidth += reducedWidth;
+        }
+
+        if (releasedWidth <= 0) {
+            return;
+        }
+
+        overflowWidth -= releasedWidth;
+    }
+}
+
+function getEquipmentsAvailableGridWidth(table) {
+    const WIDTH_SAFETY_OFFSET = 4;
+    const wrap = table.closest(".table-responsive");
+    if (wrap) {
+        const wrapWidth = wrap.clientWidth;
+        if (Number.isFinite(wrapWidth) && wrapWidth > 0) {
+            return Math.max(0, Math.floor(wrapWidth) - WIDTH_SAFETY_OFFSET);
+        }
+    }
+
+    const parent = table.parentElement;
+    if (parent) {
+        const parentWidth = parent.clientWidth;
+        if (Number.isFinite(parentWidth) && parentWidth > 0) {
+            return Math.max(0, Math.floor(parentWidth) - WIDTH_SAFETY_OFFSET);
+        }
+    }
+
+    const tableWidth = table.getBoundingClientRect().width;
+    return Number.isFinite(tableWidth) && tableWidth > 0
+        ? Math.max(0, Math.floor(tableWidth) - WIDTH_SAFETY_OFFSET)
+        : 0;
+}
+
+function getEquipmentsColumnsTotalWidth(columnWidths, startIndex, endIndex) {
+    let totalWidth = 0;
+
+    for (let index = startIndex; index <= endIndex; index += 1) {
+        const width = columnWidths[index];
+        if (!Number.isFinite(width) || width <= 0) {
+            continue;
+        }
+
+        totalWidth += width;
+    }
+
+    return totalWidth;
+}
+
 function applyIdColumnAutoWidth() {
     const minWidth = getEquipmentsColumnMinWidth(0);
     const maxWidthLimit = getEquipmentsColumnMaxWidth(0);
@@ -1543,6 +1888,27 @@ function getEquipmentsHorizontalInsets(element) {
     return paddingLeft + paddingRight + borderLeft + borderRight;
 }
 
+function getEquipmentsGridColumnWidth(columnIndex) {
+    const col = document.getElementById(`equipmentsCol${columnIndex}`);
+    if (col) {
+        const explicitWidth = Number.parseFloat(col.style.width || "0");
+        if (Number.isFinite(explicitWidth) && explicitWidth > 0) {
+            return explicitWidth;
+        }
+    }
+
+    const headerCell = document.querySelector(`thead th[data-column-index="${columnIndex}"]`);
+    if (headerCell) {
+        const headerWidth = headerCell.getBoundingClientRect().width;
+        if (Number.isFinite(headerWidth) && headerWidth > 0) {
+            return headerWidth;
+        }
+    }
+
+    const minWidth = getEquipmentsColumnMinWidth(columnIndex);
+    return Number.isFinite(minWidth) && minWidth > 0 ? minWidth : 0;
+}
+
 function applyEquipmentInfoColumnAutoWidth() {
     const minWidth = getEquipmentsColumnMinWidth(1);
     let maxWidth = minWidth;
@@ -1557,6 +1923,27 @@ function applyEquipmentInfoColumnAutoWidth() {
 
     setEquipmentsGridColumnWidth(1, maxWidth);
     fixEquipmentsGridWidth();
+}
+
+function getEquipmentsAccessesColumnBaseWidth() {
+    const minWidth = getEquipmentsColumnMinWidth(AUTO_EXPANDING_COLUMN_INDEX);
+    const maxWidth = getEquipmentsColumnMaxWidth(AUTO_EXPANDING_COLUMN_INDEX);
+    let width = minWidth;
+    const contents = document.querySelectorAll(`[data-column-cell="${AUTO_EXPANDING_COLUMN_INDEX}"] .d-flex`);
+
+    for (const content of contents) {
+        const cell = content.closest(`[data-column-cell="${AUTO_EXPANDING_COLUMN_INDEX}"]`);
+        const measuredWidth = Math.ceil(content.scrollWidth + getEquipmentsHorizontalInsets(cell));
+        if (Number.isFinite(measuredWidth) && measuredWidth > width) {
+            width = measuredWidth;
+        }
+    }
+
+    if (maxWidth !== null) {
+        return Math.min(width, maxWidth);
+    }
+
+    return width;
 }
 
 function getEquipmentsColumnMinWidth(columnIndex) {
@@ -1582,6 +1969,22 @@ function getEquipmentsColumnMinWidth(columnIndex) {
 function getEquipmentsColumnMaxWidth(columnIndex) {
     if (columnIndex === 0) {
         return ID_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 1) {
+        return EQUIPMENT_INFO_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 2 || columnIndex === 3) {
+        return INVENTORY_AND_SERIAL_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 4 || columnIndex === 5) {
+        return COMPANY_AND_OBJECT_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
+        return AUTO_EXPANDING_COLUMN_MAX_WIDTH;
     }
 
     return null;
@@ -1614,103 +2017,4 @@ function applyDefaultEquipmentsGridColumnWidths() {
     }
 
     fixEquipmentsGridWidth();
-}
-
-function restoreEquipmentsGridColumnWidths() {
-    const raw = localStorage.getItem(EQUIPMENTS_GRID_COLUMNS_STORAGE_KEY);
-    if (!raw) {
-        return;
-    }
-
-    try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) {
-            return;
-        }
-
-        for (const item of parsed) {
-            if (!item || !Number.isInteger(item.index) || typeof item.width !== "number") {
-                continue;
-            }
-
-            if (item.width < getEquipmentsColumnMinWidth(item.index)) {
-                continue;
-            }
-
-            const col = document.getElementById(`equipmentsCol${item.index}`);
-            if (!col) {
-                continue;
-            }
-
-            setEquipmentsGridColumnWidth(item.index, item.width);
-        }
-
-        fixEquipmentsGridWidth();
-    } catch (error) {
-        console.error(error);
-        localStorage.removeItem(EQUIPMENTS_GRID_COLUMNS_STORAGE_KEY);
-    }
-}
-
-function saveEquipmentsGridColumnWidths() {
-    const widths = [];
-
-    for (let index = 0; index <= LAST_RESIZABLE_COLUMN_INDEX; index += 1) {
-        const col = document.getElementById(`equipmentsCol${index}`);
-        if (!col) {
-            continue;
-        }
-
-        const width = Number.parseFloat(col.style.width || "0");
-        if (!Number.isFinite(width) || width <= 0) {
-            continue;
-        }
-
-        widths.push({
-            index,
-            width
-        });
-    }
-
-    localStorage.setItem(EQUIPMENTS_GRID_COLUMNS_STORAGE_KEY, JSON.stringify(widths));
-}
-
-function resetEquipmentsGridColumnWidths() {
-    localStorage.removeItem(EQUIPMENTS_GRID_COLUMNS_STORAGE_KEY);
-
-    const table = document.getElementById("equipmentsGrid");
-    if (table) {
-        table.style.width = "";
-        table.style.minWidth = "";
-        table.style.tableLayout = "";
-    }
-
-    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
-        const col = document.getElementById(`equipmentsCol${index}`);
-        if (col) {
-            col.style.width = "";
-            col.style.minWidth = "";
-            col.style.maxWidth = "";
-        }
-
-        const headerCell = document.querySelector(`thead th[data-column-index="${index}"]`);
-        if (headerCell) {
-            headerCell.style.width = "";
-            headerCell.style.minWidth = "";
-            headerCell.style.maxWidth = "";
-        }
-
-        const cells = document.querySelectorAll(`[data-column-cell="${index}"]`);
-        for (const cell of cells) {
-            cell.style.width = "";
-            cell.style.minWidth = "";
-            cell.style.maxWidth = "";
-        }
-    }
-
-    applyDefaultEquipmentsGridColumnWidths();
-}
-
-function hasStoredEquipmentsGridColumnWidths() {
-    return localStorage.getItem(EQUIPMENTS_GRID_COLUMNS_STORAGE_KEY) !== null;
 }

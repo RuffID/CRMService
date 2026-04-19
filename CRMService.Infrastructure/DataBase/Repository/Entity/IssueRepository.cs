@@ -34,7 +34,11 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
             IQueryable<Issue> items = ApplyFilters(query.Query(asNoTracking: true), request);
 
             if (maxCount.HasValue)
-                return await items.Take(maxCount.Value).CountAsync(ct);
+                return await items
+                    .OrderByDescending(issue => issue.CreatedAt)
+                    .ThenByDescending(issue => issue.Id)
+                    .Take(maxCount.Value)
+                    .CountAsync(ct);
 
             return await items.CountAsync(ct);
         }

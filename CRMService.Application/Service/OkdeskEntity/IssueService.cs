@@ -78,6 +78,52 @@ namespace CRMService.Application.Service.OkdeskEntity
             });
         }
 
+        public async Task<ServiceResult<IssueDetailsDto>> GetIssueDetailsAsync(int id, CancellationToken ct = default)
+        {
+            if (id <= 0)
+                return ServiceResult<IssueDetailsDto>.Fail(400, "Идентификатор заявки должен быть больше нуля.");
+
+            Issue? issue = await unitOfWork.Issue.GetItemByIdAsync(
+                id,
+                asNoTracking: true,
+                include: query => query
+                    .Include(current => current.Company)
+                    .ThenInclude(company => company!.Category)
+                    .Include(current => current.ServiceObject)
+                    .Include(current => current.Assignee)
+                    .Include(current => current.Priority)
+                    .Include(current => current.Status)
+                    .Include(current => current.Type),
+                ct: ct);
+
+            if (issue == null || issue.DeletedAt.HasValue)
+                return ServiceResult<IssueDetailsDto>.Fail(404, "Заявка не найдена.");
+
+            Employee? author = null;
+            if (issue.AuthorId.HasValue && issue.AuthorId.Value > 0)
+                author = await unitOfWork.Employee.GetItemByIdAsync(issue.AuthorId.Value, asNoTracking: true, ct: ct);
+
+            return ServiceResult<IssueDetailsDto>.Ok(new IssueDetailsDto
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                CompanyName = issue.Company?.Name ?? "Не указан",
+                CompanyCategoryColor = issue.Company?.Category?.Color ?? string.Empty,
+                ServiceObjectName = issue.ServiceObject?.Name ?? "Не указан",
+                AssigneeName = FormatEmployeeName(issue.Assignee),
+                AuthorName = FormatEmployeeName(author),
+                TypeName = issue.Type?.Name ?? "Не указан",
+                StatusName = issue.Status?.Name ?? "Не указан",
+                StatusColor = issue.Status?.Color ?? string.Empty,
+                PriorityName = issue.Priority?.Name ?? "Не указан",
+                PriorityColor = issue.Priority?.Color ?? string.Empty,
+                CreatedAt = issue.CreatedAt,
+                CompletedAt = issue.CompletedAt,
+                DeadlineAt = issue.DeadlineAt,
+                DelayTo = issue.DelayTo
+            });
+        }
+
         private async IAsyncEnumerable<List<Issue>> GetIssuesFromCloudApiAsync(DateTime updatedSinceFrom, DateTime updatedUntilTo, int assigneeId, long pageNumber, long startIndex, long limit, [EnumeratorCancellation] CancellationToken ct)
         {
             string link = string.Format("{0}/issues/list?api_token={1}&updated_since={2}&updated_until={3}&assignee_ids[]={4}",

@@ -7,11 +7,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CRMService.Web.Pages
+namespace CRMService.Web.Pages.Issues
 {
     [CookieAuthorize]
     [Authorize(Roles = RolesConstants.ADMIN)]
-    public class IssuesModel(
+    public class IndexModel(
         IssueService issueService,
         IssueStatusService issueStatusService,
         IssuePriorityService issuePriorityService,

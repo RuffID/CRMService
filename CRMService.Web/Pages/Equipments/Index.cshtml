@@ -88,35 +88,44 @@
     </div>
 
     <div class="bg-white border rounded-3 shadow-sm p-3 w-100 overflow-hidden">
-        <div class="table-responsive w-100 overflow-x-auto">
-            <table class="table table-sm table-bordered table-hover align-middle mb-0 w-auto small" id="equipmentsGrid">
-                <colgroup>
-                    <col id="equipmentsCol0">
-                    <col id="equipmentsCol1">
-                    <col id="equipmentsCol2" style="width: 200px;">
-                    <col id="equipmentsCol3" style="width: 200px;">
-                    <col id="equipmentsCol4" style="width: 300px;">
-                    <col id="equipmentsCol5" style="width: 300px;">
-                    <col id="equipmentsCol6">
-                </colgroup>
-                <thead class="table-light">
-                    <tr>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">Id</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тип / Производитель / Модель</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Инвентарный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Серийный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="4"><span class="d-block text-truncate px-2 fw-normal">Клиент</span><span class="position-absolute top-0 h-100" data-column-resizer="4" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="5"><span class="d-block text-truncate px-2 fw-normal">Объект</span><span class="position-absolute top-0 h-100" data-column-resizer="5" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="fw-normal px-3 py-2 text-nowrap">Доступы</th>
-                    </tr>
-                </thead>
-                <tbody id="equipmentsRows"></tbody>
-            </table>
+        <div id="equipmentsListLoading" class="d-none py-5">
+            <div class="d-flex flex-column justify-content-center align-items-center gap-3 text-muted">
+                <div class="spinner-border text-secondary" role="status" aria-hidden="true"></div>
+                <div>Загрузка оборудования...</div>
+            </div>
         </div>
 
-        <div class="d-flex flex-column align-items-center gap-3 mt-4">
-            <div class="fs-5" id="equipmentsTotalCount"></div>
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" id="equipmentsPagination"></div>
+        <div id="equipmentsListContent">
+            <div class="table-responsive w-100 overflow-x-auto">
+                <table class="table table-sm table-bordered table-hover align-middle mb-0 w-auto small" id="equipmentsGrid">
+                    <colgroup>
+                        <col id="equipmentsCol0">
+                        <col id="equipmentsCol1">
+                        <col id="equipmentsCol2" style="width: 200px;">
+                        <col id="equipmentsCol3" style="width: 200px;">
+                        <col id="equipmentsCol4" style="width: 300px;">
+                        <col id="equipmentsCol5" style="width: 300px;">
+                        <col id="equipmentsCol6">
+                    </colgroup>
+                    <thead class="table-light">
+                        <tr>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">Id</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тип / Производитель / Модель</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Инвентарный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Серийный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="4"><span class="d-block text-truncate px-2 fw-normal">Клиент</span><span class="position-absolute top-0 h-100" data-column-resizer="4" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="5"><span class="d-block text-truncate px-2 fw-normal">Объект</span><span class="position-absolute top-0 h-100" data-column-resizer="5" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="fw-normal px-3 py-2 text-nowrap">Доступы</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipmentsRows"></tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-column align-items-center gap-3 mt-4">
+                <div class="fs-5" id="equipmentsTotalCount"></div>
+                <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" id="equipmentsPagination"></div>
+            </div>
         </div>
     </div>
 </div>

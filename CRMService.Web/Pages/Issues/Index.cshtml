@@ -1,10 +1,10 @@
-@page
-@model CRMService.Web.Pages.IssuesModel
+@page "/issues"
+@model CRMService.Web.Pages.Issues.IndexModel
 @{
     ViewData["Title"] = "Заявки";
 }
 
-<div class="min-vh-100 bg-light p-3">
+<div class="min-vh-100 bg-light p-3 w-100 overflow-hidden">
     <div id="pageError" class="alert alert-danger d-none mb-3"></div>
     <div id="pageSuccess" class="alert alert-success d-none mb-3"></div>
 
@@ -209,36 +209,45 @@
         </div>
     </div>
 
-    <div class="bg-white border rounded-3 shadow-sm p-3">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0" id="issuesGrid" style="table-layout: fixed; width: 100%;">
-                <colgroup>
-                    <col id="issuesCol0" style="width: 120px;">
-                    <col id="issuesCol1" style="width: 340px;">
-                    <col id="issuesCol2" style="width: 280px;">
-                    <col id="issuesCol3" style="width: 220px;">
-                    <col id="issuesCol4" style="width: 170px;">
-                    <col id="issuesCol5" style="width: 170px;">
-                    <col id="issuesCol6" style="width: 180px;">
-                </colgroup>
-                <thead class="table-light">
-                    <tr>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">№ заявки</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тема</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Клиент</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Ответственный</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="4"><span class="d-block text-truncate px-2 fw-normal">Дата регистрации</span><span class="position-absolute top-0 h-100" data-column-resizer="4" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="5"><span class="d-block text-truncate px-2 fw-normal">Дата решения</span><span class="position-absolute top-0 h-100" data-column-resizer="5" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
-                        <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="6"><span class="d-block text-truncate px-2 fw-normal">Статус</span></th>
-                    </tr>
-                </thead>
-                <tbody id="issuesRows"></tbody>
-            </table>
+    <div class="bg-white border rounded-3 shadow-sm p-3 w-100 overflow-hidden">
+        <div id="issuesListLoading" class="d-none py-5">
+            <div class="d-flex flex-column justify-content-center align-items-center gap-3 text-muted">
+                <div class="spinner-border text-secondary" role="status" aria-hidden="true"></div>
+                <div>Загрузка заявок...</div>
+            </div>
         </div>
 
-        <div class="d-flex flex-column align-items-center gap-3 mt-4">
-            <div class="fs-5" id="issuesTotalCount"></div>
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" id="issuesPagination"></div>
+        <div id="issuesListContent">
+            <div class="table-responsive w-100 overflow-x-auto">
+                <table class="table table-sm table-bordered table-hover align-middle mb-0 w-auto small" id="issuesGrid">
+                    <colgroup>
+                        <col id="issuesCol0">
+                        <col id="issuesCol1" style="width: 300px;">
+                        <col id="issuesCol2" style="width: 300px;">
+                        <col id="issuesCol3" style="width: 200px;">
+                        <col id="issuesCol4" style="width: 200px;">
+                        <col id="issuesCol5" style="width: 200px;">
+                        <col id="issuesCol6">
+                    </colgroup>
+                    <thead class="table-light">
+                        <tr>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">№</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тема</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Клиент</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Ответственный</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="4"><span class="d-block text-truncate px-2 fw-normal">Дата регистрации</span><span class="position-absolute top-0 h-100" data-column-resizer="4" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="5"><span class="d-block text-truncate px-2 fw-normal">Дата решения</span><span class="position-absolute top-0 h-100" data-column-resizer="5" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="fw-normal px-3 py-2 text-nowrap" data-column-index="6">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="issuesRows"></tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-column align-items-center gap-3 mt-4">
+                <div class="fs-5" id="issuesTotalCount"></div>
+                <div class="d-flex flex-wrap justify-content-center align-items-center gap-2" id="issuesPagination"></div>
+            </div>
         </div>
     </div>
 </div>

@@ -1,6 +1,21 @@
 const LOOKUP_PAGE_SIZE = 20;
-const ISSUES_FILTERS_STORAGE_KEY = "crm_issues_filters_v2";
-const ISSUES_GRID_COLUMNS_STORAGE_KEY = "crm_issues_grid_columns_v1";
+const ISSUES_FILTERS_STORAGE_KEY = "crm_issues_filters";
+const DEFAULT_COLUMN_MIN_WIDTH = 90;
+const ISSUE_ID_COLUMN_MIN_WIDTH = 60;
+const ISSUE_ID_COLUMN_MAX_WIDTH = 150;
+const TITLE_COLUMN_WIDTH = 300;
+const TITLE_COLUMN_MAX_WIDTH = 420;
+const COMPANY_COLUMN_WIDTH = 300;
+const COMPANY_COLUMN_MAX_WIDTH = 420;
+const ASSIGNEE_COLUMN_WIDTH = 200;
+const ASSIGNEE_COLUMN_MAX_WIDTH = 280;
+const DATE_COLUMN_WIDTH = 200;
+const DATE_COLUMN_MAX_WIDTH = 240;
+const GRID_LAST_COLUMN_INDEX = 6;
+const LAST_RESIZABLE_COLUMN_INDEX = 5;
+const AUTO_EXPANDING_COLUMN_INDEX = 6;
+const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 90;
+const AUTO_EXPANDING_COLUMN_MAX_WIDTH = 200;
 
 let antiForgeryToken = null;
 let issuesState = createDefaultState();
@@ -9,6 +24,7 @@ let issuesExactCountRequestId = 0;
 let issuesFilterDebounceTimer = 0;
 let issuesLookupStates = createLookupStates();
 let issuesGridResizeCleanup = null;
+let issuesGridLayoutResizeCleanup = null;
 let issueSearchWarningModal = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -71,7 +87,8 @@ async function initIssuesPage() {
     restoreIssuesPageFromUrl();
     applyStateToFilters();
     initIssuesGridColumnResize();
-    restoreIssuesGridColumnWidths();
+    initIssuesGridLayoutResize();
+    applyDefaultIssuesGridColumnWidths();
     await loadInitialLookups();
     await reloadIssues(false);
 }
@@ -519,6 +536,7 @@ async function reloadIssues(resetPage) {
 
     try {
         clearPageMessages();
+        toggleIssuesListLoading(true);
 
         const url = buildIssuesRequestUrl("List", request);
         const response = await sendJsonRequest(url, "GET", buildJsonHeaders(antiForgeryToken));
@@ -555,6 +573,17 @@ async function reloadIssues(resetPage) {
         renderIssuesTable();
         renderIssuesTotalCount();
         renderIssuesPagination();
+    } finally {
+        if (requestId === issuesListRequestId) {
+            toggleIssuesListLoading(false);
+            requestAnimationFrame(() => {
+                if (requestId !== issuesListRequestId) {
+                    return;
+                }
+
+                applyIssuesRemainingWidthDistribution(true);
+            });
+        }
     }
 }
 
@@ -646,15 +675,59 @@ function renderIssuesTable() {
 
     for (const item of issuesState.list.items) {
         const tr = document.createElement("tr");
-        tr.appendChild(buildIssueIdCell(item, 0));
-        tr.appendChild(buildCell(String(item.title || ""), 1));
-        tr.appendChild(buildCompanyCell(item, 2));
+        const idCell = buildIssueIdCell(item, 0);
+        const titleCell = buildCell(String(item.title || ""), 1);
+        const companyCell = buildCompanyCell(item, 2);
+        makeIssueCellNavigable(idCell, item.id);
+        makeIssueCellNavigable(titleCell, item.id);
+        makeIssueCellNavigable(companyCell, item.id);
+        tr.appendChild(idCell);
+        tr.appendChild(titleCell);
+        tr.appendChild(companyCell);
         tr.appendChild(buildCell(String(item.assigneeName || "Не указан"), 3));
         tr.appendChild(buildCell(formatDateTime(item.createdAt), 4));
         tr.appendChild(buildCell(formatDateTime(item.completedAt), 5));
         tr.appendChild(buildStatusCell(item, 6));
         tbody.appendChild(tr);
     }
+
+    applyDefaultIssuesGridColumnWidths();
+    applyIssueIdColumnAutoWidth();
+    applyIssueTitleColumnAutoWidth();
+    applyIssuesRemainingWidthDistribution(true);
+}
+
+function renderIssuesTableLoadingState() {
+    const tbody = document.getElementById("issuesRows");
+    if (!tbody) {
+        return;
+    }
+
+    const preservedHeight = Math.max(Math.ceil(tbody.getBoundingClientRect().height), 220);
+    tbody.textContent = "";
+
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.className = "py-0";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "d-flex flex-column justify-content-center align-items-center gap-3 text-muted";
+    wrapper.style.minHeight = `${preservedHeight}px`;
+
+    const spinner = document.createElement("div");
+    spinner.className = "spinner-border text-secondary";
+    spinner.setAttribute("role", "status");
+    spinner.setAttribute("aria-hidden", "true");
+
+    const text = document.createElement("div");
+    text.textContent = "Загрузка заявок...";
+
+    wrapper.appendChild(spinner);
+    wrapper.appendChild(text);
+    td.appendChild(wrapper);
+    tr.appendChild(td);
+    tbody.appendChild(tr);
 }
 
 function renderIssuesTotalCount() {
@@ -752,7 +825,7 @@ function createPageButton(text, onClick, isActive) {
 function getIssuesPageRange(currentPage, totalPages) {
     let start = 1;
 
-    if (currentPage > 5) {
+    if (currentPage >= 5) {
         start = currentPage - 2;
     }
 
@@ -797,6 +870,42 @@ async function goToIssuesLastPage() {
 
     issuesState.page = getResolvedTotalPages();
     await reloadIssues(false);
+}
+
+function makeIssueCellNavigable(element, issueId) {
+    element.style.cursor = "pointer";
+    element.tabIndex = 0;
+    element.classList.add("rounded-1");
+    element.addEventListener("mouseenter", () => {
+        element.classList.add("text-primary");
+    });
+    element.addEventListener("mouseleave", () => {
+        element.classList.remove("text-primary");
+    });
+    element.addEventListener("focus", () => {
+        element.classList.add("text-primary");
+    });
+    element.addEventListener("blur", () => {
+        element.classList.remove("text-primary");
+    });
+    element.addEventListener("click", () => {
+        openIssueDetails(issueId);
+    });
+    element.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openIssueDetails(issueId);
+        }
+    });
+}
+
+function openIssueDetails(id) {
+    if (!Number.isInteger(id) || id <= 0) {
+        return;
+    }
+
+    const page = Math.max(1, Number.parseInt(String(issuesState.page || 1), 10) || 1);
+    window.location.assign(`/issues/${id}?page=${page}`);
 }
 
 async function ensureExactCountLoaded() {
@@ -1017,39 +1126,30 @@ function initIssuesGridColumnResize() {
             }
 
             const col = document.getElementById(`issuesCol${columnIndex}`);
-            const nextCol = document.getElementById(`issuesCol${columnIndex + 1}`);
             if (!col) {
                 return;
             }
 
-            if (!nextCol) {
-                return;
-            }
-
             syncIssuesGridColumnWidths();
+            fixIssuesGridWidth();
 
             const startX = event.clientX;
             const startWidth = col.getBoundingClientRect().width;
-            const nextStartWidth = nextCol.getBoundingClientRect().width;
-            const MIN_COLUMN_WIDTH = 90;
+            const minColumnWidth = getIssuesColumnMinWidth(columnIndex);
+            const minDelta = minColumnWidth - startWidth;
 
             const onMouseMove = moveEvent => {
                 const delta = moveEvent.clientX - startX;
-                const currentWidth = startWidth + delta;
-                const adjacentWidth = nextStartWidth - delta;
+                const clampedDelta = Math.max(delta, minDelta);
+                const currentWidth = startWidth + clampedDelta;
 
-                if (currentWidth < MIN_COLUMN_WIDTH || adjacentWidth < MIN_COLUMN_WIDTH) {
-                    return;
-                }
-
-                col.style.width = `${currentWidth}px`;
-                nextCol.style.width = `${adjacentWidth}px`;
+                setIssuesGridColumnWidth(columnIndex, currentWidth);
+                fixIssuesGridWidth();
             };
 
             const onMouseUp = () => {
                 document.removeEventListener("mousemove", onMouseMove);
                 document.removeEventListener("mouseup", onMouseUp);
-                saveIssuesGridColumnWidths();
             };
 
             document.addEventListener("mousemove", onMouseMove);
@@ -1061,6 +1161,70 @@ function initIssuesGridColumnResize() {
     }
 
     issuesGridResizeCleanup = () => {
+        for (const dispose of handlers) {
+            dispose();
+        }
+    };
+}
+
+function initIssuesGridLayoutResize() {
+    if (typeof issuesGridLayoutResizeCleanup === "function") {
+        issuesGridLayoutResizeCleanup();
+    }
+
+    const handlers = [];
+    let resizeFrameId = 0;
+
+    const scheduleGridLayoutRefresh = () => {
+        if (resizeFrameId !== 0) {
+            cancelAnimationFrame(resizeFrameId);
+        }
+
+        resizeFrameId = requestAnimationFrame(() => {
+            resizeFrameId = 0;
+            applyIssuesRemainingWidthDistribution(true);
+        });
+    };
+
+    const onWindowResize = () => {
+        scheduleGridLayoutRefresh();
+    };
+
+    window.addEventListener("resize", onWindowResize);
+    handlers.push(() => window.removeEventListener("resize", onWindowResize));
+
+    const resizeTarget = document.querySelector("#issuesListContent .table-responsive")
+        || document.getElementById("issuesListContent");
+
+    if (resizeTarget && typeof ResizeObserver !== "undefined") {
+        const observer = new ResizeObserver(() => {
+            scheduleGridLayoutRefresh();
+        });
+
+        observer.observe(resizeTarget);
+        handlers.push(() => observer.disconnect());
+    }
+
+    const side = document.getElementById("side");
+    if (side) {
+        const onSideTransitionEnd = event => {
+            if (event.propertyName !== "width") {
+                return;
+            }
+
+            scheduleGridLayoutRefresh();
+        };
+
+        side.addEventListener("transitionend", onSideTransitionEnd);
+        handlers.push(() => side.removeEventListener("transitionend", onSideTransitionEnd));
+    }
+
+    issuesGridLayoutResizeCleanup = () => {
+        if (resizeFrameId !== 0) {
+            cancelAnimationFrame(resizeFrameId);
+            resizeFrameId = 0;
+        }
+
         for (const dispose of handlers) {
             dispose();
         }
@@ -1090,7 +1254,7 @@ function syncIssuesGridColumnWidths() {
     const headerCells = table.querySelectorAll("thead th[data-column-index]");
     for (const headerCell of headerCells) {
         const columnIndex = Number(headerCell.getAttribute("data-column-index"));
-        if (Number.isNaN(columnIndex)) {
+        if (Number.isNaN(columnIndex) || columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
             continue;
         }
 
@@ -1099,65 +1263,10 @@ function syncIssuesGridColumnWidths() {
             continue;
         }
 
-        col.style.width = `${headerCell.getBoundingClientRect().width}px`;
-    }
-}
-
-function restoreIssuesGridColumnWidths() {
-    const raw = localStorage.getItem(ISSUES_GRID_COLUMNS_STORAGE_KEY);
-    if (!raw) {
-        return;
+        setIssuesGridColumnWidth(columnIndex, headerCell.getBoundingClientRect().width);
     }
 
-    try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) {
-            return;
-        }
-
-        for (const item of parsed) {
-            if (!item || !Number.isInteger(item.index) || typeof item.width !== "number") {
-                continue;
-            }
-
-            if (item.width < 90) {
-                continue;
-            }
-
-            const col = document.getElementById(`issuesCol${item.index}`);
-            if (!col) {
-                continue;
-            }
-
-            col.style.width = `${item.width}px`;
-        }
-    } catch (error) {
-        console.error(error);
-        localStorage.removeItem(ISSUES_GRID_COLUMNS_STORAGE_KEY);
-    }
-}
-
-function saveIssuesGridColumnWidths() {
-    const widths = [];
-
-    for (let index = 0; index <= 6; index += 1) {
-        const col = document.getElementById(`issuesCol${index}`);
-        if (!col) {
-            continue;
-        }
-
-        const width = Number.parseFloat(col.style.width || "0");
-        if (!Number.isFinite(width) || width <= 0) {
-            continue;
-        }
-
-        widths.push({
-            index,
-            width
-        });
-    }
-
-    localStorage.setItem(ISSUES_GRID_COLUMNS_STORAGE_KEY, JSON.stringify(widths));
+    fixIssuesGridWidth();
 }
 
 function restoreIssuesFiltersState() {
@@ -1171,6 +1280,7 @@ function restoreIssuesFiltersState() {
     try {
         const parsed = JSON.parse(raw);
         issuesState.pageSize = isAllowedPageSize(parsed.pageSize) ? parsed.pageSize : 20;
+        issuesState.filters.quickSearch = parsed.quickSearch ? String(parsed.quickSearch) : "";
         issuesState.filters.issueNumberFrom = parsed.issueNumberFrom ? String(parsed.issueNumberFrom) : "";
         issuesState.filters.issueNumberTo = parsed.issueNumberTo ? String(parsed.issueNumberTo) : "";
         issuesState.filters.registrationDateFrom = parsed.registrationDateFrom ? String(parsed.registrationDateFrom) : "";
@@ -1202,6 +1312,7 @@ function saveIssuesFiltersState() {
 
     const payload = {
         pageSize: issuesState.pageSize,
+        quickSearch: issuesState.filters.quickSearch,
         issueNumberFrom: issuesState.filters.issueNumberFrom,
         issueNumberTo: issuesState.filters.issueNumberTo,
         registrationDateFrom: issuesState.filters.registrationDateFrom,
@@ -1258,6 +1369,496 @@ function isAllowedPageSize(value) {
     return value === 20 || value === 50 || value === 100;
 }
 
+function fixIssuesGridWidth() {
+    const table = document.getElementById("issuesGrid");
+    if (!table) {
+        return;
+    }
+
+    table.style.tableLayout = "fixed";
+    const wrap = table.closest(".table-responsive");
+    const wrapWidth = wrap ? wrap.clientWidth : 0;
+
+    let totalWidth = 0;
+
+    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
+        const width = getIssuesGridColumnWidth(index);
+        if (!Number.isFinite(width) || width <= 0) {
+            totalWidth = 0;
+            break;
+        }
+
+        totalWidth += width;
+    }
+
+    if (totalWidth <= 0) {
+        const measuredWidth = table.getBoundingClientRect().width;
+        if (!Number.isFinite(measuredWidth) || measuredWidth <= 0) {
+            return;
+        }
+
+        const fallbackWidth = Math.max(measuredWidth, wrapWidth);
+        table.style.width = `${fallbackWidth}px`;
+        table.style.minWidth = `${fallbackWidth}px`;
+        return;
+    }
+
+    const tableWidth = totalWidth;
+    table.style.width = `${tableWidth}px`;
+    table.style.minWidth = `${tableWidth}px`;
+}
+
+function setIssuesGridColumnWidth(columnIndex, width) {
+    if (!Number.isFinite(width) || width <= 0) {
+        return;
+    }
+
+    const minWidth = getIssuesColumnMinWidth(columnIndex);
+    const maxWidth = getIssuesColumnMaxWidth(columnIndex);
+    const normalizedWidth = maxWidth === null
+        ? Math.max(width, minWidth)
+        : Math.min(Math.max(width, minWidth), maxWidth);
+    const widthValue = `${normalizedWidth}px`;
+    const col = document.getElementById(`issuesCol${columnIndex}`);
+    if (col) {
+        col.style.width = widthValue;
+        col.style.minWidth = widthValue;
+        col.style.maxWidth = widthValue;
+    }
+
+    const headerCell = document.querySelector(`thead th[data-column-index="${columnIndex}"]`);
+    if (headerCell) {
+        headerCell.style.width = widthValue;
+        headerCell.style.minWidth = widthValue;
+        headerCell.style.maxWidth = widthValue;
+    }
+
+    const cells = document.querySelectorAll(`[data-column-cell="${columnIndex}"]`);
+    for (const cell of cells) {
+        cell.style.width = widthValue;
+        cell.style.minWidth = widthValue;
+        cell.style.maxWidth = widthValue;
+    }
+}
+
+function applyCurrentIssuesGridColumnWidths() {
+    for (let index = 0; index <= LAST_RESIZABLE_COLUMN_INDEX; index += 1) {
+        const col = document.getElementById(`issuesCol${index}`);
+        if (!col) {
+            continue;
+        }
+
+        const width = Number.parseFloat(col.style.width || "0");
+        if (!Number.isFinite(width) || width <= 0) {
+            continue;
+        }
+
+        setIssuesGridColumnWidth(index, width);
+    }
+}
+
+function applyIssueIdColumnAutoWidth() {
+    const minWidth = getIssuesColumnMinWidth(0);
+    const maxWidthLimit = getIssuesColumnMaxWidth(0);
+    let maxWidth = minWidth;
+    const contents = document.querySelectorAll('[data-column-cell="0"] .text-truncate');
+
+    for (const content of contents) {
+        const cell = content.closest('[data-column-cell="0"]');
+        const measuredWidth = Math.ceil(
+            measureIssuesTextWidth(content.textContent || "", content)
+            + getIssuesHorizontalInsets(content)
+            + getIssuesHorizontalInsets(cell)
+            + 20
+        );
+        if (Number.isFinite(measuredWidth) && measuredWidth > maxWidth) {
+            maxWidth = measuredWidth;
+        }
+    }
+
+    if (maxWidthLimit !== null) {
+        maxWidth = Math.min(maxWidth, maxWidthLimit);
+    }
+
+    setIssuesGridColumnWidth(0, maxWidth);
+    fixIssuesGridWidth();
+}
+
+function applyIssueTitleColumnAutoWidth() {
+    const minWidth = getIssuesColumnMinWidth(1);
+    let maxWidth = minWidth;
+    const contents = document.querySelectorAll('[data-column-cell="1"] .text-truncate');
+    for (const content of contents) {
+        const measuredWidth = Math.ceil(content.scrollWidth + 32);
+        if (Number.isFinite(measuredWidth) && measuredWidth > maxWidth) {
+            maxWidth = measuredWidth;
+        }
+    }
+
+    setIssuesGridColumnWidth(1, maxWidth);
+    fixIssuesGridWidth();
+}
+
+function applyIssuesRemainingWidthDistribution(shouldStretchColumns) {
+    const table = document.getElementById("issuesGrid");
+    if (!table) {
+        return;
+    }
+
+    const availableWidth = getIssuesAvailableGridWidth(table);
+    if (!Number.isFinite(availableWidth) || availableWidth <= 0) {
+        return;
+    }
+
+    const columnWidths = [];
+    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
+        const width = index === AUTO_EXPANDING_COLUMN_INDEX
+            ? getIssuesStatusColumnBaseWidth()
+            : getIssuesGridColumnWidth(index);
+        if (!Number.isFinite(width) || width <= 0) {
+            return;
+        }
+
+        columnWidths[index] = width;
+    }
+
+    fitIssuesColumnsToAvailableWidth(columnWidths, availableWidth);
+
+    if (shouldStretchColumns) {
+        distributeIssuesRemainingWidth(columnWidths, availableWidth);
+    }
+
+    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
+        setIssuesGridColumnWidth(index, columnWidths[index]);
+    }
+
+    const tableWidth = Math.max(getIssuesColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX), availableWidth);
+    table.style.tableLayout = "fixed";
+    table.style.width = `${tableWidth}px`;
+    table.style.minWidth = `${tableWidth}px`;
+}
+
+function distributeIssuesRemainingWidth(columnWidths, availableWidth) {
+    let remainingWidth = availableWidth - getIssuesColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX);
+    if (!Number.isFinite(remainingWidth) || remainingWidth <= 0) {
+        return;
+    }
+
+    const distributableColumns = [1, 2, 3, 4, 5, AUTO_EXPANDING_COLUMN_INDEX];
+
+    while (remainingWidth > 0.5) {
+        const expandableColumns = distributableColumns.filter(index => {
+            const maxWidth = getIssuesColumnMaxWidth(index);
+            return maxWidth !== null && columnWidths[index] < maxWidth;
+        });
+
+        if (expandableColumns.length === 0) {
+            return;
+        }
+
+        const widthPerColumn = remainingWidth / expandableColumns.length;
+        let consumedWidth = 0;
+
+        for (const columnIndex of expandableColumns) {
+            const maxWidth = getIssuesColumnMaxWidth(columnIndex);
+            if (maxWidth === null) {
+                continue;
+            }
+
+            const availableWidth = maxWidth - columnWidths[columnIndex];
+            if (availableWidth <= 0) {
+                continue;
+            }
+
+            const addedWidth = Math.min(availableWidth, widthPerColumn);
+            columnWidths[columnIndex] += addedWidth;
+            consumedWidth += addedWidth;
+        }
+
+        if (consumedWidth <= 0) {
+            return;
+        }
+
+        remainingWidth -= consumedWidth;
+    }
+}
+
+function fitIssuesColumnsToAvailableWidth(columnWidths, availableWidth) {
+    let overflowWidth = getIssuesColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX) - availableWidth;
+    if (!Number.isFinite(overflowWidth) || overflowWidth <= 0) {
+        return;
+    }
+
+    const shrinkableColumns = [AUTO_EXPANDING_COLUMN_INDEX, 1, 2, 3, 4, 5, 0];
+
+    while (overflowWidth > 0.5) {
+        const reducibleColumns = shrinkableColumns.filter(index => columnWidths[index] > getIssuesColumnMinWidth(index));
+        if (reducibleColumns.length === 0) {
+            return;
+        }
+
+        const widthPerColumn = overflowWidth / reducibleColumns.length;
+        let releasedWidth = 0;
+
+        for (const columnIndex of reducibleColumns) {
+            const minWidth = getIssuesColumnMinWidth(columnIndex);
+            const reducibleWidth = columnWidths[columnIndex] - minWidth;
+            if (reducibleWidth <= 0) {
+                continue;
+            }
+
+            const reducedWidth = Math.min(reducibleWidth, widthPerColumn);
+            columnWidths[columnIndex] -= reducedWidth;
+            releasedWidth += reducedWidth;
+        }
+
+        if (releasedWidth <= 0) {
+            return;
+        }
+
+        overflowWidth -= releasedWidth;
+    }
+}
+
+function getIssuesAvailableGridWidth(table) {
+    const WIDTH_SAFETY_OFFSET = 4;
+    const wrap = table.closest(".table-responsive");
+    if (wrap) {
+        const wrapWidth = wrap.clientWidth;
+        if (Number.isFinite(wrapWidth) && wrapWidth > 0) {
+            return Math.max(0, Math.floor(wrapWidth) - WIDTH_SAFETY_OFFSET);
+        }
+    }
+
+    const parent = table.parentElement;
+    if (parent) {
+        const parentWidth = parent.clientWidth;
+        if (Number.isFinite(parentWidth) && parentWidth > 0) {
+            return Math.max(0, Math.floor(parentWidth) - WIDTH_SAFETY_OFFSET);
+        }
+    }
+
+    const tableWidth = table.getBoundingClientRect().width;
+    return Number.isFinite(tableWidth) && tableWidth > 0
+        ? Math.max(0, Math.floor(tableWidth) - WIDTH_SAFETY_OFFSET)
+        : 0;
+}
+
+function getIssuesColumnsTotalWidth(columnWidths, startIndex, endIndex) {
+    let totalWidth = 0;
+
+    for (let index = startIndex; index <= endIndex; index += 1) {
+        const width = columnWidths[index];
+        if (!Number.isFinite(width) || width <= 0) {
+            continue;
+        }
+
+        totalWidth += width;
+    }
+
+    return totalWidth;
+}
+
+function measureIssuesTextWidth(text, sourceElement) {
+    const probe = document.createElement("span");
+    const computedStyle = window.getComputedStyle(sourceElement);
+    probe.textContent = text;
+    probe.style.position = "absolute";
+    probe.style.visibility = "hidden";
+    probe.style.pointerEvents = "none";
+    probe.style.whiteSpace = "nowrap";
+    probe.style.font = computedStyle.font;
+    probe.style.fontSize = computedStyle.fontSize;
+    probe.style.fontWeight = computedStyle.fontWeight;
+    probe.style.fontFamily = computedStyle.fontFamily;
+    probe.style.letterSpacing = computedStyle.letterSpacing;
+    document.body.appendChild(probe);
+
+    const measuredWidth = probe.getBoundingClientRect().width;
+    probe.remove();
+    return measuredWidth;
+}
+
+function getIssuesHorizontalInsets(element) {
+    if (!element) {
+        return 0;
+    }
+
+    const computedStyle = window.getComputedStyle(element);
+    const paddingLeft = Number.parseFloat(computedStyle.paddingLeft || "0");
+    const paddingRight = Number.parseFloat(computedStyle.paddingRight || "0");
+    const borderLeft = Number.parseFloat(computedStyle.borderLeftWidth || "0");
+    const borderRight = Number.parseFloat(computedStyle.borderRightWidth || "0");
+    return paddingLeft + paddingRight + borderLeft + borderRight;
+}
+
+function getIssuesGridColumnWidth(columnIndex) {
+    const col = document.getElementById(`issuesCol${columnIndex}`);
+    if (col) {
+        const explicitWidth = Number.parseFloat(col.style.width || "0");
+        if (Number.isFinite(explicitWidth) && explicitWidth > 0) {
+            return explicitWidth;
+        }
+    }
+
+    const headerCell = document.querySelector(`thead th[data-column-index="${columnIndex}"]`);
+    if (headerCell) {
+        const headerWidth = headerCell.getBoundingClientRect().width;
+        if (Number.isFinite(headerWidth) && headerWidth > 0) {
+            return headerWidth;
+        }
+    }
+
+    const minWidth = getIssuesColumnMinWidth(columnIndex);
+    return Number.isFinite(minWidth) && minWidth > 0 ? minWidth : 0;
+}
+
+function getIssuesStatusColumnBaseWidth() {
+    const minWidth = getIssuesColumnMinWidth(AUTO_EXPANDING_COLUMN_INDEX);
+    const maxWidth = getIssuesColumnMaxWidth(AUTO_EXPANDING_COLUMN_INDEX);
+    let width = minWidth;
+    const headerCell = document.querySelector(`thead th[data-column-index="${AUTO_EXPANDING_COLUMN_INDEX}"]`);
+    if (headerCell) {
+        const headerText = String(headerCell.textContent || "").trim();
+        const headerWidth = Math.ceil(
+            measureIssuesTextWidth(headerText, headerCell)
+            + getIssuesHorizontalInsets(headerCell)
+            + 8
+        );
+        if (Number.isFinite(headerWidth) && headerWidth > width) {
+            width = headerWidth;
+        }
+    }
+
+    const badges = document.querySelectorAll(`[data-column-cell="${AUTO_EXPANDING_COLUMN_INDEX}"] .badge`);
+    for (const badge of badges) {
+        const cell = badge.closest(`[data-column-cell="${AUTO_EXPANDING_COLUMN_INDEX}"]`);
+        const measuredWidth = Math.ceil(
+            measureIssueStatusBadgeNaturalWidth(badge)
+            + getIssuesHorizontalInsets(cell)
+            + 8
+        );
+        if (Number.isFinite(measuredWidth) && measuredWidth > width) {
+            width = measuredWidth;
+        }
+    }
+
+    if (maxWidth !== null) {
+        return Math.min(width, maxWidth);
+    }
+
+    return width;
+}
+
+function measureIssueStatusBadgeNaturalWidth(sourceElement) {
+    if (!sourceElement) {
+        return 0;
+    }
+
+    const probe = sourceElement.cloneNode(true);
+    probe.style.position = "absolute";
+    probe.style.visibility = "hidden";
+    probe.style.pointerEvents = "none";
+    probe.style.width = "auto";
+    probe.style.minWidth = "";
+    probe.style.maxWidth = "none";
+    probe.style.whiteSpace = "nowrap";
+    document.body.appendChild(probe);
+
+    const measuredWidth = probe.getBoundingClientRect().width;
+    probe.remove();
+    return measuredWidth;
+}
+
+function getIssuesColumnMinWidth(columnIndex) {
+    if (columnIndex === 0) {
+        return ISSUE_ID_COLUMN_MIN_WIDTH;
+    }
+
+    if (columnIndex === 1) {
+        return TITLE_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === 2) {
+        return COMPANY_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === 3) {
+        return ASSIGNEE_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === 4 || columnIndex === 5) {
+        return DATE_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
+        return AUTO_EXPANDING_COLUMN_MIN_WIDTH;
+    }
+
+    return DEFAULT_COLUMN_MIN_WIDTH;
+}
+
+function getIssuesColumnMaxWidth(columnIndex) {
+    if (columnIndex === 0) {
+        return ISSUE_ID_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 1) {
+        return TITLE_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 2) {
+        return COMPANY_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 3) {
+        return ASSIGNEE_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === 4 || columnIndex === 5) {
+        return DATE_COLUMN_MAX_WIDTH;
+    }
+
+    if (columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
+        return AUTO_EXPANDING_COLUMN_MAX_WIDTH;
+    }
+
+    return null;
+}
+
+function getIssuesColumnDefaultWidth(columnIndex) {
+    if (columnIndex === 1) {
+        return TITLE_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === 2) {
+        return COMPANY_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === 3) {
+        return ASSIGNEE_COLUMN_WIDTH;
+    }
+
+    if (columnIndex === 4 || columnIndex === 5) {
+        return DATE_COLUMN_WIDTH;
+    }
+
+    return null;
+}
+
+function applyDefaultIssuesGridColumnWidths() {
+    for (let index = 0; index <= GRID_LAST_COLUMN_INDEX; index += 1) {
+        const defaultWidth = getIssuesColumnDefaultWidth(index);
+        if (defaultWidth === null) {
+            continue;
+        }
+
+        setIssuesGridColumnWidth(index, defaultWidth);
+    }
+
+    fixIssuesGridWidth();
+}
+
 function capitalizeLookupKey(key) {
     return key.charAt(0).toUpperCase() + key.slice(1);
 }
@@ -1282,6 +1883,47 @@ function getLookupToggleLabel(key, count) {
 
 function showPageError(message) {
     showMessage("pageError", message);
+}
+
+function toggleIssuesListLoading(isLoading) {
+    const loading = document.getElementById("issuesListLoading");
+    const table = document.getElementById("issuesGrid");
+
+    if (isLoading) {
+        if (loading) {
+            loading.classList.add("d-none");
+        }
+
+        if (table) {
+            table.setAttribute("aria-busy", "true");
+        }
+
+        renderIssuesTableLoadingState();
+        setIssuesPaginationDisabled(true);
+        return;
+    }
+
+    if (loading) {
+        loading.classList.add("d-none");
+    }
+
+    if (table) {
+        table.removeAttribute("aria-busy");
+    }
+
+    setIssuesPaginationDisabled(false);
+}
+
+function setIssuesPaginationDisabled(isDisabled) {
+    const container = document.getElementById("issuesPagination");
+    if (!container) {
+        return;
+    }
+
+    const buttons = container.querySelectorAll("button");
+    for (const button of buttons) {
+        button.disabled = isDisabled;
+    }
 }
 
 function showMessage(id, message) {

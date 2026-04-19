@@ -34,7 +34,10 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
             IQueryable<Equipment> items = ApplyFilters(query.Query(asNoTracking: true), request);
 
             if (maxCount.HasValue)
-                return await items.Take(maxCount.Value).CountAsync(ct);
+                return await items
+                    .OrderByDescending(equipment => equipment.Id)
+                    .Take(maxCount.Value)
+                    .CountAsync(ct);
 
             return await items.CountAsync(ct);
         }

@@ -78,7 +78,7 @@
                                 string linkIssues = "list-group-item list-group-item-action border-0 rounded d-flex align-items-center gap-2 py-2 px-2";
                                 if (activeIssues) linkIssues += " bg-info bg-opacity-10 text-primary";
 
-                                <a class="@linkIssues" asp-area="" asp-page="/Issues">
+                                <a class="@linkIssues" asp-area="" asp-page="/Issues/Index">
                                     <img src="~/icon/issue.svg" style="width:22px; height:22px;" />
                                     <span class="@sideTextClass">Заявки</span>
                                 </a>
@@ -91,7 +91,7 @@
                                 if (activeEquipments) linkEquipments += " bg-info bg-opacity-10 text-primary";
 
                                 <a class="@linkEquipments" asp-area="" asp-page="/Equipments/Index">
-                                    <img src="~/icon/issue.svg" style="width:22px; height:22px;" />
+                                    <img src="~/icon/equipment.svg" style="width:22px; height:22px;" />
                                     <span class="@sideTextClass">Оборудование</span>
                                 </a>
                             }

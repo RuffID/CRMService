@@ -7,6 +7,7 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 
@@ -30,6 +31,7 @@ namespace CRMService.Application.Service.OkdeskEntity
         private const int MAX_PAGE_SIZE = 100;
         private const int QUICK_COUNT_LIMIT = 1000;
         private const int QUICK_COUNT_QUERY_LIMIT = QUICK_COUNT_LIMIT + 1;
+        private const string NOT_SPECIFIED_TEXT = "Не указано";
 
         public async Task<ServiceResult<EquipmentListPageDto>> GetEquipmentListPageAsync(EquipmentListRequest request, CancellationToken ct = default)
         {
@@ -76,6 +78,33 @@ namespace CRMService.Application.Service.OkdeskEntity
                 TotalCount = totalCount,
                 TotalPages = CalculateTotalPages(totalCount, request.PageSize)
             });
+        }
+
+        public async Task<ServiceResult<EquipmentDetailsDto>> GetEquipmentDetailsAsync(int equipmentId, CancellationToken ct = default)
+        {
+            if (equipmentId <= 0)
+                return ServiceResult<EquipmentDetailsDto>.Fail(400, "Идентификатор оборудования должен быть больше нуля.");
+
+            Equipment? equipment = await unitOfWork.Equipment.GetItemByIdAsync(
+                equipmentId,
+                asNoTracking: true,
+                include: query => query
+                    .Include(item => item.Company)
+                        .ThenInclude(company => company!.Category)
+                    .Include(item => item.Kind)
+                        .ThenInclude(kind => kind!.KindParams)
+                            .ThenInclude(kindParam => kindParam.KindParameter)
+                    .Include(item => item.Manufacturer)
+                    .Include(item => item.Model)
+                    .Include(item => item.MaintenanceEntities)
+                    .Include(item => item.Parameters)
+                        .ThenInclude(parameter => parameter.KindParameter),
+                ct: ct);
+
+            if (equipment == null)
+                return ServiceResult<EquipmentDetailsDto>.Fail(404, "Оборудование не найдено.");
+
+            return ServiceResult<EquipmentDetailsDto>.Ok(MapEquipmentDetails(equipment));
         }
 
         private async IAsyncEnumerable<List<Equipment>> GetEquipmentsFromCloudApiAsync(long startIndex, long limit, long companyId = 0, long maintenanceEntityId = 0, [EnumeratorCancellation] CancellationToken ct = default)
@@ -425,14 +454,14 @@ namespace CRMService.Application.Service.OkdeskEntity
             return new EquipmentListItemDto
             {
                 Id = equipment.Id,
-                TypeName = equipment.Kind?.Name ?? "Не указан",
-                ManufacturerName = equipment.Manufacturer?.Name ?? "Не указан",
-                ModelName = equipment.Model?.Name ?? "Не указан",
-                InventoryNumber = string.IsNullOrWhiteSpace(equipment.InventoryNumber) ? "Не указан" : equipment.InventoryNumber,
-                SerialNumber = string.IsNullOrWhiteSpace(equipment.SerialNumber) ? "Не указан" : equipment.SerialNumber,
-                CompanyName = equipment.Company?.Name ?? "Не указан",
+                TypeName = equipment.Kind?.Name ?? NOT_SPECIFIED_TEXT,
+                ManufacturerName = equipment.Manufacturer?.Name ?? NOT_SPECIFIED_TEXT,
+                ModelName = equipment.Model?.Name ?? NOT_SPECIFIED_TEXT,
+                InventoryNumber = NormalizeEquipmentFieldValue(equipment.InventoryNumber),
+                SerialNumber = NormalizeEquipmentFieldValue(equipment.SerialNumber),
+                CompanyName = equipment.Company?.Name ?? NOT_SPECIFIED_TEXT,
                 CompanyCategoryColor = equipment.Company?.Category?.Color ?? string.Empty,
-                MaintenanceEntityName = equipment.MaintenanceEntities?.Name ?? "Не указан",
+                MaintenanceEntityName = equipment.MaintenanceEntities?.Name ?? NOT_SPECIFIED_TEXT,
                 Parameters = equipment.Parameters
                     .Where(parameter => parameter.KindParameter != null && !string.IsNullOrWhiteSpace(parameter.KindParameter.Code))
                     .Select(parameter => new EquipmentParameterDto
@@ -442,6 +471,78 @@ namespace CRMService.Application.Service.OkdeskEntity
                     })
                     .ToList()
             };
+        }
+
+        private static EquipmentDetailsDto MapEquipmentDetails(Equipment equipment)
+        {
+            return new EquipmentDetailsDto
+            {
+                Id = equipment.Id,
+                CompanyName = equipment.Company?.Name ?? NOT_SPECIFIED_TEXT,
+                CompanyCategoryName = equipment.Company?.Category?.Name ?? NOT_SPECIFIED_TEXT,
+                CompanyCategoryColor = equipment.Company?.Category?.Color ?? string.Empty,
+                MaintenanceEntityName = equipment.MaintenanceEntities?.Name ?? NOT_SPECIFIED_TEXT,
+                Parameters = equipment.Parameters
+                    .Where(parameter => parameter.KindParameter != null && !string.IsNullOrWhiteSpace(parameter.KindParameter.Code))
+                    .Select(parameter => new EquipmentParameterDto
+                    {
+                        Code = parameter.KindParameter!.Code,
+                        Value = parameter.Value?.ToString()
+                    })
+                    .ToList(),
+                Fields = BuildEquipmentDetailsFields(equipment)
+            };
+        }
+
+        private static List<EquipmentDetailsFieldDto> BuildEquipmentDetailsFields(Equipment equipment)
+        {
+            List<EquipmentDetailsFieldDto> fields = new()
+            {
+                CreateDetailsField("Тип", equipment.Kind?.Name),
+                CreateDetailsField("Производитель", equipment.Manufacturer?.Name),
+                CreateDetailsField("Модель", equipment.Model?.Name),
+                CreateDetailsField("Инвентарный номер", equipment.InventoryNumber),
+                CreateDetailsField("Серийный номер", equipment.SerialNumber),
+                CreateDetailsField("Объект обслуживания", equipment.MaintenanceEntities?.Name)
+            };
+
+            Dictionary<int, string?> parameterValuesById = equipment.Parameters
+                .Where(parameter => parameter.KindParameterId.HasValue)
+                .GroupBy(parameter => parameter.KindParameterId!.Value)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(parameter => parameter.Value?.ToString())
+                        .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)));
+
+            IEnumerable<KindParam> kindParameters = equipment.Kind?.KindParams?
+                .Where(kindParam => kindParam.KindParameter != null)
+                .OrderBy(kindParam => kindParam.KindParameter.Name ?? kindParam.KindParameter.Code)
+                .ThenBy(kindParam => kindParam.KindParameter.Id)
+                ?? Enumerable.Empty<KindParam>();
+
+            foreach (KindParam kindParameter in kindParameters)
+            {
+                parameterValuesById.TryGetValue(kindParameter.KindParameterId, out string? parameterValue);
+                fields.Add(CreateDetailsField(kindParameter.KindParameter.Name, parameterValue, kindParameter.KindParameter.Code));
+            }
+
+            return fields;
+        }
+
+        private static EquipmentDetailsFieldDto CreateDetailsField(string? label, string? value, string? parameterCode = null)
+        {
+            return new EquipmentDetailsFieldDto
+            {
+                ParameterCode = string.IsNullOrWhiteSpace(parameterCode) ? string.Empty : parameterCode,
+                Label = NormalizeEquipmentFieldValue(label),
+                Value = NormalizeEquipmentFieldValue(value)
+            };
+        }
+
+        private static string NormalizeEquipmentFieldValue(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? NOT_SPECIFIED_TEXT : value;
         }
 
         private static int CalculateVisibleTotalPages(int page, int pageSize, int displayTotalCount, bool hasNextPage)

@@ -21,7 +21,7 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
                 .HasMaxLength(30);
 
             builder.Property(e => e.Description)
-                .HasMaxLength(200);
+                .HasMaxLength(550);
 
             builder.Property(e => e.Name)
                 .HasMaxLength(100);

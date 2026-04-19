@@ -5,6 +5,8 @@ namespace CRMService.Application.Common.Mapping.OkdeskEntity
 {
     public static class ModelMapping
     {
+        private const int MAX_DESCRIPTION_LENGTH = 500;
+
         public static IEnumerable<ModelDto> ToDto(this IEnumerable<Model> models)
         {
             foreach (Model model in models)
@@ -34,7 +36,7 @@ namespace CRMService.Application.Common.Mapping.OkdeskEntity
                 Id = dto.Id,
                 Code = dto.Code ?? string.Empty,
                 Name = dto.Name ?? string.Empty,
-                Description = dto.Description,
+                Description = TrimDescription(dto.Description),
                 Visible = dto.Visible
             };
 
@@ -45,6 +47,16 @@ namespace CRMService.Application.Common.Mapping.OkdeskEntity
                 entity.ManufacturerId = mId;
 
             return entity;
+        }
+
+        private static string? TrimDescription(string? description)
+        {
+            if (string.IsNullOrEmpty(description))
+                return description;
+
+            return description.Length <= MAX_DESCRIPTION_LENGTH
+                ? description
+                : description[..MAX_DESCRIPTION_LENGTH];
         }
     }
 }

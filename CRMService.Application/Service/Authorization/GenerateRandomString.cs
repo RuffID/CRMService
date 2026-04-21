@@ -22,6 +22,3 @@ namespace CRMService.Application.Service.Authorization
         public string GetBase64RandomString() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));        
     }
 }
-
-
-

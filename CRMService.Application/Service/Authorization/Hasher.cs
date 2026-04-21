@@ -47,6 +47,3 @@ namespace CRMService.Application.Service.Authorization
         private HashAlgorithmName HashAlgorithmName { get { return new HashAlgorithmName(HashSettingsConstants.ALGORITHM); } }
     }
 }
-
-
-

@@ -160,6 +160,3 @@ namespace CRMService.Application.Service.Authorization
         }
     }
 }
-
-
-

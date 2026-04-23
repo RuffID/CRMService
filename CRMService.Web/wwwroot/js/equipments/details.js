@@ -17,12 +17,15 @@ let equipmentDetailsState = {
     equipmentId: 0,
     details: null
 };
+let antiForgeryToken = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initEquipmentDetailsPage();
 });
 
 async function initEquipmentDetailsPage() {
+    antiForgeryToken = getRequestVerificationToken();
+
     const root = document.getElementById("equipmentDetailsPage");
     if (!root) {
         return;
@@ -35,6 +38,18 @@ async function initEquipmentDetailsPage() {
         return;
     }
 
+    bindEquipmentDetailsEvents();
+    await loadEquipmentDetails();
+}
+
+function bindEquipmentDetailsEvents() {
+    const refreshButton = document.getElementById("refreshEquipmentDetailsButton");
+    if (refreshButton) {
+        refreshButton.addEventListener("click", refreshEquipmentDetailsFromCloudApi);
+    }
+}
+
+async function loadEquipmentDetails() {
     try {
         const response = await sendJsonRequest(`?handler=Details&id=${equipmentDetailsState.equipmentId}`, "GET", buildJsonHeaders(null));
         equipmentDetailsState.details = response;
@@ -45,6 +60,36 @@ async function initEquipmentDetailsPage() {
         showPageError(error.message || "Не удалось загрузить карточку оборудования.");
         renderEquipmentDetailsContentError();
     }
+}
+
+async function refreshEquipmentDetailsFromCloudApi() {
+    try {
+        hidePageError();
+        setRefreshEquipmentDetailsButtonDisabled(true);
+
+        const response = await sendJsonRequest(`?handler=UpdateFromCloudApi&id=${equipmentDetailsState.equipmentId}`, "POST", buildJsonHeaders(antiForgeryToken), {});
+        if (response?.success === false) {
+            showPageError(response.message || "Не удалось обновить оборудование.");
+            return;
+        }
+
+        await loadEquipmentDetails();
+    } catch (error) {
+        console.error(error);
+        showPageError(error.message || "Не удалось обновить оборудование.");
+    } finally {
+        setRefreshEquipmentDetailsButtonDisabled(false);
+    }
+}
+
+function setRefreshEquipmentDetailsButtonDisabled(isDisabled) {
+    const button = document.getElementById("refreshEquipmentDetailsButton");
+    if (!button) {
+        return;
+    }
+
+    button.disabled = isDisabled;
+    button.textContent = isDisabled ? "Идёт обновление.." : "Обновить";
 }
 
 function renderEquipmentDetails() {

@@ -15,7 +15,7 @@ const AUTO_EXPANDING_COLUMN_INDEX = 6;
 const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 240;
 const AUTO_EXPANDING_COLUMN_MAX_WIDTH = 320;
 const ACCESS_VALUE_SEPARATOR = "/";
-const INVALID_PLACEHOLDER_VALUES = new Set(["-", "\u043D\u0435\u0443\u043A\u0430\u0437\u0430\u043D\u043E"]);
+const INVALID_PLACEHOLDER_VALUES = new Set(["-", "\u043D\u0435\u0443\u043A\u0430\u0437\u0430\u043D", "\u043D\u0435\u0443\u043A\u0430\u0437\u0430\u043D\u043E"]);
 const TERMINAL_ACCESS_BUTTONS = [
     { parameterCode: "AnyDesk", clearbatType: "anydesk", buttonText: "AD", iconPath: "/icon/equipments/anydesk.png?v=1", iconAlt: "AnyDesk", displayName: "ЭниДеск", requirePassword: true },
     { parameterCode: "AA", clearbatType: "ammyy", buttonText: "AA", iconPath: "/icon/equipments/ammyadmin.png?v=1", iconAlt: "АмиАдмин", displayName: "АмиАдмин", requirePassword: false },
@@ -24,6 +24,8 @@ const TERMINAL_ACCESS_BUTTONS = [
 ];
 const WEB_LINK_PARAMETER_CODE = "1212";
 const IIKO_CREDENTIALS_PARAMETER_CODE = "0008";
+const EQUIPMENT_UPDATE_ALREADY_RUNNING_PREFIX = "Обновление уже запущено|";
+const EQUIPMENT_CLOUD_DB_UPDATE_POLL_INTERVAL_MS = 5000;
 const SERVER_ACCESS_BUTTONS = [
     { addressParameterCode: "srv_addr", iconPath: "/icon/equipments/iikoOffice_icon.ico?v=1", iconAlt: "RMS", displayName: "RMS" },
     { addressParameterCode: "0017", iconPath: "/icon/equipments/iikoChain_icon.ico?v=1", iconAlt: "Чейн", displayName: "Чейн" }
@@ -38,6 +40,8 @@ let equipmentsLookupStates = createLookupStates();
 let equipmentsGridResizeCleanup = null;
 let equipmentsGridLayoutResizeCleanup = null;
 let equipmentSearchWarningModal = null;
+let equipmentCloudDbUpdatePollTimer = 0;
+let equipmentIdColumnContentMinWidth = ID_COLUMN_MIN_WIDTH;
 
 document.addEventListener("DOMContentLoaded", () => {
     initEquipmentsPage();
@@ -86,6 +90,7 @@ function createLookupState(handler, searchId, listId, selectedId) {
         selectedId,
         items: [],
         selectedIds: new Set(),
+        selectedItems: new Map(),
         offset: 0,
         hasMore: true,
         loading: false,
@@ -98,6 +103,7 @@ function createLookupState(handler, searchId, listId, selectedId) {
 async function initEquipmentsPage() {
     antiForgeryToken = getRequestVerificationToken();
     initEquipmentSearchWarningModal();
+    initEquipmentCloudDbUpdateTooltips();
     restoreEquipmentsFiltersState();
     bindEquipmentsEvents();
     restoreEquipmentsPageFromUrl();
@@ -105,6 +111,9 @@ async function initEquipmentsPage() {
     initEquipmentsGridColumnResize();
     initEquipmentsGridLayoutResize();
     applyDefaultEquipmentsGridColumnWidths();
+    if (isEquipmentCloudDbUpdateAvailable()) {
+        await refreshEquipmentCloudDbUpdateState();
+    }
     await loadInitialLookups();
     await reloadEquipments(false);
 }
@@ -169,6 +178,158 @@ function bindEquipmentsEvents() {
             await reloadEquipments(true);
         });
     }
+
+    const cloudDbUpdateButton = document.getElementById("startEquipmentCloudDbUpdateButton");
+    if (cloudDbUpdateButton) {
+        cloudDbUpdateButton.addEventListener("click", startEquipmentCloudDbUpdate);
+    }
+}
+
+async function startEquipmentCloudDbUpdate() {
+    try {
+        clearPageMessages();
+
+        const state = await refreshEquipmentCloudDbUpdateState();
+        if (state.isRunning === true) {
+            showPageError(buildEquipmentCloudDbUpdateAlreadyRunningMessage(state));
+            return;
+        }
+
+        const response = await sendJsonRequest("?handler=StartCloudDbUpdate", "POST", buildJsonHeaders(antiForgeryToken), {});
+        if (response?.success === false) {
+            showEquipmentCloudDbUpdateStartError(response.message || "");
+            return;
+        }
+
+        setEquipmentCloudDbUpdateButtonDisabled(true);
+        scheduleEquipmentCloudDbUpdateStatePolling();
+    } catch (error) {
+        console.error(error);
+        showEquipmentCloudDbUpdateStartError(error.message || "Не удалось запустить обновление оборудования.");
+    }
+}
+
+async function refreshEquipmentCloudDbUpdateState() {
+    try {
+        const state = await sendJsonRequest("?handler=CloudDbUpdateState", "GET", buildJsonHeaders(antiForgeryToken));
+        applyEquipmentCloudDbUpdateState(state);
+        return state || { isRunning: false };
+    } catch (error) {
+        console.error(error);
+        showPageError(error.message || "Не удалось проверить состояние обновления оборудования.");
+        throw error;
+    }
+}
+
+function applyEquipmentCloudDbUpdateState(state) {
+    const isRunning = state?.isRunning === true;
+    setEquipmentCloudDbUpdateButtonDisabled(isRunning);
+
+    if (isRunning) {
+        scheduleEquipmentCloudDbUpdateStatePolling();
+        return;
+    }
+
+    stopEquipmentCloudDbUpdateStatePolling();
+}
+
+function setEquipmentCloudDbUpdateButtonDisabled(isDisabled) {
+    const button = document.getElementById("startEquipmentCloudDbUpdateButton");
+    if (!button) {
+        return;
+    }
+
+    button.disabled = isDisabled;
+    button.textContent = isDisabled ? "Идёт обновление.." : "Обновить";
+}
+
+function isEquipmentCloudDbUpdateAvailable() {
+    return document.getElementById("startEquipmentCloudDbUpdateButton") !== null;
+}
+
+function scheduleEquipmentCloudDbUpdateStatePolling() {
+    if (equipmentCloudDbUpdatePollTimer !== 0) {
+        return;
+    }
+
+    equipmentCloudDbUpdatePollTimer = window.setInterval(pollEquipmentCloudDbUpdateState, EQUIPMENT_CLOUD_DB_UPDATE_POLL_INTERVAL_MS);
+}
+
+function stopEquipmentCloudDbUpdateStatePolling() {
+    if (equipmentCloudDbUpdatePollTimer === 0) {
+        return;
+    }
+
+    window.clearInterval(equipmentCloudDbUpdatePollTimer);
+    equipmentCloudDbUpdatePollTimer = 0;
+}
+
+async function pollEquipmentCloudDbUpdateState() {
+    try {
+        const previousTimer = equipmentCloudDbUpdatePollTimer;
+        const state = await refreshEquipmentCloudDbUpdateState();
+        if (previousTimer !== 0 && state.isRunning !== true) {
+            await reloadEquipments(false);
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function showEquipmentCloudDbUpdateStartError(message) {
+    if (message.startsWith(EQUIPMENT_UPDATE_ALREADY_RUNNING_PREFIX)) {
+        const state = parseEquipmentCloudDbUpdateAlreadyRunningMessage(message);
+        applyEquipmentCloudDbUpdateState(state);
+        showPageError(buildEquipmentCloudDbUpdateAlreadyRunningMessage(state));
+        return;
+    }
+
+    showPageError(message || "Не удалось запустить обновление оборудования.");
+}
+
+function parseEquipmentCloudDbUpdateAlreadyRunningMessage(message) {
+    const parts = message.split("|");
+    return {
+        isRunning: true,
+        startedAtUtc: parts[1] || "",
+        startedByUserName: parts[2] || ""
+    };
+}
+
+function buildEquipmentCloudDbUpdateAlreadyRunningMessage(state) {
+    const localStartedAt = formatEquipmentCloudDbUpdateLocalTime(state.startedAtUtc);
+    const userName = state.startedByUserName || "неизвестным пользователем";
+    return `Обновление уже запущено в ${localStartedAt} пользователем ${userName}.`;
+}
+
+function formatEquipmentCloudDbUpdateLocalTime(startedAtUtc) {
+    const date = new Date(startedAtUtc);
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function initEquipmentCloudDbUpdateTooltips() {
+    if (!window.bootstrap) {
+        return;
+    }
+
+    const updateButton = document.getElementById("startEquipmentCloudDbUpdateButton");
+    if (updateButton) {
+        new bootstrap.Tooltip(updateButton, {
+            delay: { show: 3000, hide: 0 }
+        });
+    }
+
+    const help = document.getElementById("equipmentCloudDbUpdateHelp");
+    if (help) {
+        new bootstrap.Tooltip(help, {
+            delay: 0,
+            trigger: "hover focus click"
+        });
+    }
 }
 
 function bindLookupEvents(key) {
@@ -216,7 +377,12 @@ function bindLookupEvents(key) {
 
             if (lookup.items.length === 0) {
                 await loadLookupOptions(key, true);
+                scrollLookupListToTop(lookup);
+                return;
             }
+
+            renderLookupList(key);
+            scrollLookupListToTop(lookup);
         });
     }
 }
@@ -279,6 +445,10 @@ async function loadLookupOptions(key, reset) {
             if (!lookup.items.some(existing => existing.id === item.id)) {
                 lookup.items.push(item);
             }
+
+            if (lookup.selectedIds.has(item.id)) {
+                lookup.selectedItems.set(item.id, item);
+            }
         }
 
         lookup.offset += newItems.length;
@@ -310,7 +480,8 @@ function renderLookupList(key) {
         return;
     }
 
-    for (const item of lookup.items) {
+    const items = getLookupRenderItems(lookup);
+    for (const item of items) {
         const row = document.createElement("label");
         row.className = "d-flex align-items-start gap-2 px-2 py-2 border-bottom small";
 
@@ -321,8 +492,10 @@ function renderLookupList(key) {
         checkbox.addEventListener("change", async () => {
             if (checkbox.checked) {
                 lookup.selectedIds.add(item.id);
+                lookup.selectedItems.set(item.id, item);
             } else {
                 lookup.selectedIds.delete(item.id);
+                lookup.selectedItems.delete(item.id);
             }
 
             await handleLookupSelectionChange(key);
@@ -331,6 +504,8 @@ function renderLookupList(key) {
             equipmentsState.exactTotalCount = null;
             equipmentsState.exactTotalPages = null;
             saveEquipmentsFiltersState();
+            renderLookupList(key);
+            scrollLookupListToTop(lookup);
             await reloadEquipments(true);
         });
 
@@ -363,6 +538,40 @@ function renderLookupList(key) {
     }
 
     updateLookupSelectedCounter(key);
+}
+
+function getLookupRenderItems(lookup) {
+    const itemsById = new Map();
+
+    if (!lookup.search) {
+        for (const item of lookup.selectedItems.values()) {
+            if (lookup.selectedIds.has(item.id)) {
+                itemsById.set(item.id, item);
+            }
+        }
+    }
+
+    for (const item of lookup.items) {
+        itemsById.set(item.id, item);
+    }
+
+    return [...itemsById.values()].sort((left, right) => {
+        const leftSelected = lookup.selectedIds.has(left.id);
+        const rightSelected = lookup.selectedIds.has(right.id);
+
+        if (leftSelected === rightSelected) {
+            return 0;
+        }
+
+        return leftSelected ? -1 : 1;
+    });
+}
+
+function scrollLookupListToTop(lookup) {
+    const list = document.getElementById(lookup.listId);
+    if (list) {
+        list.scrollTop = 0;
+    }
 }
 
 function updateLookupSelectedCounter(key) {
@@ -441,6 +650,7 @@ async function handleLookupSelectionChange(key) {
 function clearLookupSelection(key) {
     const lookup = equipmentsLookupStates[key];
     lookup.selectedIds.clear();
+    lookup.selectedItems.clear();
     lookup.items = [];
     lookup.offset = 0;
     lookup.hasMore = true;
@@ -494,6 +704,7 @@ function resetEquipmentsFilters() {
     for (const key of Object.keys(equipmentsLookupStates)) {
         const lookup = equipmentsLookupStates[key];
         lookup.selectedIds.clear();
+        lookup.selectedItems.clear();
         lookup.items = [];
         lookup.offset = 0;
         lookup.hasMore = true;
@@ -649,10 +860,10 @@ function renderEquipmentsTable() {
         tr.className = "align-middle";
         tr.appendChild(buildCell(String(item.id || ""), 0, item.id));
         tr.appendChild(buildEquipmentInfoCell(item));
-        tr.appendChild(buildCell(String(item.inventoryNumber || "Не указан"), 2));
-        tr.appendChild(buildCell(String(item.serialNumber || "Не указан"), 3));
+        tr.appendChild(buildCell(getEquipmentCellDisplayText(item.inventoryNumber), 2));
+        tr.appendChild(buildCell(getEquipmentCellDisplayText(item.serialNumber), 3));
         tr.appendChild(buildCompanyCell(item, 4));
-        tr.appendChild(buildCell(String(item.maintenanceEntityName || "Не указан"), 5));
+        tr.appendChild(buildCell(getEquipmentCellDisplayText(item.maintenanceEntityName), 5));
         tr.appendChild(buildAccessesCell(item));
         tbody.appendChild(tr);
     }
@@ -907,31 +1118,48 @@ function buildCell(text, columnIndex, equipmentId = null) {
     return td;
 }
 
+function getEquipmentCellDisplayText(value) {
+    const normalizedValue = String(value || "").trim();
+    if (!normalizedValue) {
+        return "";
+    }
+
+    const collapsedValue = normalizedValue.replace(/\s+/g, "").toLowerCase();
+    if (INVALID_PLACEHOLDER_VALUES.has(collapsedValue)) {
+        return "";
+    }
+
+    return normalizedValue;
+}
+
 function buildCompanyCell(item, columnIndex) {
     const td = document.createElement("td");
     td.className = "px-3 py-2";
     td.style.fontSize = "1rem";
     td.setAttribute("data-column-cell", String(columnIndex));
+    const companyName = getEquipmentCellDisplayText(item.companyName);
 
     const wrapper = document.createElement("div");
     wrapper.className = "d-flex align-items-center gap-2";
     wrapper.style.width = "100%";
     wrapper.style.minWidth = "0";
 
-    const marker = document.createElement("span");
-    marker.className = "rounded-circle flex-shrink-0";
-    marker.style.width = "0.75rem";
-    marker.style.height = "0.75rem";
-    marker.style.backgroundColor = normalizeHexColor(item.companyCategoryColor) || "#6c757d";
+    if (companyName) {
+        const marker = document.createElement("span");
+        marker.className = "rounded-circle flex-shrink-0";
+        marker.style.width = "0.75rem";
+        marker.style.height = "0.75rem";
+        marker.style.backgroundColor = normalizeHexColor(item.companyCategoryColor) || "#6c757d";
+        wrapper.appendChild(marker);
+    }
 
     const text = document.createElement("div");
     text.className = "text-truncate";
     text.style.flexGrow = "1";
     text.style.minWidth = "0";
     text.style.width = "0";
-    text.textContent = String(item.companyName || "Не указан");
+    text.textContent = companyName;
 
-    wrapper.appendChild(marker);
     wrapper.appendChild(text);
     td.appendChild(wrapper);
 
@@ -939,10 +1167,11 @@ function buildCompanyCell(item, columnIndex) {
 }
 
 function buildEquipmentInfoCell(item) {
-    const typeName = String(item.typeName || "Не указан");
-    const manufacturerName = String(item.manufacturerName || "Не указан");
-    const modelName = String(item.modelName || "Не указан");
-    const combinedText = `${typeName} ${manufacturerName} ${modelName}`;
+    const combinedText = [
+        getEquipmentCellDisplayText(item.typeName),
+        getEquipmentCellDisplayText(item.manufacturerName),
+        getEquipmentCellDisplayText(item.modelName)
+    ].filter(Boolean).join(" ");
 
     return buildCell(combinedText, 1, item.id);
 }
@@ -1582,7 +1811,7 @@ function initEquipmentsGridColumnResize() {
             event.preventDefault();
 
             const columnIndex = Number(resizer.getAttribute("data-column-resizer"));
-            if (Number.isNaN(columnIndex)) {
+            if (Number.isNaN(columnIndex) || columnIndex === 0 || columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
                 return;
             }
 
@@ -1596,15 +1825,31 @@ function initEquipmentsGridColumnResize() {
 
             const startX = event.clientX;
             const startWidth = col.getBoundingClientRect().width;
+            const startAccessesWidth = getEquipmentsGridColumnWidth(AUTO_EXPANDING_COLUMN_INDEX);
             const minColumnWidth = getEquipmentsColumnMinWidth(columnIndex);
+            const maxColumnWidth = getEquipmentsColumnMaxWidth(columnIndex);
+            const accessesMinWidth = Math.max(
+                getEquipmentsColumnMinWidth(AUTO_EXPANDING_COLUMN_INDEX),
+                AUTO_EXPANDING_COLUMN_MIN_WIDTH
+            );
             const minDelta = minColumnWidth - startWidth;
+            const maxDeltaByColumn = maxColumnWidth === null
+                ? Number.POSITIVE_INFINITY
+                : maxColumnWidth - startWidth;
+            const maxDeltaByAccesses = startAccessesWidth - accessesMinWidth;
+            const maxPositiveDelta = Math.max(0, Math.min(maxDeltaByColumn, maxDeltaByAccesses));
 
             const onMouseMove = moveEvent => {
                 const delta = moveEvent.clientX - startX;
                 const clampedDelta = Math.max(delta, minDelta);
-                const currentWidth = startWidth + clampedDelta;
+                const limitedDelta = clampedDelta > 0
+                    ? Math.min(clampedDelta, maxPositiveDelta)
+                    : clampedDelta;
+                const currentWidth = startWidth + limitedDelta;
+                const accessesWidth = startAccessesWidth - limitedDelta;
 
                 setEquipmentsGridColumnWidth(columnIndex, currentWidth);
+                setEquipmentsGridColumnWidth(AUTO_EXPANDING_COLUMN_INDEX, accessesWidth);
                 fixEquipmentsGridWidth();
             };
 
@@ -1993,8 +2238,7 @@ function getEquipmentsColumnsTotalWidth(columnWidths, startIndex, endIndex) {
 }
 
 function applyIdColumnAutoWidth() {
-    const minWidth = getEquipmentsColumnMinWidth(0);
-    const maxWidthLimit = getEquipmentsColumnMaxWidth(0);
+    const minWidth = ID_COLUMN_MIN_WIDTH;
     let maxWidth = minWidth;
     const contents = document.querySelectorAll('[data-column-cell="0"] .text-truncate');
 
@@ -2010,9 +2254,7 @@ function applyIdColumnAutoWidth() {
         }
     }
 
-    if (maxWidthLimit !== null) {
-        maxWidth = Math.min(maxWidth, maxWidthLimit);
-    }
+    equipmentIdColumnContentMinWidth = maxWidth;
 
     setEquipmentsGridColumnWidth(0, maxWidth);
     fixEquipmentsGridWidth();
@@ -2111,7 +2353,7 @@ function getEquipmentsAccessesColumnBaseWidth() {
 
 function getEquipmentsColumnMinWidth(columnIndex) {
     if (columnIndex === 0) {
-        return ID_COLUMN_MIN_WIDTH;
+        return equipmentIdColumnContentMinWidth;
     }
 
     if (columnIndex === 1) {
@@ -2131,7 +2373,7 @@ function getEquipmentsColumnMinWidth(columnIndex) {
 
 function getEquipmentsColumnMaxWidth(columnIndex) {
     if (columnIndex === 0) {
-        return ID_COLUMN_MAX_WIDTH;
+        return Math.max(ID_COLUMN_MAX_WIDTH, equipmentIdColumnContentMinWidth);
     }
 
     if (columnIndex === 1) {

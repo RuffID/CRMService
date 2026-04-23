@@ -21,17 +21,41 @@
                 </div>
             </div>
 
-            <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-outline-secondary" id="resetFiltersButton">Сбросить фильтры</button>
-                <button class="btn btn-outline-secondary"
-                        id="toggleEquipmentFiltersButton"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#equipmentFiltersCollapse"
-                        aria-expanded="true"
-                        aria-controls="equipmentFiltersCollapse">
-                    Свернуть фильтры
-                </button>
+            <div class="d-flex flex-wrap align-items-start justify-content-end gap-2 ms-auto">
+                <button type="button" class="btn btn-outline-secondary text-nowrap" id="resetFiltersButton">Сбросить фильтры</button>
+                <div class="d-flex flex-column align-items-end gap-2">
+                    <button class="btn btn-outline-secondary"
+                            id="toggleEquipmentFiltersButton"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#equipmentFiltersCollapse"
+                            aria-expanded="true"
+                            aria-controls="equipmentFiltersCollapse">
+                        Свернуть фильтры
+                    </button>
+                    @if (Model.CanStartCloudDbUpdate)
+                    {
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button"
+                                class="btn btn-primary"
+                                id="startEquipmentCloudDbUpdateButton"
+                                data-bs-toggle="tooltip"
+                                title="Кнопка запускает обновление всего списка оборудования из облачной БД окдеска">
+                            Обновить
+                        </button>
+                        <span class="d-inline-flex align-items-center justify-content-center text-primary fw-semibold"
+                              id="equipmentCloudDbUpdateHelp"
+                              role="button"
+                              tabindex="0"
+                              data-bs-toggle="tooltip"
+                              title="Кнопка запускает обновление всего списка оборудования из облачной БД окдеска"
+                              aria-label="Описание кнопки обновления"
+                              style="width: 1rem; height: 1rem; font-size: 0.85rem; line-height: 1;">
+                            ?
+                        </span>
+                    </div>
+                    }
+                </div>
             </div>
         </div>
 
@@ -40,7 +64,7 @@
                 <div class="col-12 col-xl-3">
                     <div class="d-flex flex-column gap-3">
                         <div>
-                            <label class="form-label d-block">Клиент</label>
+                            <div class="form-label d-block">Клиент</div>
                             <div class="dropdown col-10">
                                 <button id="filterCompanyToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="filterCompanyToggleLabel">Клиент</span>
@@ -55,7 +79,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label d-block">Объект обслуживания</label>
+                            <div class="form-label d-block">Объект обслуживания</div>
                             <div class="dropdown col-10">
                                 <button id="filterMaintenanceEntityToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="filterMaintenanceEntityToggleLabel">Объект обслуживания</span>
@@ -74,7 +98,7 @@
                 <div class="col-12 col-xl-3">
                     <div class="d-flex flex-column gap-3">
                         <div>
-                            <label class="form-label d-block">Тип</label>
+                            <div class="form-label d-block">Тип</div>
                             <div class="dropdown col-10">
                                 <button id="filterTypeToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="filterTypeToggleLabel">Тип</span>
@@ -89,7 +113,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label d-block">Производитель</label>
+                            <div class="form-label d-block">Производитель</div>
                             <div class="dropdown col-10">
                                 <button id="filterManufacturerToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="filterManufacturerToggleLabel">Производитель</span>
@@ -108,7 +132,7 @@
                 <div class="col-12 col-xl-3">
                     <div class="d-flex flex-column gap-3">
                         <div>
-                            <label class="form-label d-block">Модель</label>
+                            <div class="form-label d-block">Модель</div>
                             <div class="dropdown col-10">
                                 <button id="filterModelToggle" class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="filterModelToggleLabel">Модель</span>
@@ -162,7 +186,7 @@
                     </colgroup>
                     <thead class="table-light">
                         <tr>
-                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">Id</span><span class="position-absolute top-0 h-100" data-column-resizer="0" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
+                            <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="0"><span class="d-block text-truncate px-2 fw-normal">Id</span></th>
                             <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="1"><span class="d-block text-truncate px-2 fw-normal">Тип / Производитель / Модель</span><span class="position-absolute top-0 h-100" data-column-resizer="1" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
                             <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="2"><span class="d-block text-truncate px-2 fw-normal">Инвентарный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="2" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>
                             <th class="position-relative user-select-none fw-normal pe-3 overflow-visible" data-column-index="3"><span class="d-block text-truncate px-2 fw-normal">Серийный номер</span><span class="position-absolute top-0 h-100" data-column-resizer="3" style="width: 18px; right: -9px; z-index: 4; cursor: col-resize;"><span class="position-absolute top-0 start-50 h-100 border-start border-secondary" style="transform: translateX(-50%);"></span></span></th>

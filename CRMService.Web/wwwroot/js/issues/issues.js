@@ -4,18 +4,18 @@ const DEFAULT_COLUMN_MIN_WIDTH = 90;
 const ISSUE_ID_COLUMN_MIN_WIDTH = 60;
 const ISSUE_ID_COLUMN_MAX_WIDTH = 150;
 const TITLE_COLUMN_WIDTH = 300;
-const TITLE_COLUMN_MAX_WIDTH = 420;
-const COMPANY_COLUMN_WIDTH = 300;
-const COMPANY_COLUMN_MAX_WIDTH = 420;
-const ASSIGNEE_COLUMN_WIDTH = 200;
-const ASSIGNEE_COLUMN_MAX_WIDTH = 280;
-const DATE_COLUMN_WIDTH = 200;
-const DATE_COLUMN_MAX_WIDTH = 240;
+const TITLE_COLUMN_MAX_WIDTH = 480;
+const COMPANY_COLUMN_WIDTH = 340;
+const COMPANY_COLUMN_MAX_WIDTH = 450;
+const ASSIGNEE_COLUMN_MIN_WIDTH = 250;
+const ASSIGNEE_COLUMN_WIDTH = 310;
+const ASSIGNEE_COLUMN_MAX_WIDTH = 350;
+const DATE_COLUMN_MIN_WIDTH = 120;
+const DATE_COLUMN_MAX_WIDTH = 160;
 const GRID_LAST_COLUMN_INDEX = 6;
 const LAST_RESIZABLE_COLUMN_INDEX = 5;
 const AUTO_EXPANDING_COLUMN_INDEX = 6;
 const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 90;
-const AUTO_EXPANDING_COLUMN_MAX_WIDTH = 200;
 
 let antiForgeryToken = null;
 let issuesState = createDefaultState();
@@ -26,6 +26,12 @@ let issuesLookupStates = createLookupStates();
 let issuesGridResizeCleanup = null;
 let issuesGridLayoutResizeCleanup = null;
 let issueSearchWarningModal = null;
+let issueIdColumnContentMinWidth = ISSUE_ID_COLUMN_MIN_WIDTH;
+let issueDateColumnContentMinWidths = {
+    4: DATE_COLUMN_MIN_WIDTH,
+    5: DATE_COLUMN_MIN_WIDTH
+};
+let issueStatusColumnContentMinWidth = AUTO_EXPANDING_COLUMN_MIN_WIDTH;
 
 document.addEventListener("DOMContentLoaded", () => {
     initIssuesPage();
@@ -70,6 +76,7 @@ function createLookupState(handler, searchId, listId, selectedId) {
         selectedId,
         items: [],
         selectedIds: new Set(),
+        selectedItems: new Map(),
         offset: 0,
         hasMore: true,
         loading: false,
@@ -241,7 +248,12 @@ function bindLookupEvents(key) {
 
             if (lookup.items.length === 0) {
                 await loadLookupOptions(key, true);
+                scrollLookupListToTop(lookup);
+                return;
             }
+
+            renderLookupList(key);
+            scrollLookupListToTop(lookup);
         });
     }
 }
@@ -308,6 +320,10 @@ async function loadLookupOptions(key, reset) {
             if (!lookup.items.some(existing => existing.id === item.id)) {
                 lookup.items.push(item);
             }
+
+            if (lookup.selectedIds.has(item.id)) {
+                lookup.selectedItems.set(item.id, item);
+            }
         }
 
         lookup.offset += newItems.length;
@@ -330,7 +346,9 @@ function renderLookupList(key) {
 
     container.textContent = "";
 
-    if (lookup.items.length === 0) {
+    const items = getLookupRenderItems(lookup);
+
+    if (items.length === 0) {
         const empty = document.createElement("div");
         empty.className = "px-2 py-2 small text-muted";
         empty.textContent = lookup.loading ? "Загрузка..." : "Ничего не найдено";
@@ -339,19 +357,23 @@ function renderLookupList(key) {
         return;
     }
 
-    for (const item of lookup.items) {
+    for (const item of items) {
         const row = document.createElement("label");
         row.className = "d-flex align-items-start gap-2 px-2 py-2 border-bottom small";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
+        checkbox.id = `issueFilter_${key}_${item.id}`;
+        checkbox.name = `issueFilter_${key}_${item.id}`;
         checkbox.className = "form-check-input mt-1";
         checkbox.checked = lookup.selectedIds.has(item.id);
         checkbox.addEventListener("change", async () => {
             if (checkbox.checked) {
                 lookup.selectedIds.add(item.id);
+                lookup.selectedItems.set(item.id, item);
             } else {
                 lookup.selectedIds.delete(item.id);
+                lookup.selectedItems.delete(item.id);
             }
 
             updateLookupSelectedCounter(key);
@@ -359,6 +381,8 @@ function renderLookupList(key) {
             issuesState.exactTotalCount = null;
             issuesState.exactTotalPages = null;
             saveIssuesFiltersState();
+            renderLookupList(key);
+            scrollLookupListToTop(lookup);
             await reloadIssues(true);
         });
 
@@ -378,6 +402,40 @@ function renderLookupList(key) {
     }
 
     updateLookupSelectedCounter(key);
+}
+
+function getLookupRenderItems(lookup) {
+    const itemsById = new Map();
+
+    if (!lookup.search) {
+        for (const item of lookup.selectedItems.values()) {
+            if (lookup.selectedIds.has(item.id)) {
+                itemsById.set(item.id, item);
+            }
+        }
+    }
+
+    for (const item of lookup.items) {
+        itemsById.set(item.id, item);
+    }
+
+    return [...itemsById.values()].sort((left, right) => {
+        const leftSelected = lookup.selectedIds.has(left.id);
+        const rightSelected = lookup.selectedIds.has(right.id);
+
+        if (leftSelected === rightSelected) {
+            return 0;
+        }
+
+        return leftSelected ? -1 : 1;
+    });
+}
+
+function scrollLookupListToTop(lookup) {
+    const list = document.getElementById(lookup.listId);
+    if (list) {
+        list.scrollTop = 0;
+    }
 }
 
 function updateLookupSelectedCounter(key) {
@@ -489,6 +547,7 @@ function resetIssuesFilters() {
     for (const key of Object.keys(issuesLookupStates)) {
         const lookup = issuesLookupStates[key];
         lookup.selectedIds.clear();
+        lookup.selectedItems.clear();
         lookup.items = [];
         lookup.offset = 0;
         lookup.hasMore = true;
@@ -693,6 +752,8 @@ function renderIssuesTable() {
     applyDefaultIssuesGridColumnWidths();
     applyIssueIdColumnAutoWidth();
     applyIssueTitleColumnAutoWidth();
+    applyIssueDateColumnsAutoWidth();
+    applyIssueStatusColumnAutoMinWidth();
     applyIssuesRemainingWidthDistribution(true);
 }
 
@@ -1134,15 +1195,28 @@ function initIssuesGridColumnResize() {
 
             const startX = event.clientX;
             const startWidth = col.getBoundingClientRect().width;
+            const startStatusWidth = getIssuesGridColumnWidth(AUTO_EXPANDING_COLUMN_INDEX);
             const minColumnWidth = getIssuesColumnMinWidth(columnIndex);
+            const maxColumnWidth = getIssuesColumnMaxWidth(columnIndex);
+            const statusMinWidth = getIssuesColumnMinWidth(AUTO_EXPANDING_COLUMN_INDEX);
             const minDelta = minColumnWidth - startWidth;
+            const maxDeltaByColumn = maxColumnWidth === null
+                ? Number.POSITIVE_INFINITY
+                : maxColumnWidth - startWidth;
+            const maxDeltaByStatus = startStatusWidth - statusMinWidth;
+            const maxPositiveDelta = Math.max(0, Math.min(maxDeltaByColumn, maxDeltaByStatus));
 
             const onMouseMove = moveEvent => {
                 const delta = moveEvent.clientX - startX;
                 const clampedDelta = Math.max(delta, minDelta);
-                const currentWidth = startWidth + clampedDelta;
+                const limitedDelta = clampedDelta > 0
+                    ? Math.min(clampedDelta, maxPositiveDelta)
+                    : clampedDelta;
+                const currentWidth = startWidth + limitedDelta;
+                const statusWidth = startStatusWidth - limitedDelta;
 
                 setIssuesGridColumnWidth(columnIndex, currentWidth);
+                setIssuesGridColumnWidth(AUTO_EXPANDING_COLUMN_INDEX, statusWidth);
                 fixIssuesGridWidth();
             };
 
@@ -1457,8 +1531,7 @@ function applyCurrentIssuesGridColumnWidths() {
 }
 
 function applyIssueIdColumnAutoWidth() {
-    const minWidth = getIssuesColumnMinWidth(0);
-    const maxWidthLimit = getIssuesColumnMaxWidth(0);
+    const minWidth = ISSUE_ID_COLUMN_MIN_WIDTH;
     let maxWidth = minWidth;
     const contents = document.querySelectorAll('[data-column-cell="0"] .text-truncate');
 
@@ -1468,16 +1541,14 @@ function applyIssueIdColumnAutoWidth() {
             measureIssuesTextWidth(content.textContent || "", content)
             + getIssuesHorizontalInsets(content)
             + getIssuesHorizontalInsets(cell)
-            + 20
+            + 4
         );
         if (Number.isFinite(measuredWidth) && measuredWidth > maxWidth) {
             maxWidth = measuredWidth;
         }
     }
 
-    if (maxWidthLimit !== null) {
-        maxWidth = Math.min(maxWidth, maxWidthLimit);
-    }
+    issueIdColumnContentMinWidth = maxWidth;
 
     setIssuesGridColumnWidth(0, maxWidth);
     fixIssuesGridWidth();
@@ -1496,6 +1567,37 @@ function applyIssueTitleColumnAutoWidth() {
 
     setIssuesGridColumnWidth(1, maxWidth);
     fixIssuesGridWidth();
+}
+
+function applyIssueDateColumnsAutoWidth() {
+    applyIssueDateColumnAutoWidth(4);
+    applyIssueDateColumnAutoWidth(5);
+}
+
+function applyIssueDateColumnAutoWidth(columnIndex) {
+    let maxWidth = DATE_COLUMN_MIN_WIDTH;
+    const contents = document.querySelectorAll(`[data-column-cell="${columnIndex}"] .text-truncate`);
+
+    for (const content of contents) {
+        const cell = content.closest(`[data-column-cell="${columnIndex}"]`);
+        const measuredWidth = Math.ceil(
+            measureIssuesTextWidth(content.textContent || "", content)
+            + getIssuesHorizontalInsets(content)
+            + getIssuesHorizontalInsets(cell)
+            + 4
+        );
+        if (Number.isFinite(measuredWidth) && measuredWidth > maxWidth) {
+            maxWidth = measuredWidth;
+        }
+    }
+
+    issueDateColumnContentMinWidths[columnIndex] = maxWidth;
+    setIssuesGridColumnWidth(columnIndex, maxWidth);
+    fixIssuesGridWidth();
+}
+
+function applyIssueStatusColumnAutoMinWidth() {
+    issueStatusColumnContentMinWidth = measureIssuesStatusColumnContentWidth();
 }
 
 function applyIssuesRemainingWidthDistribution(shouldStretchColumns) {
@@ -1538,48 +1640,12 @@ function applyIssuesRemainingWidthDistribution(shouldStretchColumns) {
 }
 
 function distributeIssuesRemainingWidth(columnWidths, availableWidth) {
-    let remainingWidth = availableWidth - getIssuesColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX);
+    const remainingWidth = availableWidth - getIssuesColumnsTotalWidth(columnWidths, 0, GRID_LAST_COLUMN_INDEX);
     if (!Number.isFinite(remainingWidth) || remainingWidth <= 0) {
         return;
     }
 
-    const distributableColumns = [1, 2, 3, 4, 5, AUTO_EXPANDING_COLUMN_INDEX];
-
-    while (remainingWidth > 0.5) {
-        const expandableColumns = distributableColumns.filter(index => {
-            const maxWidth = getIssuesColumnMaxWidth(index);
-            return maxWidth !== null && columnWidths[index] < maxWidth;
-        });
-
-        if (expandableColumns.length === 0) {
-            return;
-        }
-
-        const widthPerColumn = remainingWidth / expandableColumns.length;
-        let consumedWidth = 0;
-
-        for (const columnIndex of expandableColumns) {
-            const maxWidth = getIssuesColumnMaxWidth(columnIndex);
-            if (maxWidth === null) {
-                continue;
-            }
-
-            const availableWidth = maxWidth - columnWidths[columnIndex];
-            if (availableWidth <= 0) {
-                continue;
-            }
-
-            const addedWidth = Math.min(availableWidth, widthPerColumn);
-            columnWidths[columnIndex] += addedWidth;
-            consumedWidth += addedWidth;
-        }
-
-        if (consumedWidth <= 0) {
-            return;
-        }
-
-        remainingWidth -= consumedWidth;
-    }
+    columnWidths[AUTO_EXPANDING_COLUMN_INDEX] += remainingWidth;
 }
 
 function fitIssuesColumnsToAvailableWidth(columnWidths, availableWidth) {
@@ -1713,9 +1779,19 @@ function getIssuesGridColumnWidth(columnIndex) {
 }
 
 function getIssuesStatusColumnBaseWidth() {
-    const minWidth = getIssuesColumnMinWidth(AUTO_EXPANDING_COLUMN_INDEX);
+    const minWidth = Math.max(getIssuesColumnMinWidth(AUTO_EXPANDING_COLUMN_INDEX), measureIssuesStatusColumnContentWidth());
     const maxWidth = getIssuesColumnMaxWidth(AUTO_EXPANDING_COLUMN_INDEX);
-    let width = minWidth;
+    const width = minWidth;
+
+    if (maxWidth !== null) {
+        return Math.min(width, maxWidth);
+    }
+
+    return width;
+}
+
+function measureIssuesStatusColumnContentWidth() {
+    let width = AUTO_EXPANDING_COLUMN_MIN_WIDTH;
     const headerCell = document.querySelector(`thead th[data-column-index="${AUTO_EXPANDING_COLUMN_INDEX}"]`);
     if (headerCell) {
         const headerText = String(headerCell.textContent || "").trim();
@@ -1740,10 +1816,6 @@ function getIssuesStatusColumnBaseWidth() {
         if (Number.isFinite(measuredWidth) && measuredWidth > width) {
             width = measuredWidth;
         }
-    }
-
-    if (maxWidth !== null) {
-        return Math.min(width, maxWidth);
     }
 
     return width;
@@ -1771,7 +1843,7 @@ function measureIssueStatusBadgeNaturalWidth(sourceElement) {
 
 function getIssuesColumnMinWidth(columnIndex) {
     if (columnIndex === 0) {
-        return ISSUE_ID_COLUMN_MIN_WIDTH;
+        return issueIdColumnContentMinWidth;
     }
 
     if (columnIndex === 1) {
@@ -1783,15 +1855,15 @@ function getIssuesColumnMinWidth(columnIndex) {
     }
 
     if (columnIndex === 3) {
-        return ASSIGNEE_COLUMN_WIDTH;
+        return ASSIGNEE_COLUMN_MIN_WIDTH;
     }
 
     if (columnIndex === 4 || columnIndex === 5) {
-        return DATE_COLUMN_WIDTH;
+        return issueDateColumnContentMinWidths[columnIndex] || DATE_COLUMN_MIN_WIDTH;
     }
 
     if (columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
-        return AUTO_EXPANDING_COLUMN_MIN_WIDTH;
+        return issueStatusColumnContentMinWidth;
     }
 
     return DEFAULT_COLUMN_MIN_WIDTH;
@@ -1799,7 +1871,7 @@ function getIssuesColumnMinWidth(columnIndex) {
 
 function getIssuesColumnMaxWidth(columnIndex) {
     if (columnIndex === 0) {
-        return ISSUE_ID_COLUMN_MAX_WIDTH;
+        return Math.max(ISSUE_ID_COLUMN_MAX_WIDTH, issueIdColumnContentMinWidth);
     }
 
     if (columnIndex === 1) {
@@ -1815,11 +1887,11 @@ function getIssuesColumnMaxWidth(columnIndex) {
     }
 
     if (columnIndex === 4 || columnIndex === 5) {
-        return DATE_COLUMN_MAX_WIDTH;
+        return Math.max(DATE_COLUMN_MAX_WIDTH, issueDateColumnContentMinWidths[columnIndex] || DATE_COLUMN_MIN_WIDTH);
     }
 
     if (columnIndex === AUTO_EXPANDING_COLUMN_INDEX) {
-        return AUTO_EXPANDING_COLUMN_MAX_WIDTH;
+        return null;
     }
 
     return null;
@@ -1836,10 +1908,6 @@ function getIssuesColumnDefaultWidth(columnIndex) {
 
     if (columnIndex === 3) {
         return ASSIGNEE_COLUMN_WIDTH;
-    }
-
-    if (columnIndex === 4 || columnIndex === 5) {
-        return DATE_COLUMN_WIDTH;
     }
 
     return null;

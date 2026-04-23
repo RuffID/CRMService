@@ -30,6 +30,7 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.Ignore(x => x.EmployeeGroups);
             builder.Ignore(x => x.EmployeeRoles);
             builder.Ignore(x => x.PlanSettings);
+            builder.Ignore(x => x.User);
         }
     }
 }

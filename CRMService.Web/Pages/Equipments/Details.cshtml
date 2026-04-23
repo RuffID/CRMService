@@ -7,8 +7,10 @@
 <div class="min-vh-100 bg-light p-3">
     <div id="pageError" class="alert alert-danger d-none mb-3"></div>
 
-    <div class="bg-white border rounded-3 shadow-sm p-3 mb-3">
+    <div class="bg-white border rounded-3 shadow-sm p-3 mb-3 d-flex flex-wrap align-items-center gap-2">
         <a class="btn btn-outline-secondary" href="@Model.BackUrl">Назад к списку оборудования</a>
+        <button type="button" class="btn btn-primary" id="refreshEquipmentDetailsButton">Обновить</button>
+        <a class="btn btn-outline-success" href="@Model.OkdeskEquipmentUrl" target="_blank" rel="noopener noreferrer">Открыть в окдеск</a>
     </div>
 
     <div id="equipmentDetailsPage"
@@ -19,4 +21,5 @@
 </div>
 
 <script src="~/js/helpers/http.js" asp-append-version="true"></script>
+<script src="~/js/helpers/verificationToken.js" asp-append-version="true"></script>
 <script src="~/js/equipments/details.js" asp-append-version="true"></script>

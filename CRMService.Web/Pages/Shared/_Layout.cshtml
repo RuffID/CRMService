@@ -24,7 +24,7 @@
         bool isAuth = User.Identity?.IsAuthenticated ?? false;
         bool sidebarExpanded = Context.Request.Cookies.TryGetValue("crm_side_expanded", out var v) && v == "1";
         string collapsedWidth = "56px";
-        string expandedWidth = "150px";
+        string expandedWidth = "158px";
         string sideWidth = sidebarExpanded ? expandedWidth : collapsedWidth;
         string sideTextClass = sidebarExpanded ? "side-text small" : "side-text small d-none";
         string arrowText = sidebarExpanded ? "‹" : "›";

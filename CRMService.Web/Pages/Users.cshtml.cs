@@ -7,15 +7,17 @@ using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Web.Service.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Application.Service.Authorization;
+using CRMService.Contracts.Models.Dto.Lookup;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using OkdeskEmployeeService = CRMService.Application.Service.OkdeskEntity.EmployeeService;
 
 namespace CRMService.Web.Pages
 {
     [CookieAuthorize]
     [Authorize(Roles = RolesConstants.ADMIN)]
     [LoadUser]
-    public class UsersModel(UserService userService, RoleService roleService) : PageModel, IHasCurrentUser
+    public class UsersModel(UserService userService, RoleService roleService, OkdeskEmployeeService employeeService) : PageModel, IHasCurrentUser
     {
         public User CurrentUser { get; set; } = null!;
 
@@ -36,6 +38,8 @@ namespace CRMService.Web.Pages
                     Name = u.Name,
                     Login = u.Login,
                     Active = u.Active,
+                    EmployeeId = u.EmployeeId,
+                    EmployeeName = u.EmployeeName,
                     Roles = u.Roles
                         .OrderBy(r => r.Name)
                         .Select(r => new RoleListItemDto
@@ -66,6 +70,12 @@ namespace CRMService.Web.Pages
                 .ToList();
 
             return JsonResultMapper.ToJsonResult(ServiceResult<List<RoleListItemDto>>.Ok(data));
+        }
+
+        public async Task<IActionResult> OnGetEmployeeLookupAsync([FromQuery] LookupListRequest request, CancellationToken ct)
+        {
+            ServiceResult<List<LookupOptionDto>> result = await employeeService.GetEmployeeLookupAsync(request, ct, activeOnly: true);
+            return JsonResultMapper.ToJsonResult(result);
         }
 
         public async Task<IActionResult> OnPostCreateAsync([FromBody] CreateUserRequest request, CancellationToken ct)

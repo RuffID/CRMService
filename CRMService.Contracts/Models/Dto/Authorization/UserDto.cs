@@ -10,6 +10,10 @@
 
         public bool Active { get; set; }
 
+        public int? EmployeeId { get; set; }
+
+        public string? EmployeeName { get; set; }
+
         public ICollection<CrmRoleDto> Roles { get; set; } = new List<CrmRoleDto>();
     }
 }

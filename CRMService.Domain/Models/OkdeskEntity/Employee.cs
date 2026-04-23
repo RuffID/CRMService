@@ -1,5 +1,6 @@
 ﻿using EFCoreLibrary.Abstractions.Entity;
 using CRMService.Domain.Models.CrmEntities;
+using CRMService.Domain.Models.Authorization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -40,6 +41,8 @@ namespace CRMService.Domain.Models.OkdeskEntity
 
         public virtual ICollection<PlanSetting> PlanSettings { get; set; } = new List<PlanSetting>();
 
+        public virtual User? User { get; set; }
+
         public void CopyData(Employee employee)
         {
             FirstName = employee.FirstName;
@@ -53,5 +56,3 @@ namespace CRMService.Domain.Models.OkdeskEntity
         }
     }
 }
-
-

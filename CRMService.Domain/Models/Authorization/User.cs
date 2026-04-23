@@ -1,4 +1,5 @@
 ﻿using EFCoreLibrary.Abstractions.Entity;
+using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Domain.Models.Authorization
 {
@@ -14,6 +15,10 @@ namespace CRMService.Domain.Models.Authorization
 
         public bool Active { get; set; }
 
+        public int? EmployeeId { get; set; }
+
+        public virtual Employee? Employee { get; set; }
+
         public virtual BlockReason? BlockReason { get; set; }
 
         public virtual ICollection<CrmRole> Roles { get; set; } = new List<CrmRole>();
@@ -27,6 +32,7 @@ namespace CRMService.Domain.Models.Authorization
             Login = newItem.Login;
             Password = newItem.Password;
             Active = newItem.Active;
+            EmployeeId = newItem.EmployeeId;
         }
     }
 }

@@ -5,6 +5,7 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using Microsoft.EntityFrameworkCore;
 using CRMService.Application.Common.Mapping.Authorize;
+using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Service.Authorization
 {
@@ -14,7 +15,7 @@ namespace CRMService.Application.Service.Authorization
         {
             List<User> users = await unitOfWork.User.GetItemsByPredicateAsync(
                 asNoTracking: true,
-                include: q => q.Include(u => u.Roles),
+                include: q => q.Include(u => u.Roles).Include(u => u.Employee),
                 ct: ct);
 
             List<UserDto> data = users
@@ -62,12 +63,17 @@ namespace CRMService.Application.Service.Authorization
             if (roles.Count != roleIds.Count)
                 return ServiceResult.Fail(400, "Одна или несколько ролей не найдены.");
 
+            ServiceResult<Employee?> employeeResult = await ResolveEmployeeAsync(request.EmployeeId, userId: null, ct);
+            if (!employeeResult.Success)
+                return ServiceResult.Fail(employeeResult.Error!.StatusCode, employeeResult.Error.Message);
+
             User user = new()
             {
                 Name = name,
                 Login = login,
                 Password = hasher.Hash(password),
                 Active = true,
+                EmployeeId = employeeResult.Data?.Id,
                 Roles = roles
             };
 
@@ -123,8 +129,13 @@ namespace CRMService.Application.Service.Authorization
             if (roles.Count != roleIds.Count)
                 return ServiceResult.Fail(400, "Одна или несколько ролей не найдены.");
 
+            ServiceResult<Employee?> employeeResult = await ResolveEmployeeAsync(request.EmployeeId, request.UserId, ct);
+            if (!employeeResult.Success)
+                return ServiceResult.Fail(employeeResult.Error!.StatusCode, employeeResult.Error.Message);
+
             user.Name = name;
             user.Login = login;
+            user.EmployeeId = employeeResult.Data?.Id;
 
             if (!string.IsNullOrWhiteSpace(password))
                 user.Password = hasher.Hash(password);
@@ -157,6 +168,34 @@ namespace CRMService.Application.Service.Authorization
             await unitOfWork.SaveChangesAsync(ct);
 
             return ServiceResult.Ok();
+        }
+
+        private async Task<ServiceResult<Employee?>> ResolveEmployeeAsync(int? employeeId, Guid? userId, CancellationToken ct)
+        {
+            if (employeeId == null)
+                return ServiceResult<Employee?>.Ok(null);
+
+            if (employeeId <= 0)
+                return ServiceResult<Employee?>.Fail(400, "Некорректный сотрудник Okdesk.");
+
+            Employee? employee = await unitOfWork.Employee.GetItemByIdAsync(employeeId.Value, asNoTracking: true, ct: ct);
+            if (employee == null)
+                return ServiceResult<Employee?>.Fail(404, "Сотрудник Okdesk не найден.");
+
+            User? existingUser = userId == null
+                ? await unitOfWork.User.GetItemByPredicateAsync(
+                    user => user.EmployeeId == employeeId,
+                    asNoTracking: true,
+                    ct: ct)
+                : await unitOfWork.User.GetItemByPredicateAsync(
+                    user => user.EmployeeId == employeeId && user.Id != userId.Value,
+                    asNoTracking: true,
+                    ct: ct);
+
+            if (existingUser != null)
+                return ServiceResult<Employee?>.Fail(409, "Этот сотрудник Okdesk уже привязан к другому пользователю.");
+
+            return ServiceResult<Employee?>.Ok(employee);
         }
     }
 }

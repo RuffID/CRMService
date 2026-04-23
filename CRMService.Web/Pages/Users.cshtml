@@ -18,11 +18,12 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle mb-0" id="usersGrid">
+            <table class="table table-bordered table-hover align-middle mb-0" id="usersGrid">
                 <thead class="table-light">
                     <tr>
                         <th>Имя</th>
                         <th>Логин</th>
+                        <th>Пользователь в окдеск</th>
                         <th>Роли</th>
                         <th class="text-center">Статус</th>
                         <th class="text-end">Действия</th>
@@ -44,22 +45,37 @@
             <div class="modal-body">
                 <div id="userModalError" class="alert alert-danger d-none mb-3"></div>
 
-                <input id="userId" type="hidden" />
+                <input id="userId" name="userId" type="hidden" />
+                <input id="userEmployeeId" name="userEmployeeId" type="hidden" />
 
                 <div class="mb-3">
                     <label class="form-label" for="userName">Имя</label>
-                    <input id="userName" class="form-control" maxlength="100" autocomplete="name" />
+                    <input id="userName" name="userName" class="form-control" maxlength="100" autocomplete="name" />
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="userLogin">Логин</label>
-                    <input id="userLogin" class="form-control" maxlength="45" autocomplete="username" />
+                    <input id="userLogin" name="userLogin" class="form-control" maxlength="45" autocomplete="username" />
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="userPassword">Пароль</label>
-                    <input id="userPassword" type="password" class="form-control" maxlength="100" autocomplete="new-password" />
+                    <input id="userPassword" name="userPassword" type="password" class="form-control" maxlength="100" autocomplete="new-password" />
                     <div class="text-muted small mt-1" id="userPasswordHint">Обязателен для нового пользователя.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block" for="userEmployeeSearch">Сотрудник Okdesk</label>
+                    <div class="dropdown input-group">
+                        <button id="userEmployeeToggle" class="btn btn-outline-secondary text-start flex-grow-1" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span id="userEmployeeToggleLabel">Выберите сотрудника</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnClearUserEmployee" aria-label="Очистить сотрудника Okdesk">×</button>
+                        <div class="dropdown-menu p-2 w-100">
+                            <input id="userEmployeeSearch" name="userEmployeeSearch" class="form-control form-control-sm mb-2" placeholder="Поиск от 2 символов" />
+                            <div id="userEmployeeList" class="bg-white border rounded-2 overflow-auto" style="max-height: 220px;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div>

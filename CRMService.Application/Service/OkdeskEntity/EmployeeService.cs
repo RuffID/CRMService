@@ -50,7 +50,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             return ServiceResult<List<EmployeeDto>>.Ok(items);
         }
 
-        public async Task<ServiceResult<List<LookupOptionDto>>> GetEmployeeLookupAsync(LookupListRequest requestModel, CancellationToken ct = default)
+        public async Task<ServiceResult<List<LookupOptionDto>>> GetEmployeeLookupAsync(LookupListRequest requestModel, CancellationToken ct = default, bool activeOnly = false)
         {
             ServiceResult validationResult = ValidateLookupRequest(requestModel);
             if (!validationResult.Success)
@@ -60,10 +60,11 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(
                 predicate: employee =>
-                    normalizedSearch == null
-                    || (employee.LastName != null && employee.LastName.Contains(normalizedSearch))
-                    || (employee.FirstName != null && employee.FirstName.Contains(normalizedSearch))
-                    || (employee.Patronymic != null && employee.Patronymic.Contains(normalizedSearch)),
+                    (!activeOnly || employee.Active)
+                    && (normalizedSearch == null
+                        || (employee.LastName != null && employee.LastName.Contains(normalizedSearch))
+                        || (employee.FirstName != null && employee.FirstName.Contains(normalizedSearch))
+                        || (employee.Patronymic != null && employee.Patronymic.Contains(normalizedSearch))),
                 asNoTracking: true,
                 ct: ct);
 

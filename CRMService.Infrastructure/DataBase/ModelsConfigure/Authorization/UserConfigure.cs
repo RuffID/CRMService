@@ -26,6 +26,17 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.Authorization
                 .HasMaxLength(100);
 
             builder
+                .HasOne(u => u.Employee)
+                .WithOne(e => e.User)
+                .HasForeignKey<User>(u => u.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder
+                .HasIndex(e => e.EmployeeId)
+                .IsUnique()
+                .HasFilter("[EmployeeId] IS NOT NULL");
+
+            builder
                 .HasMany(u => u.Roles)
                 .WithMany(r => r.Users)
                 .UsingEntity<UserRole>();

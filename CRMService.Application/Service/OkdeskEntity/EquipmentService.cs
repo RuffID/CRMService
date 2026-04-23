@@ -212,6 +212,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             Dictionary<int, EquipmentParameter> existingParametersByKindParameterId = existingParameters
                 .Where(p => p.KindParameterId.HasValue)
                 .ToDictionary(p => p.KindParameterId!.Value);
+            HashSet<int> actualKindParameterIds = new();
 
             foreach (EquipmentParameter parameter in equipment.Parameters)
             {
@@ -222,11 +223,19 @@ namespace CRMService.Application.Service.OkdeskEntity
                 }
 
                 int kindParameterId = parameter.KindParameterId.Value;
+                actualKindParameterIds.Add(kindParameterId);
 
                 if (!existingParametersByKindParameterId.TryGetValue(kindParameterId, out EquipmentParameter? existingParameter))
                     unitOfWork.Parameter.Create(parameter);
                 else
                     existingParameter.CopyData(parameter);
+            }
+
+            foreach (EquipmentParameter existingParameter in existingParametersByKindParameterId.Values)
+            {
+                int kindParameterId = existingParameter.KindParameterId!.Value;
+                if (!actualKindParameterIds.Contains(kindParameterId))
+                    existingParameter.Value = null;
             }
 
             await unitOfWork.SaveChangesAsync(ct);

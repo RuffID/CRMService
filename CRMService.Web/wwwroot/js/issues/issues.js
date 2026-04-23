@@ -16,6 +16,7 @@ const GRID_LAST_COLUMN_INDEX = 6;
 const LAST_RESIZABLE_COLUMN_INDEX = 5;
 const AUTO_EXPANDING_COLUMN_INDEX = 6;
 const AUTO_EXPANDING_COLUMN_MIN_WIDTH = 90;
+const EMPTY_CELL_TEXT_VALUES = new Set(["неуказан", "неуказана", "неуказано"]);
 
 let antiForgeryToken = null;
 let issuesState = createDefaultState();
@@ -742,7 +743,7 @@ function renderIssuesTable() {
         tr.appendChild(idCell);
         tr.appendChild(titleCell);
         tr.appendChild(companyCell);
-        tr.appendChild(buildCell(String(item.assigneeName || "Не указан"), 3));
+        tr.appendChild(buildCell(item.assigneeName, 3));
         tr.appendChild(buildCell(formatDateTime(item.createdAt), 4));
         tr.appendChild(buildCell(formatDateTime(item.completedAt), 5));
         tr.appendChild(buildStatusCell(item, 6));
@@ -1025,12 +1026,12 @@ function getTrimmedValue(id) {
 
 function formatDateTime(value) {
     if (!value) {
-        return "Не указана";
+        return "";
     }
 
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-        return "Не указана";
+        return "";
     }
 
     return date.toLocaleString("ru-RU", {
@@ -1046,6 +1047,20 @@ function ensureArray(value) {
     return Array.isArray(value) ? value : [];
 }
 
+function getIssueCellDisplayText(value) {
+    const normalizedValue = String(value || "").trim();
+    if (!normalizedValue) {
+        return "";
+    }
+
+    const collapsedValue = normalizedValue.replace(/\s+/g, "").toLowerCase();
+    if (EMPTY_CELL_TEXT_VALUES.has(collapsedValue)) {
+        return "";
+    }
+
+    return normalizedValue;
+}
+
 function buildCell(text, columnIndex, isCentered = false) {
     const td = document.createElement("td");
     td.style.fontSize = "1rem";
@@ -1058,7 +1073,7 @@ function buildCell(text, columnIndex, isCentered = false) {
     if (isCentered) {
         content.classList.add("text-center");
     }
-    content.textContent = text;
+    content.textContent = getIssueCellDisplayText(text);
     td.appendChild(content);
 
     return td;
@@ -1112,7 +1127,12 @@ function buildStatusCell(item, columnIndex) {
     badge.style.minWidth = "95px";
     badge.style.minHeight = "17px";
     badge.className = "badge rounded-pill text-bg-light border";
-    badge.textContent = String(item.statusName || "Не указан");
+    const statusName = getIssueCellDisplayText(item.statusName);
+    if (!statusName) {
+        return td;
+    }
+
+    badge.textContent = statusName;
     badge.style.color = "#6A747C";
 
     const statusColor = normalizeHexColor(item.statusColor);
@@ -1141,19 +1161,22 @@ function buildCompanyCell(item, columnIndex) {
     const wrapper = document.createElement("div");
     wrapper.className = "d-flex align-items-center gap-2";
     wrapper.style.minWidth = "0";
+    const companyName = getIssueCellDisplayText(item.companyName);
 
-    const marker = document.createElement("span");
-    marker.className = "rounded-circle flex-shrink-0";
-    marker.style.width = "0.75rem";
-    marker.style.height = "0.75rem";
-    marker.style.backgroundColor = normalizeHexColor(item.companyCategoryColor) || "#6c757d";
+    if (companyName) {
+        const marker = document.createElement("span");
+        marker.className = "rounded-circle flex-shrink-0";
+        marker.style.width = "0.75rem";
+        marker.style.height = "0.75rem";
+        marker.style.backgroundColor = normalizeHexColor(item.companyCategoryColor) || "#6c757d";
+        wrapper.appendChild(marker);
+    }
 
     const text = document.createElement("div");
     text.className = "text-truncate";
     text.style.width = "100%";
-    text.textContent = String(item.companyName || "Не указан");
+    text.textContent = companyName;
 
-    wrapper.appendChild(marker);
     wrapper.appendChild(text);
     td.appendChild(wrapper);
     return td;

@@ -6,13 +6,14 @@ using CRMService.Domain.Models.Constants;
 using Microsoft.EntityFrameworkCore;
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EquipmentController(IUnitOfWork unitOfWork, EquipmentService service) : Controller
+    public class EquipmentController(IUnitOfWork unitOfWork, EquipmentService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetEquipment([FromQuery] int id, CancellationToken ct)
@@ -50,35 +51,43 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_by_company")]
-        public async Task<IActionResult> UpdateEquipmentsByCompanyFromCloudApi([FromQuery] long companyId = 0, CancellationToken ct = default)
+        public IActionResult UpdateEquipmentsByCompanyFromCloudApi([FromQuery] long companyId = 0, CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudApiAsnc(companyId: companyId, ct: ct);
+            bool started = backgroundUpdateService.TryStart(
+                $"{nameof(UpdateEquipmentsByCompanyFromCloudApi)}:{companyId}",
+                (provider, token) => provider.GetRequiredService<EquipmentService>().UpdateEquipmentsFromCloudApiAsnc(companyId: companyId, ct: token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_by_maintenance")]
-        public async Task<IActionResult> UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] long maintenanceEntityId = 0, CancellationToken ct = default)
+        public IActionResult UpdateEquipmentsByMaintenanceFromCloudApi([FromQuery] long maintenanceEntityId = 0, CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudApiAsnc(maintenanceEntityId: maintenanceEntityId, ct: ct);
+            bool started = backgroundUpdateService.TryStart(
+                $"{nameof(UpdateEquipmentsByMaintenanceFromCloudApi)}:{maintenanceEntityId}",
+                (provider, token) => provider.GetRequiredService<EquipmentService>().UpdateEquipmentsFromCloudApiAsnc(maintenanceEntityId: maintenanceEntityId, ct: token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateEquipmentsFromCloudApi(CancellationToken ct = default)
+        public IActionResult UpdateEquipmentsFromCloudApi(CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudApiAsnc(ct: ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateEquipmentsFromCloudApi),
+                (provider, token) => provider.GetRequiredService<EquipmentService>().UpdateEquipmentsFromCloudApiAsnc(ct: token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateEquipmentsFromDBOkdesk(CancellationToken ct = default)
+        public IActionResult UpdateEquipmentsFromDBOkdesk(CancellationToken ct = default)
         {
-            await service.UpdateEquipmentsFromCloudDbAsync(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateEquipmentsFromDBOkdesk),
+                (provider, token) => provider.GetRequiredService<EquipmentService>().UpdateEquipmentsFromCloudDbAsync(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

@@ -6,13 +6,14 @@ using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController(IUnitOfWork unitOfWork, CompanyCategoryService service) : Controller
+    public class CategoryController(IUnitOfWork unitOfWork, CompanyCategoryService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetCategories(CancellationToken ct = default)
@@ -64,11 +65,13 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateCategoriesFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateCategoriesFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateCategoriesFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateCategoriesFromCloudDb),
+                (provider, token) => provider.GetRequiredService<CompanyCategoryService>().UpdateCategoriesFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("check_anonymous_category"), Authorize(Roles = RolesConstants.ADMIN)]

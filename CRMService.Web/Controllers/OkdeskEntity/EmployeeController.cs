@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeController(IUnitOfWork unitOfWork, EmployeeService service) : Controller
+    public class EmployeeController(IUnitOfWork unitOfWork, EmployeeService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetEmployee([FromQuery] int id, CancellationToken ct)
@@ -47,19 +48,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateEmployeesFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateEmployeesFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateEmployeesFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateEmployeesFromCloudApi),
+                (provider, token) => provider.GetRequiredService<EmployeeService>().UpdateEmployeesFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateEmployeesFromCloudDb([FromQuery] int startIndexEmployee, CancellationToken ct)
+        public IActionResult UpdateEmployeesFromCloudDb([FromQuery] int startIndexEmployee, CancellationToken ct)
         {
-            await service.UpdateEmployeesFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateEmployeesFromCloudDb),
+                (provider, token) => provider.GetRequiredService<EmployeeService>().UpdateEmployeesFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

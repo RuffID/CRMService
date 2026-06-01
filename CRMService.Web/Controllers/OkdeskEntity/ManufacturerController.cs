@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ManufacturerController(IUnitOfWork unitOfWork, ManufacturerService service) : Controller
+    public class ManufacturerController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetManufacturers(CancellationToken ct = default)
@@ -22,19 +23,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateManufacturersFromCloudApi(CancellationToken ct = default)
+        public IActionResult UpdateManufacturersFromCloudApi(CancellationToken ct = default)
         {
-            await service.UpdateManufacturersFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateManufacturersFromCloudApi),
+                (provider, token) => provider.GetRequiredService<ManufacturerService>().UpdateManufacturersFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateManufacturersFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateManufacturersFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateManufacturersFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateManufacturersFromCloudDb),
+                (provider, token) => provider.GetRequiredService<ManufacturerService>().UpdateManufacturersFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

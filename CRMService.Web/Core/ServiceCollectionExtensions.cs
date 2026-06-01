@@ -181,6 +181,7 @@ namespace CRMService.Web.Core
 
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
+            services.AddSingleton<BackgroundUpdateService>();
             services.AddSingleton<EquipmentCloudDbUpdateService>();
             services.AddScoped<DataBaseCheckUpService<MainContext>>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();

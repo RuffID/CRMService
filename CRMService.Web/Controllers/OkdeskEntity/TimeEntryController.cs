@@ -2,16 +2,17 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class TimeEntryController(TimeEntryService service) : Controller
+    public class TimeEntryController(TimeEntryService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateTimeEntriesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, CancellationToken ct = default)
+        public IActionResult UpdateTimeEntriesFromCloudDb([FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo, CancellationToken ct = default)
         {
             if (dateFrom > dateTo)
                 return BadRequest("Start date is later than end date.");
@@ -22,9 +23,11 @@ namespace CRMService.Web.Controllers.OkdeskEntity
             dateFrom = ConvertToUtc(dateFrom);
             dateTo = ConvertToUtc(dateTo);
 
-            await service.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, ct);
+            bool started = backgroundUpdateService.TryStart(
+                $"{nameof(UpdateTimeEntriesFromCloudDb)}:{dateFrom:O}:{dateTo:O}",
+                (provider, token) => provider.GetRequiredService<TimeEntryService>().UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]

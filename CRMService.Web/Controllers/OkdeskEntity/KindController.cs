@@ -5,13 +5,14 @@ using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindController(IUnitOfWork unitOfWork, KindService service) : Controller
+    public class KindController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetKinds(CancellationToken ct = default)
@@ -22,19 +23,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateKindsFromCloudApi(CancellationToken ct = default)
+        public IActionResult UpdateKindsFromCloudApi(CancellationToken ct = default)
         {
-            await service.UpdateKindsFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateKindsFromCloudApi),
+                (provider, token) => provider.GetRequiredService<KindService>().UpdateKindsFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db")]
-        public async Task<IActionResult> UpdateKindsFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateKindsFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateKindsFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateKindsFromCloudDb),
+                (provider, token) => provider.GetRequiredService<KindService>().UpdateKindsFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

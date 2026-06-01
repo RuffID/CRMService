@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueStatusController(IUnitOfWork unitOfWork, IssueStatusService service) : Controller
+    public class IssueStatusController(IUnitOfWork unitOfWork, IssueStatusService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueStatuses(CancellationToken ct)
@@ -31,19 +32,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateIssueStatusesFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateIssueStatusesFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateIssueStatusesFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateIssueStatusesFromCloudApi),
+                (provider, token) => provider.GetRequiredService<IssueStatusService>().UpdateIssueStatusesFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateIssueStatusesFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateIssueStatusesFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateIssueStatusesFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateIssueStatusesFromCloudDb),
+                (provider, token) => provider.GetRequiredService<IssueStatusService>().UpdateIssueStatusesFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

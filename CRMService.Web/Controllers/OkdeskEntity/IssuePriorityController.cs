@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssuePriorityController(IUnitOfWork unitOfWork, IssuePriorityService service) : Controller
+    public class IssuePriorityController(IUnitOfWork unitOfWork, IssuePriorityService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssuePriorities(CancellationToken ct)
@@ -31,19 +32,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateIssuePrioritiesFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateIssuePrioritiesFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateIssuePrioritiesFromCloudApi),
+                (provider, token) => provider.GetRequiredService<IssuePriorityService>().UpdateIssuePrioritiesFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateIssuePrioritiesFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateIssuePrioritiesFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateIssuePrioritiesFromCloudDb),
+                (provider, token) => provider.GetRequiredService<IssuePriorityService>().UpdateIssuePrioritiesFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

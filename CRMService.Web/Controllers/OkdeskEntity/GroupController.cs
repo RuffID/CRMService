@@ -2,13 +2,14 @@
 using Microsoft.AspNetCore.Authorization;
 using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class GroupController(GroupService service) : Controller
+    public class GroupController(GroupService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetGroups(CancellationToken ct = default)
@@ -17,27 +18,33 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateGroupsFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateGroupsFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateGroupsFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateGroupsFromCloudApi),
+                (provider, token) => provider.GetRequiredService<GroupService>().UpdateGroupsFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateGroupsFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateGroupsFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateGroupsFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateGroupsFromCloudDb),
+                (provider, token) => provider.GetRequiredService<GroupService>().UpdateGroupsFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_connections_with_employees_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateGroupConnectionsWithEmployeeFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateGroupConnectionsWithEmployeeFromCloudApi(CancellationToken ct)
         {
-            await service.UpsertEmployeeGroupConnectionsFromApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateGroupConnectionsWithEmployeeFromCloudApi),
+                (provider, token) => provider.GetRequiredService<GroupService>().UpsertEmployeeGroupConnectionsFromApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindParameterController(IUnitOfWork unitOfWork, KindParameterService kindParameterService, KindParamService kindParamService) : Controller
+    public class KindParameterController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetKindParameters(CancellationToken ct = default)
@@ -22,28 +23,37 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateKindParametersFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateKindParametersFromCloudApi(CancellationToken ct)
         {
-            await kindParameterService.UpdateKindParametersFromCloudApi(ct);
-            await kindParamService.UpsertConnectionsFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateKindParametersFromCloudApi),
+                async (provider, token) =>
+                {
+                    await provider.GetRequiredService<KindParameterService>().UpdateKindParametersFromCloudApi(token);
+                    await provider.GetRequiredService<KindParamService>().UpsertConnectionsFromCloudDb(token);
+                });
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateKindParametersFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateKindParametersFromCloudDb(CancellationToken ct)
         {
-            await kindParameterService.UpdateKindParametersFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateKindParametersFromCloudDb),
+                (provider, token) => provider.GetRequiredService<KindParameterService>().UpdateKindParametersFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_connections_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateConnectionsFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateConnectionsFromCloudApi(CancellationToken ct)
         {
-            await kindParamService.UpsertConnectionsFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateConnectionsFromCloudApi),
+                (provider, token) => provider.GetRequiredService<KindParamService>().UpsertConnectionsFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

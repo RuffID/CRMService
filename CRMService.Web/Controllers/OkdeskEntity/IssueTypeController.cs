@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueTypeController(IUnitOfWork unitOfWork, IssueTypeService service) : Controller
+    public class IssueTypeController(IUnitOfWork unitOfWork, IssueTypeService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueTypes(CancellationToken ct)
@@ -31,19 +32,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateIssueTypesFromCloudApi(CancellationToken ct)
+        public IActionResult UpdateIssueTypesFromCloudApi(CancellationToken ct)
         {
-            await service.UpdateIssueTypesFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateIssueTypesFromCloudApi),
+                (provider, token) => provider.GetRequiredService<IssueTypeService>().UpdateIssueTypesFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdatetIssueTypesFromCloudDb(CancellationToken ct)
+        public IActionResult UpdatetIssueTypesFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateIssueTypesFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdatetIssueTypesFromCloudDb),
+                (provider, token) => provider.GetRequiredService<IssueTypeService>().UpdateIssueTypesFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

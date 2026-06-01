@@ -5,13 +5,14 @@ using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ModelController(IUnitOfWork unitOfWork, ModelService service) : Controller
+    public class ModelController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetModels(CancellationToken ct = default)
@@ -23,19 +24,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
 
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateModelsFromCloudApi(CancellationToken ct = default)
+        public IActionResult UpdateModelsFromCloudApi(CancellationToken ct = default)
         {
-            await service.UpdateModelsFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateModelsFromCloudApi),
+                (provider, token) => provider.GetRequiredService<ModelService>().UpdateModelsFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateModelsFromCloudDb(CancellationToken ct)
+        public IActionResult UpdateModelsFromCloudDb(CancellationToken ct)
         {
-            await service.UpdateModelsFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateModelsFromCloudDb),
+                (provider, token) => provider.GetRequiredService<ModelService>().UpdateModelsFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

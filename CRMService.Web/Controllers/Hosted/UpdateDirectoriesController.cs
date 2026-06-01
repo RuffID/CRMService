@@ -2,20 +2,23 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Service.Hosted;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.Hosted
 {
     [Authorize, Authorize(Roles = RolesConstants.ADMIN)]
     [Route("api/[controller]")]
     [ApiController]
-    public class UpdateDirectoriesController(UpdateDirectoriesService service) : Controller
+    public class UpdateDirectoriesController(BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpPost]
-        public async Task<IActionResult> RunUpdate(CancellationToken ct)
+        public IActionResult RunUpdate(CancellationToken ct)
         {
-            await service.RunUpdateDirectories(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(RunUpdate),
+                (provider, token) => provider.GetRequiredService<UpdateDirectoriesService>().RunUpdateDirectories(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

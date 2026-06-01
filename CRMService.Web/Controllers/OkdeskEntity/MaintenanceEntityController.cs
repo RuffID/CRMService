@@ -5,13 +5,14 @@ using CRMService.Application.Service.OkdeskEntity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
+using CRMService.Web.Service.BackgroundServices;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class MaintenanceEntityController(IUnitOfWork unitOfWork, MaintenanceEntityService service) : Controller
+    public class MaintenanceEntityController(IUnitOfWork unitOfWork, MaintenanceEntityService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetMaintenanceEntity([FromQuery] int id, CancellationToken ct)
@@ -41,19 +42,23 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         }
 
         [HttpPut("update_from_cloud_api"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudApi(CancellationToken ct = default)
+        public IActionResult UpdateMaintenanceEntitiesFromCloudApi(CancellationToken ct = default)
         {
-            await service.UpdateMaintenanceEntitiesFromCloudApi(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateMaintenanceEntitiesFromCloudApi),
+                (provider, token) => provider.GetRequiredService<MaintenanceEntityService>().UpdateMaintenanceEntitiesFromCloudApi(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
 
         [HttpPut("update_from_cloud_db"), Authorize(Roles = RolesConstants.ADMIN)]
-        public async Task<IActionResult> UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct = default)
+        public IActionResult UpdateMaintenanceEntitiesFromCloudDb(CancellationToken ct = default)
         {
-            await service.UpdateMaintenanceEntitiesFromCloudDb(ct);
+            bool started = backgroundUpdateService.TryStart(
+                nameof(UpdateMaintenanceEntitiesFromCloudDb),
+                (provider, token) => provider.GetRequiredService<MaintenanceEntityService>().UpdateMaintenanceEntitiesFromCloudDb(token));
 
-            return NoContent();
+            return this.ToBackgroundUpdateResponse(started);
         }
     }
 }

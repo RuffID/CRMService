@@ -5,6 +5,7 @@
         public const string SectionName = "TelegramBot";
         public long SupportChatId { get; set; }
         public long DebugChatId { get; set; }
+        public string Token { get; set; } = string.Empty;
     }
 }
 

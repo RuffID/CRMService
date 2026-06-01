@@ -57,8 +57,10 @@ namespace CRMService.Web.Core
             services.Configure<WebHookOkdeskOptions>(
                 conf.GetSection(WebHookOkdeskOptions.SectionName));
             services.Configure<OkdeskOptions>(opt => { opt.OkdeskApiToken = conf[OkdeskOptions.SectionName]!; });
-            services.Configure<TelegramBotOptions>(
-                conf.GetSection(TelegramBotOptions.SectionName));
+            services.AddOptions<TelegramBotOptions>()
+                .Bind(conf.GetSection(TelegramBotOptions.SectionName))
+                .Validate(options => !string.IsNullOrWhiteSpace(options.Token), "TelegramBot:Token is missing in config.json")
+                .ValidateOnStart();
             services.Configure<AuthorizationOptions>(opt => { opt.JWTSymmetricSecurityKey = conf[AuthorizationOptions.SectionName]!; });
 
             return services;
@@ -235,7 +237,10 @@ namespace CRMService.Web.Core
             services.AddScoped<IRandomStringGenerator, GenerateRandomString>();
             services.AddScoped<UserService>();
             services.AddScoped<Application.Service.Authorization.RoleService>();
-            services.AddScoped<INotificationService, TelegramNotification>();
+            services.AddHttpClient<INotificationService, TelegramNotification>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(180);
+            });
 
             services.AddScoped<IWebhookHandler, IssueWebhookService>();
             services.AddScoped<IWebhookHandler, CompanyWebhookService>();

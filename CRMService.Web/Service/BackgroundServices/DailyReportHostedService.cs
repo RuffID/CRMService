@@ -28,6 +28,8 @@ namespace CRMService.Web.Service.BackgroundServices
 
                     await issueService.UpdateIssuesFromCloudApiAsync(dateFrom, dateTo, startIndex: 0, limit: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API, nameof(DailyReportHostedService), stoppingToken);
 
+                    await issueService.ReconcileMissingCurrentIssuesAsync(nameof(DailyReportHostedService), stoppingToken);
+
                     await timeEntryService.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, stoppingToken);
 
                     List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:

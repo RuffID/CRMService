@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Models.OkdeskApi;
 using CRMService.Application.Service.OkdeskEntity.Resolvers;
 using CRMService.Application.Service.Sync;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
@@ -9,6 +10,7 @@ using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
@@ -30,6 +32,8 @@ namespace CRMService.Application.Service.OkdeskEntity
         private const int MAX_PAGE_SIZE = 100;
         private const int QUICK_COUNT_LIMIT = 1000;
         private const int QUICK_COUNT_QUERY_LIMIT = QUICK_COUNT_LIMIT + 1;
+        private const int ISSUE_EXISTENCE_BATCH_SIZE = 50;
+        private const int MAX_ISSUE_EXISTENCE_URL_LENGTH = 1800;
 
         public async Task<ServiceResult<IssueListPageDto>> GetIssueListPageAsync(IssueListRequest request, CancellationToken ct = default)
         {
@@ -147,39 +151,166 @@ namespace CRMService.Application.Service.OkdeskEntity
             long employeeStartIndex = 0;
             HashSet<int> processedIssueIds = new();
             List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id >= employeeStartIndex && e.Active, asNoTracking: true, ct: ct);
-
-            if (employees.Count == 0)
-                return;
-
             long pageNubmer = 1;
 
             while (employees.Count != 0)
             {
                 foreach (Employee employee in employees)
-                {
-                    await foreach (List<Issue> issues in GetIssuesFromCloudApiAsync(dateFrom, dateTo, employee.Id, pageNubmer, startIndex, limit, ct))
-                    {
-                        List<Issue> uniqueIssues = issues.Where(issue => processedIssueIds.Add(issue.Id))
-                            .ToList();
-
-                        if (uniqueIssues.Count == 0)
-                            continue;
-
-                        foreach (Issue issue in uniqueIssues)
-                            issue.AssigneeId = employee.Id;
-
-                        IssueBatchContext batchContext = await CreateIssueBatchContextAsync(uniqueIssues, ct);
-
-                        await ProcessIssueBatchAsync(uniqueIssues, batchContext, ct);
-                    }
-                }
+                    await UpdateIssuesForAssigneeAsync(dateFrom, dateTo, employee.Id, pageNubmer, startIndex, limit, processedIssueIds, ct);
 
                 employeeStartIndex = employees.Last().Id;
 
                 employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id > employeeStartIndex && e.Active, asNoTracking: true, ct: ct);
             }
 
+            await UpdateIssuesForAssigneeAsync(dateFrom, dateTo, 0, pageNubmer, startIndex, limit, processedIssueIds, ct);
+
             logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Issues update completed.", nameof(UpdateIssuesFromCloudApiAsync), caller);
+        }
+
+        public async Task ReconcileMissingCurrentIssuesAsync([CallerMemberName] string caller = "", CancellationToken ct = default)
+        {
+            logger.LogInformation("[Method:{MethodName}][Caller:{CallerMethod}] Starting current issues existence reconciliation.", nameof(ReconcileMissingCurrentIssuesAsync), caller);
+
+            List<int> currentIssueIds = await unitOfWork.Issue.GetCurrentIssueIdsAsync(ct);
+            int missingIssuesCount = 0;
+
+            foreach (List<int> issueIds in CreateIssueExistenceBatches(currentIssueIds))
+            {
+                string link = BuildIssueExistenceListLink(issueIds);
+                List<IssueExistenceResponse> existingIssues = await itemService.GetRangeOfItemsAsync<IssueExistenceResponse>(link, ct: ct);
+                HashSet<int> existingIssueIds = existingIssues.Select(issue => issue.Id).ToHashSet();
+
+                foreach (int issueId in issueIds.Where(id => !existingIssueIds.Contains(id)))
+                {
+                    if (!await IsIssueMissingInOkdeskAsync(issueId, ct))
+                        continue;
+
+                    await MarkIssueAsDeletedAsync(issueId, ct);
+                    missingIssuesCount++;
+                }
+            }
+
+            logger.LogInformation(
+                "[Method:{MethodName}][Caller:{CallerMethod}] Current issues existence reconciliation completed. Checked: {CheckedCount}, marked as deleted: {MissingCount}.",
+                nameof(ReconcileMissingCurrentIssuesAsync),
+                caller,
+                currentIssueIds.Count,
+                missingIssuesCount);
+        }
+
+        private async Task UpdateIssuesForAssigneeAsync(
+            DateTime dateFrom,
+            DateTime dateTo,
+            int assigneeId,
+            long pageNumber,
+            long startIndex,
+            long limit,
+            HashSet<int> processedIssueIds,
+            CancellationToken ct)
+        {
+            await foreach (List<Issue> issues in GetIssuesFromCloudApiAsync(dateFrom, dateTo, assigneeId, pageNumber, startIndex, limit, ct))
+            {
+                List<Issue> uniqueIssues = issues
+                    .Where(issue => processedIssueIds.Add(issue.Id))
+                    .ToList();
+
+                if (uniqueIssues.Count == 0)
+                    continue;
+
+                foreach (Issue issue in uniqueIssues)
+                    issue.AssigneeId = assigneeId == 0 ? null : assigneeId;
+
+                IssueBatchContext batchContext = await CreateIssueBatchContextAsync(uniqueIssues, ct);
+                await ProcessIssueBatchAsync(uniqueIssues, batchContext, ct);
+            }
+        }
+
+        private IEnumerable<List<int>> CreateIssueExistenceBatches(IReadOnlyCollection<int> issueIds)
+        {
+            List<int> batch = new(ISSUE_EXISTENCE_BATCH_SIZE);
+
+            foreach (int issueId in issueIds)
+            {
+                batch.Add(issueId);
+
+                if (batch.Count <= ISSUE_EXISTENCE_BATCH_SIZE && BuildIssueExistenceListLink(batch).Length <= MAX_ISSUE_EXISTENCE_URL_LENGTH)
+                    continue;
+
+                batch.RemoveAt(batch.Count - 1);
+                if (batch.Count == 0)
+                    throw new InvalidOperationException($"Issue ID {issueId} does not fit into the Okdesk existence request URL.");
+
+                yield return batch;
+
+                batch = new List<int>(ISSUE_EXISTENCE_BATCH_SIZE) { issueId };
+                if (BuildIssueExistenceListLink(batch).Length > MAX_ISSUE_EXISTENCE_URL_LENGTH)
+                    throw new InvalidOperationException($"Issue ID {issueId} does not fit into the Okdesk existence request URL.");
+            }
+
+            if (batch.Count != 0)
+                yield return batch;
+        }
+
+        private string BuildIssueExistenceListLink(IEnumerable<int> issueIds)
+        {
+            StringBuilder link = new();
+            link.Append(endpoint.Value.OkdeskApi)
+                .Append("/issues/list?api_token=")
+                .Append(okdeskSettings.Value.OkdeskApiToken)
+                .Append("&fields[issue]=id&page[size]=")
+                .Append(ISSUE_EXISTENCE_BATCH_SIZE)
+                .Append("&page[number]=1");
+
+            foreach (int issueId in issueIds)
+                link.Append("&ids[]=").Append(issueId);
+
+            return link.ToString();
+        }
+
+        private async Task<bool> IsIssueMissingInOkdeskAsync(int issueId, CancellationToken ct)
+        {
+            await Task.Delay(2000, ct);
+
+            string link = $"{endpoint.Value.OkdeskApi}/issues/{issueId}?api_token={okdeskSettings.Value.OkdeskApiToken}";
+            IssueExistenceResponse? response = await itemService.GetItemAsync<IssueExistenceResponse>(link, ct);
+
+            if (response == null)
+            {
+                logger.LogWarning("[Method:{MethodName}] Could not confirm existence of issue {IssueId}; local issue was not changed.", nameof(IsIssueMissingInOkdeskAsync), issueId);
+                return false;
+            }
+
+            if (response.Id == issueId)
+                return false;
+
+            string expectedError = $"Записи {issueId} не существует";
+            if (string.Equals(response.Errors?.Trim(), expectedError, StringComparison.Ordinal))
+                return true;
+
+            logger.LogWarning(
+                "[Method:{MethodName}] Okdesk returned an unexpected existence response for issue {IssueId}; local issue was not changed. Error: {Error}",
+                nameof(IsIssueMissingInOkdeskAsync),
+                issueId,
+                response.Errors);
+            return false;
+        }
+
+        private async Task MarkIssueAsDeletedAsync(int issueId, CancellationToken ct)
+        {
+            Issue syncIssue = new() { Id = issueId };
+
+            await sync.RunExclusive(syncIssue, async () =>
+            {
+                Issue? issue = await unitOfWork.Issue.GetItemByIdAsync(issueId, ct: ct);
+                if (issue == null || issue.DeletedAt.HasValue)
+                    return;
+
+                issue.DeletedAt = DateTime.Now;
+                await unitOfWork.SaveChangesAsync(ct);
+
+                logger.LogInformation("[Method:{MethodName}] Issue {IssueId} was marked as deleted because Okdesk confirmed that it does not exist.", nameof(MarkIssueAsDeletedAsync), issueId);
+            }, ct);
         }
 
         public async Task UpdateIssuesFromCloudDbAsync(DateTime dateFrom, DateTime dateTo, int startIndex, int limit, [CallerMemberName] string caller = "", CancellationToken ct = default)

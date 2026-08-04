@@ -12,5 +12,6 @@ namespace CRMService.Application.Abstractions.Database.Repository.Entity
     {
         Task<int> GetCountByFilterAsync(IssueListRequest request, int? maxCount, CancellationToken ct);
         Task<List<Issue>> GetPageByFilterAsync(IssueListRequest request, int skip, int take, CancellationToken ct);
+        Task<List<int>> GetCurrentIssueIdsAsync(CancellationToken ct);
     }
 }

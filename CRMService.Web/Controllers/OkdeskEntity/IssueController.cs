@@ -12,7 +12,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class IssueController(IUnitOfWork unitOfWork, IssueService issueService, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0, CancellationToken ct = default)
@@ -66,6 +66,14 @@ namespace CRMService.Web.Controllers.OkdeskEntity
                 (provider, token) => provider.GetRequiredService<IssueService>().UpdateIssuesFromCloudDbAsync(dateFrom, dateTo, startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, nameof(IssueController), token));
 
             return this.ToBackgroundUpdateResponse(started);
+        }
+
+        [HttpPut("reconcile_missing"), Authorize(Roles = RolesConstants.ADMIN)]
+        public async Task<IActionResult> ReconcileMissingIssues(CancellationToken ct)
+        {
+            await issueService.ReconcileMissingCurrentIssuesAsync(nameof(IssueController), ct);
+
+            return Ok(new { message = "Сверка завершена." });
         }
 
         private static DateTime ConvertToUtc(DateTime dateTime)

@@ -59,6 +59,18 @@ namespace CRMService.Infrastructure.DataBase.Repository.Entity
             return items.ToListAsync(ct);
         }
 
+        public Task<List<int>> GetCurrentIssueIdsAsync(CancellationToken ct)
+        {
+            return query.Query(asNoTracking: true)
+                .Where(issue => issue.DeletedAt == null)
+                .Where(issue => issue.AssigneeId != null)
+                .Where(issue => issue.Status != null)
+                .Where(issue => issue.Status!.Code != "completed" && issue.Status.Code != "closed")
+                .OrderBy(issue => issue.Id)
+                .Select(issue => issue.Id)
+                .ToListAsync(ct);
+        }
+
         private static IQueryable<Issue> ApplyFilters(IQueryable<Issue> query, IssueListRequest request)
         {
             query = query.Where(issue => issue.DeletedAt == null);

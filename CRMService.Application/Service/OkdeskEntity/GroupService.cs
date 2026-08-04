@@ -149,7 +149,12 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             if (desired.Count == 0)
+            {
+                logger.LogInformation("[Method:{MethodName}] Employee-group connections update completed. Groups: {GroupCount}, employees: {EmployeeCount}, desired: {DesiredCount}, added: {AddedCount}, deleted: {DeletedCount}.",
+                    nameof(UpsertEmployeeGroupConnectionsFromApi), groups.Count, allEmployeesFromApi.Count, desired.Count, 0, 0);
+
                 return;
+            }
 
             List<int> groupIds = groups.Select(g => g.Id).Distinct().ToList();
             List<int> employeeIds = allEmployeesFromApi.Select(e => e.Id).Distinct().ToList();
@@ -164,12 +169,20 @@ namespace CRMService.Application.Service.OkdeskEntity
             List<EmployeeGroup> toDelete = existing.Except(desired, EmployeeGroup.Comparer).ToList();
 
             if (toAdd.Count == 0 && toDelete.Count == 0)
+            {
+                logger.LogInformation("[Method:{MethodName}] Employee-group connections update completed. Groups: {GroupCount}, employees: {EmployeeCount}, desired: {DesiredCount}, added: {AddedCount}, deleted: {DeletedCount}.",
+                    nameof(UpsertEmployeeGroupConnectionsFromApi), groups.Count, allEmployeesFromApi.Count, desired.Count, 0, 0);
+
                 return;
+            }
 
             unitOfWork.EmployeeGroup.CreateRange(toAdd);
             unitOfWork.EmployeeGroup.DeleteRange(toDelete);
 
             await unitOfWork.SaveChangesAsync(ct);
+
+            logger.LogInformation("[Method:{MethodName}] Employee-group connections update completed. Groups: {GroupCount}, employees: {EmployeeCount}, desired: {DesiredCount}, added: {AddedCount}, deleted: {DeletedCount}.",
+                nameof(UpsertEmployeeGroupConnectionsFromApi), groups.Count, allEmployeesFromApi.Count, desired.Count, toAdd.Count, toDelete.Count);
         }
 
         private static ServiceResult ValidateLookupRequest(LookupListRequest request)

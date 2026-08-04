@@ -22,6 +22,9 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return;
 
             HashSet<int> kindIds = new (connections.Select(c => c.KindId));
+            HashSet<int> kindParameterIds = new(connections.Select(c => c.KindParameterId));
+
+            await ValidateConnectionReferences(kindIds, kindParameterIds, ct);
 
             List<KindParam> existingLinks = await unitOfWork.KindParams.GetItemsByPredicateAsync(kp => kindIds.Contains(kp.KindId), asNoTracking: true, ct: ct);
 
@@ -35,6 +38,34 @@ namespace CRMService.Application.Service.OkdeskEntity
             unitOfWork.KindParams.DeleteRange(toDelete);
 
             await unitOfWork.SaveChangesAsync(ct);
+        }
+
+        private async Task ValidateConnectionReferences(HashSet<int> kindIds, HashSet<int> kindParameterIds, CancellationToken ct)
+        {
+            List<Kind> existingKinds = await unitOfWork.Kind.GetItemsByPredicateAsync(
+                kind => kindIds.Contains(kind.Id),
+                asNoTracking: true,
+                ct: ct);
+
+            List<KindsParameter> existingKindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAsync(
+                parameter => kindParameterIds.Contains(parameter.Id),
+                asNoTracking: true,
+                ct: ct);
+
+            List<int> missingKindIds = kindIds.Except(existingKinds.Select(kind => kind.Id)).OrderBy(id => id).ToList();
+            List<int> missingKindParameterIds = kindParameterIds.Except(existingKindParameters.Select(parameter => parameter.Id)).OrderBy(id => id).ToList();
+
+            if (missingKindIds.Count == 0 && missingKindParameterIds.Count == 0)
+                return;
+
+            string missingKindIdsText = string.Join(", ", missingKindIds);
+            string missingKindParameterIdsText = string.Join(", ", missingKindParameterIds);
+
+            logger.LogError("[Method:{MethodName}] Cannot update kind-parameter connections because referenced entities are missing. Missing kind IDs: [{MissingKindIds}]. Missing kind parameter IDs: [{MissingKindParameterIds}].",
+                nameof(UpsertConnectionsFromCloudDb), missingKindIdsText, missingKindParameterIdsText);
+
+            throw new InvalidOperationException(
+                $"Cannot update kind-parameter connections because referenced entities are missing. Missing kind IDs: [{missingKindIdsText}]. Missing kind parameter IDs: [{missingKindParameterIdsText}].");
         }
     }
 }

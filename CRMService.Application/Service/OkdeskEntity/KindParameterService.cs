@@ -35,12 +35,12 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByPredicateAsync(predicate: k => k.Code == item.Code, ct: ct);
+                        KindsParameter? existingParameter = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
 
-                        if (existingTypes == null)
+                        if (existingParameter == null)
                             unitOfWork.KindParameter.Create(item);
                         else
-                            existingTypes.CopyData(item);
+                            existingParameter.CopyData(item);
 
                         await unitOfWork.SaveChangesAsync(ct);
                     }, ct);
@@ -62,12 +62,12 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        KindsParameter? existingTypes = await unitOfWork.KindParameter.GetItemByPredicateAsync(predicate: k => k.Code == item.Code, ct: ct);
+                        KindsParameter? existingParameter = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
 
-                        if (existingTypes == null)
+                        if (existingParameter == null)
                             unitOfWork.KindParameter.Create(item);
                         else
-                            existingTypes.CopyData(item);
+                            existingParameter.CopyData(item);
 
                         await unitOfWork.SaveChangesAsync(ct);
                     }, ct);

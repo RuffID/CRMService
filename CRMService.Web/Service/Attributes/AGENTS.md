@@ -7,7 +7,7 @@
 - загрузка текущего пользователя в PageModel, если страница реализует соответствующий контракт.
 
 Связанная логика:
-- регистрация авторизации находится в `CRMService.Web/Core/ServiceCollectionExtensions.cs`;
+- регистрация авторизации находится в `CRMService.Web/Core/DependencyInjection/WebAuthenticationServiceCollectionExtensions.cs`;
 - модели пользователей находятся в `CRMService.Domain/Models/Authorization`;
 - страницы используют эти фильтры через общие настройки Razor Pages и PageModel.
 

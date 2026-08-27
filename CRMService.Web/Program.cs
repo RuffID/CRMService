@@ -1,4 +1,7 @@
 ﻿using CRMService.Web.Core;
+using CRMService.Application.DependencyInjection;
+using CRMService.Infrastructure.DependencyInjection;
+using CRMService.Web.Core.DependencyInjection;
 using Serilog;
 using CRMService.Web.Core.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -19,7 +22,9 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
-builder.Services.ConfigureServices(builder);
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddWeb(builder);
 
 WebApplication app = builder.Build();
 

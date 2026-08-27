@@ -12,7 +12,7 @@
 - прикладный сценарий обновления справочников находится в `CRMService.Application/Service/Hosted`;
 - сервисы заявок и списаний времени находятся в `CRMService.Application/Service/OkdeskEntity`;
 - ручной запуск сверки исчезнувших заявок находится в `CRMService.Web/Controllers/OkdeskEntity/IssueController.cs`;
-- регистрация фоновых служб находится в `CRMService.Web/Core/ServiceCollectionExtensions.cs`.
+- регистрация фоновых служб находится в `CRMService.Web/Core/DependencyInjection/WebOwnedServiceCollectionExtensions.cs`.
 
 Правила изменений:
 - фоновая служба должна создавать scope на итерацию и не хранить scoped-зависимости в полях;

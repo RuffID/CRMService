@@ -1,0 +1,27 @@
+<Solution>
+  <Project Path="CRMService.Application/CRMService.Application.csproj" />
+  <Project Path="CRMService.Contracts/CRMService.Contracts.csproj" />
+  <Project Path="CRMService.Domain/CRMService.Domain.csproj" />
+  <Project Path="CRMService.Infrastructure/CRMService.Infrastructure.csproj" />
+  <Project Path="CRMService.Web/CRMService.csproj" />
+
+  <Folder Name="/Documentation/" />
+  <Folder Name="/Documentation/Plans/" />
+  <Folder Name="/Documentation/Plans/Layered-Test-Suite/">
+    <File Path="Documentation/Plans/Layered-Test-Suite/README.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/01-foundation.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/02-unit-of-work-decomposition.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/03-domain-and-contracts.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/04-application.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/05-infrastructure-containers.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/06-web-integration.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/07-quality-gates-and-rollout.md" />
+  </Folder>
+
+  <Folder Name="/tests/" />
+
+  <Folder Name="/libs/">
+    <File Path="libs/EFCoreLibrary.dll" />
+    <File Path="libs/HttpClientLibrary.dll" />
+  </Folder>
+</Solution>

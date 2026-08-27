@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Infrastructure.Service.DataBase
 {

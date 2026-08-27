@@ -1,5 +1,6 @@
 using EFCoreLibrary.Abstractions.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Infrastructure.Service.DataBase
 {

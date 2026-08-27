@@ -2,6 +2,7 @@ using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Models.Report;
 using CRMService.Contracts.Models.Dto.Report;
 using CRMService.Contracts.Models.Request;
+using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.Report
 {

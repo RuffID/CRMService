@@ -6,6 +6,7 @@ using HttpClientLibrary.Exceptions;
 using System.Runtime.CompilerServices;
 using System.Net;
 using CRMService.Application.Common.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Infrastructure.Service.Requests
 {

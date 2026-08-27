@@ -8,6 +8,8 @@ using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Application.Service.Sync;
 using CRMService.Contracts.Models.Dto.Lookup;
 using CRMService.Contracts.Models.Request;
+using CRMService.Application.Abstractions.Service;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {

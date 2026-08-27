@@ -2,6 +2,8 @@
 using CRMService.Application.Models.WebHook;
 using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Application.Service.Sync;
+using CRMService.Application.Abstractions.Service;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.Webhook
 {

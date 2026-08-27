@@ -1,4 +1,5 @@
 ﻿using CRMService.Application.Service.OkdeskEntity;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.Hosted
 {

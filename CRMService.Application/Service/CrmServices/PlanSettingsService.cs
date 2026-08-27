@@ -5,6 +5,7 @@ using CRMService.Contracts.Models.Dto.CrmEntities;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Application.Service.OkdeskEntity;
+using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.CrmServices
 {

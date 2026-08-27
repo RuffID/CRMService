@@ -1,6 +1,7 @@
 using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Service.Sync;
 using CRMService.Domain.Models.OkdeskEntity;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {

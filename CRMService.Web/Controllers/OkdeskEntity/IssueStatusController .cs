@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Web.Service.BackgroundServices;
+using CRMService.Web.Core.Mappers;
 
 namespace CRMService.Web.Controllers.OkdeskEntity
 {

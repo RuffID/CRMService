@@ -1,6 +1,7 @@
 ﻿using CRMService.Domain.Models.Authorization;
 using System.Security.Cryptography;
 using System.Text;
+using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.Authorization
 {

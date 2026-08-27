@@ -1,4 +1,5 @@
 using CRMService.Application.Abstractions.Database.Repository;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {

@@ -3,6 +3,7 @@ using CRMService.Application.Models.ConfigClass;
 using CRMService.Contracts.Models.Request;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 
 namespace CRMService.Infrastructure.Service.Requests
 {

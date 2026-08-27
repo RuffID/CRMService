@@ -10,6 +10,7 @@ using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Web.Service.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using CRMService.Web.Core.Mappers;
 
 namespace CRMService.Web.Pages
 {

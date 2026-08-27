@@ -3,6 +3,7 @@ using CRMService.Application.Models.Report;
 using CRMService.Contracts.Models.Dto.Report;
 using CRMService.Contracts.Models.Request;
 using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.Report
 {

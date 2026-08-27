@@ -29,7 +29,7 @@
 
   <Folder Name="/tests/">
     <File Path="tests/AGENTS.md" />
-    <File Path="tests/coverage-baseline.json" />
+    <File Path="tests/quality-gate-baseline.json" />
     <File Path="tests/coverage.runsettings" />
     <Project Path="tests/CRMService.Domain.Tests/CRMService.Domain.Tests.csproj" />
     <Project Path="tests/CRMService.Contracts.Tests/CRMService.Contracts.Tests.csproj" />

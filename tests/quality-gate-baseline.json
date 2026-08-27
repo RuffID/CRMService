@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "capturedOn": "2026-08-27",
+  "tolerance": 0.0001,
+  "suites": {
+    "domain": {
+      "lineRate": 0.299674,
+      "branchRate": 0.789474
+    },
+    "contracts": {
+      "lineRate": 0.610169,
+      "branchRate": 0.0
+    },
+    "application": {
+      "lineRate": 0.189751,
+      "branchRate": 0.1313
+    },
+    "infrastructure": {
+      "lineRate": 0.129371,
+      "branchRate": 0.02419
+    },
+    "web": {
+      "lineRate": 0.228359,
+      "branchRate": 0.066533
+    },
+    "architecture": {
+      "lineRate": 0.031892,
+      "branchRate": 0.009027
+    }
+  }
+}

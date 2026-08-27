@@ -8,7 +8,7 @@ Status: Completed
 
 Добавлен GitHub Actions workflow `.github/workflows/test-suite.yml`, запускаемый на `push`, `pull_request` и вручную. Fast matrix выполняет шесть test-проектов без Docker, публикует TRX/Cobertura и запрещает снижение line/branch baseline. Отдельный container job проверяет Docker, запускает Infrastructure tests с trait `Dependency=Docker`, публикует TRX/Cobertura и ограниченные container logs при сбое.
 
-Coverage baseline хранится в `tests/coverage-baseline.json`, общие exclusions — в `tests/coverage.runsettings`. Из baseline исключены test assemblies, migrations, generated/designer code и Contracts DTO без поведения. Проверка baseline выполняется непосредственно внутри GitHub workflow без project scripts и дополнительных NuGet-пакетов.
+Coverage baseline хранится в `tests/quality-gate-baseline.json`, общие exclusions — в `tests/coverage.runsettings`. Из baseline исключены test assemblies, migrations, generated/designer code и Contracts DTO без поведения. Проверка baseline выполняется непосредственно внутри GitHub workflow без project scripts и дополнительных NuGet-пакетов. Имя baseline намеренно не начинается с `coverage`, чтобы файл не исключался общим правилом `.gitignore` для генерируемых coverage-отчётов.
 
 ## Результаты локальной проверки
 

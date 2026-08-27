@@ -53,23 +53,38 @@ public class ProjectReferenceArchitectureTests
     private static IReadOnlyDictionary<string, HashSet<string>> ReadProductionProjectReferences()
     {
         string repositoryRoot = RepositoryRoot.Find();
+        Dictionary<string, string> projectNamesByPath = PROJECT_PATHS.ToDictionary(
+            pair => ResolveProjectPath(repositoryRoot, pair.Value),
+            pair => pair.Key,
+            StringComparer.OrdinalIgnoreCase);
         Dictionary<string, HashSet<string>> result = new(StringComparer.OrdinalIgnoreCase);
 
         foreach ((string projectName, string relativePath) in PROJECT_PATHS)
         {
-            string projectPath = Path.Combine(repositoryRoot, relativePath);
+            string projectPath = ResolveProjectPath(repositoryRoot, relativePath);
+            string projectDirectory = Path.GetDirectoryName(projectPath)
+                ?? throw new InvalidOperationException($"Project directory was not found for {projectPath}.");
             XDocument project = XDocument.Load(projectPath);
             HashSet<string> references = project
                 .Descendants("ProjectReference")
                 .Select(element => element.Attribute("Include")?.Value)
                 .Where(include => !string.IsNullOrWhiteSpace(include))
-                .Select(include => Path.GetFileNameWithoutExtension(include!))
-                .Where(PROJECT_PATHS.ContainsKey)
+                .Select(include => ResolveProjectPath(projectDirectory, include!))
+                .Where(projectNamesByPath.ContainsKey)
+                .Select(path => projectNamesByPath[path])
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             result.Add(projectName, references);
         }
 
         return result;
+    }
+
+    private static string ResolveProjectPath(string basePath, string path)
+    {
+        string platformPath = path
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+        return Path.GetFullPath(Path.Combine(basePath, platformPath));
     }
 }

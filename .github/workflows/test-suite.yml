@@ -91,7 +91,7 @@ jobs:
           suite = os.environ["COVERAGE_SUITE"]
           report_path = os.environ["COVERAGE_REPORT"]
 
-          with open("tests/coverage-baseline.json", encoding="utf-8") as baseline_file:
+          with open("tests/quality-gate-baseline.json", encoding="utf-8") as baseline_file:
               baseline = json.load(baseline_file)
 
           suite_baseline = baseline["suites"][suite]

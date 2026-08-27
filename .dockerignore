@@ -1,5 +1,6 @@
 **/bin/
 **/obj/
+**/artifacts/
 **/.vs/
 **/.vscode/
 **/.git/
@@ -9,6 +10,9 @@
 **/.env
 **/npm-debug.log
 **/docker-compose*
+
+Documentation/
+TestResults/
 
 Config/
 keys-windows/

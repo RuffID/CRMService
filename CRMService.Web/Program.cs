@@ -1,16 +1,17 @@
 ﻿using CRMService.Web.Core;
 using Serilog;
-using CRMService.Infrastructure.Service.DataBase;
 using CRMService.Web.Core.Middleware;
-using CRMService.Infrastructure.DataBase;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Net;
+using CRMService.Web.Core.Startup;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-string configPath = Path.Combine(AppContext.BaseDirectory, "Config", "config.json");
-
-builder.Configuration.AddJsonFile(configPath, optional: false, reloadOnChange: false);
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    string configPath = Path.Combine(AppContext.BaseDirectory, "Config", "config.json");
+    builder.Configuration.AddJsonFile(configPath, optional: false, reloadOnChange: false);
+}
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.With(new SimpleClassNameEnricher())
@@ -33,16 +34,16 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
         },
 });
 
+if (!app.Environment.IsDevelopment())
+    app.UseExceptionHandler("/Error");
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 using (IServiceScope scope = app.Services.CreateScope())
 {
-    DataBaseCheckUpService<MainContext> dbCheckUp = scope.ServiceProvider.GetRequiredService<DataBaseCheckUpService<MainContext>>();
-    await dbCheckUp.CheckOrUpdateDBAsync(app.Lifetime.ApplicationStopping);
+    IStartupInitializer initializer = scope.ServiceProvider.GetRequiredService<IStartupInitializer>();
+    await initializer.InitializeAsync(app.Lifetime.ApplicationStopping);
 }
-
-if (!app.Environment.IsDevelopment())
-    app.UseExceptionHandler("/Error");
 
 app.UseStaticFiles();
 app.UseRouting();

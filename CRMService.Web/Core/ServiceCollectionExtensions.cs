@@ -27,6 +27,7 @@ using CRMService.Infrastructure.Service.DataBase;
 using CRMService.Infrastructure.Service.Requests;
 using CRMService.Web.Core.Filter;
 using CRMService.Web.Core.Middleware;
+using CRMService.Web.Core.Startup;
 using CRMService.Web.Models.Server;
 using CRMService.Web.Service.BackgroundServices;
 using CRMService.Web.Service.Settings;
@@ -165,21 +166,7 @@ namespace CRMService.Web.Core
                 });
             });
 
-            // Определяет путь в зависимости от ОС для папки, где будут храниться ключи для Data Protection
-            string keyPath;
-            string projectName = Assembly.GetEntryAssembly()?.GetName().Name ?? "DefaultAppName";
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-windows");
-            else
-                keyPath = Path.Combine(builder.Environment.ContentRootPath, "keys-linux");
-
-            // Убедиться, что папка существует
-            Directory.CreateDirectory(keyPath);
-
-            services.AddDataProtection()
-                .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
-                .SetApplicationName(projectName);
+            AddDataProtection(services, builder.Environment);
 
             services.AddDbContext<MainContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("MSSql")); });
             services.AddDbContext<OkdeskContext>(options => { options.UseNpgsql(builder.Configuration.GetConnectionString("Postgresql")); });
@@ -212,6 +199,7 @@ namespace CRMService.Web.Core
             services.AddSingleton<EquipmentCloudDbUpdateService>();
             services.AddScoped<DataBaseCheckUpService<MainContext>>();
             services.AddScoped<SqlServerBackupService>();
+            services.AddScoped<IStartupInitializer, MainDatabaseStartupInitializer>();
 
             services.AddScoped<CompanyCategoryService>();
             services.AddScoped<CompanyService>();
@@ -274,6 +262,29 @@ namespace CRMService.Web.Core
 #endif
 
             return services;
+        }
+
+        private static void AddDataProtection(IServiceCollection services, IWebHostEnvironment environment)
+        {
+            string projectName = Assembly.GetEntryAssembly()?.GetName().Name ?? "DefaultAppName";
+
+            if (environment.IsEnvironment("Testing"))
+            {
+                services.AddDataProtection()
+                    .UseEphemeralDataProtectionProvider()
+                    .SetApplicationName(projectName);
+                return;
+            }
+
+            string keyPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Path.Combine(environment.ContentRootPath, "keys-windows")
+                : Path.Combine(environment.ContentRootPath, "keys-linux");
+
+            Directory.CreateDirectory(keyPath);
+
+            services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
+                .SetApplicationName(projectName);
         }
 
         private static IServiceCollection AddRepositories(this IServiceCollection services)

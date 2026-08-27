@@ -1,6 +1,13 @@
 # Этап 6. Web integration tests
 
-Status: Not Started
+Status: Completed
+
+## Обнаруженные дефекты и неоднозначности
+
+- Generic `JsonResultMapper` возвращал успешные данные напрямую вместо документированного envelope `{ success: true, data: ... }`. Этап 06 исправляет контракт точечно и закрепляет regression tests.
+- `ExceptionHandlingMiddleware` не различает application и infrastructure exceptions: все неизвестные исключения имеют единый безопасный ответ `500`, cancellation — `499`. Новую классификацию без существующего production-контракта этап не вводит.
+- В окружениях вне Development встроенный `UseExceptionHandler` был расположен после custom middleware и перехватывал исключения раньше него. Из-за этого API получал HTML `500`, а контракт `ExceptionHandlingMiddleware`, включая `499` для cancellation, был недостижим. Порядок middleware исправлен regression HTTP tests.
+- Webhook после `204 No Content` намеренно обрабатывается независимо от request lifetime с `CancellationToken.None`; request cancellation после принятия события к handler не передаётся. Изменение этого fire-and-forget контракта требует отдельного продуктового решения.
 
 ## Подготовительный рефакторинг для тестируемости
 
@@ -48,3 +55,11 @@ Status: Not Started
 - Test host стартует без production secrets и side effects.
 - Основные auth и error-handling контракты проверяются HTTP-запросами.
 - Сквозные тесты с БД используют те же реальные provider и правила очистки, что Infrastructure suite.
+
+## Текущее состояние
+
+Добавлен заменяемый `IStartupInitializer`: production-реализация делегирует `DataBaseCheckUpService<MainContext>`, поэтому connection check, backup-before-migrate, migrations и fail-fast сохранены. В environment `Testing` обязательный production `Config/config.json` не загружается, Data Protection использует ephemeral provider, а `CrmWebApplicationFactory` передаёт только in-memory settings и тестовый signing key.
+
+Factory использует существующий публичный `ReportBackgroundService` как marker Web assembly; изменение `Program` на `public partial class` не потребовалось. После production registrations factory заменяет оба DbContext тестовыми registrations без подключения, startup initializer, authentication, webhook handlers, `IHttpApiClient` и notification service; release hosted jobs удаляются по точным implementation types. Provider строится с `ValidateScopes` и `ValidateOnBuild`.
+
+Добавлено 46 быстрых тестов JsonResult mapping, exception middleware, cookie/JWT и role authorization, IP/forwarded webhook filter, webhook dispatch/invalid payload/unknown event, controller/background operation contracts, Razor routes и handlers Users/Settings/Report/PlanSettings/Issues/Equipments, файлового report background service и DI smoke. Исправлены generic JSON envelope и порядок exception middleware. Быстрый suite: 46 passed, 0 failed, 0 skipped. Docker Web tests не создавались, потому что выбранные HTTP-контракты не зависят от реального SQL Server/PostgreSQL.

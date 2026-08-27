@@ -47,7 +47,7 @@ tests/
 | 03 | Completed | [Domain и Contracts](03-domain-and-contracts.md) |
 | 04 | Completed | [Application](04-application.md) |
 | 05 | Completed | [Infrastructure и Testcontainers](05-infrastructure-containers.md) |
-| 06 | Not Started | [Web integration](06-web-integration.md) |
+| 06 | Completed | [Web integration](06-web-integration.md) |
 | 07 | Not Started | [Архитектурные проверки, CI и развитие покрытия](07-quality-gates-and-rollout.md) |
 
 ## Жизненный цикл этапов

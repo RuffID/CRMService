@@ -3,7 +3,7 @@ using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Domain.Models.Authorization
 {
-    public class User : IEntity<Guid>, ICopyable<User>
+    public class User : IEntity<Guid>
     {
         public Guid Id { get; set; }
 
@@ -27,13 +27,6 @@ namespace CRMService.Domain.Models.Authorization
 
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
-        public void CopyData(User newItem)
-        {
-            Login = newItem.Login;
-            Password = newItem.Password;
-            Active = newItem.Active;
-            EmployeeId = newItem.EmployeeId;
-        }
     }
 }
 

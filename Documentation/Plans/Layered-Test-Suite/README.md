@@ -44,7 +44,7 @@ tests/
 |---|---|---|
 | 01 | Completed | [Основа и структура проектов](01-foundation.md) |
 | 02 | Completed | [Декомпозиция Unit of Work](02-unit-of-work-decomposition.md) |
-| 03 | Not Started | [Domain и Contracts](03-domain-and-contracts.md) |
+| 03 | Completed | [Domain и Contracts](03-domain-and-contracts.md) |
 | 04 | Not Started | [Application](04-application.md) |
 | 05 | Not Started | [Infrastructure и Testcontainers](05-infrastructure-containers.md) |
 | 06 | Not Started | [Web integration](06-web-integration.md) |

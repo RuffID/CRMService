@@ -1,6 +1,6 @@
 # Этап 3. Тесты Domain и Contracts
 
-Status: Not Started
+Status: Completed
 
 ## Domain.Tests
 
@@ -32,3 +32,11 @@ Status: Not Started
 - Domain.Tests не ссылается на Application, Infrastructure или Web.
 - Contracts.Tests не запускает web host и не обращается к БД.
 - Тесты фиксируют поведение конвертеров и результата операции, но не дублируют тривиальные свойства.
+
+## Текущее состояние
+
+Domain.Tests фиксирует упорядоченное сравнение составных ключей, null/hash-code контракт, оба входных формата и числовой выход `EquipmentParameterFieldTypeJsonConverter`, копирование скалярного состояния `Issue`/`Plan` без замены identity, navigation-ссылок и mutable navigation-коллекций, а также case-insensitive множество допустимых периодов.
+
+Contracts.Tests фиксирует обе формы `ServiceResult`, `ServiceError` и выборочные JSON-контракты реально используемых Razor/API request/response DTO. Внешнее имя `available_for_client` проверяется отдельно без полного snapshot DTO. Webhook-модели находятся в Application, поэтому не включены в Contracts.Tests и не переносятся между слоями в рамках этапа 03.
+
+После завершения этапа у `User` удалены неиспользуемые `ICopyable<User>` и `CopyData`: обновление пользователя остаётся явным сценарием `UserService.UpdateUserAsync`, поэтому неоднозначный универсальный контракт копирования больше не доступен production-коду.

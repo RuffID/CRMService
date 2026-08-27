@@ -1,4 +1,7 @@
 <Solution>
+  <File Path="CRMService.Testing.props" />
+  <File Path="global.json" />
+
   <Project Path="CRMService.Application/CRMService.Application.csproj" />
   <Project Path="CRMService.Contracts/CRMService.Contracts.csproj" />
   <Project Path="CRMService.Domain/CRMService.Domain.csproj" />
@@ -18,7 +21,14 @@
     <File Path="Documentation/Plans/Layered-Test-Suite/07-quality-gates-and-rollout.md" />
   </Folder>
 
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/CRMService.Domain.Tests/CRMService.Domain.Tests.csproj" />
+    <Project Path="tests/CRMService.Contracts.Tests/CRMService.Contracts.Tests.csproj" />
+    <Project Path="tests/CRMService.Application.Tests/CRMService.Application.Tests.csproj" />
+    <Project Path="tests/CRMService.Infrastructure.IntegrationTests/CRMService.Infrastructure.IntegrationTests.csproj" />
+    <Project Path="tests/CRMService.Web.IntegrationTests/CRMService.Web.IntegrationTests.csproj" />
+    <Project Path="tests/CRMService.Architecture.Tests/CRMService.Architecture.Tests.csproj" />
+  </Folder>
 
   <Folder Name="/libs/">
     <File Path="libs/EFCoreLibrary.dll" />

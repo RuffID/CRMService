@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CRMService.Infrastructure.IntegrationTests</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="..\..\CRMService.Testing.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CRMService.Infrastructure\CRMService.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

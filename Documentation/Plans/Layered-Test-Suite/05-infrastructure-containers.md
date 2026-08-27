@@ -1,5 +1,7 @@
 # Этап 5. Infrastructure и самоликвидирующиеся Docker-контейнеры
 
+Status: Not Started
+
 ## Пакеты и разделение suite
 
 В `CRMService.Infrastructure.IntegrationTests` добавить Testcontainers modules для SQL Server и PostgreSQL, а также `Respawn` для очистки данных. Чистые инфраструктурные компоненты (`JwtTokenService`, HTTP adapters) тестировать в том же проекте без подключения container fixture.

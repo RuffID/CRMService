@@ -40,14 +40,25 @@ tests/
 
 ## Порядок реализации
 
-1. [Основа и структура проектов](01-foundation.md).
-2. [Декомпозиция Unit of Work](02-unit-of-work-decomposition.md).
-3. [Domain и Contracts](03-domain-and-contracts.md).
-4. [Application](04-application.md).
-5. [Infrastructure и Testcontainers](05-infrastructure-containers.md).
-6. [Web integration](06-web-integration.md).
-7. [Архитектурные проверки, CI и развитие покрытия](07-quality-gates-and-rollout.md).
+| Этап | Статус | План |
+|---|---|---|
+| 01 | Completed | [Основа и структура проектов](01-foundation.md) |
+| 02 | Not Started | [Декомпозиция Unit of Work](02-unit-of-work-decomposition.md) |
+| 03 | Not Started | [Domain и Contracts](03-domain-and-contracts.md) |
+| 04 | Not Started | [Application](04-application.md) |
+| 05 | Not Started | [Infrastructure и Testcontainers](05-infrastructure-containers.md) |
+| 06 | Not Started | [Web integration](06-web-integration.md) |
+| 07 | Not Started | [Архитектурные проверки, CI и развитие покрытия](07-quality-gates-and-rollout.md) |
 
-## Граница текущей задачи
+## Жизненный цикл этапов
 
-Этот каталог содержит только план. Тестовые проекты, production-рефакторинг для тестируемости, Docker-конфигурация и сами тесты на этом этапе не создаются.
+- `Not Started` — работы не начинались.
+- `In Progress` — этап выполняется.
+- `Blocked` — продолжение невозможно без внешнего решения.
+- `Completed` — все работы и проверки этапа завершены.
+
+Перед первым изменением этап переводится в `In Progress`. `Completed` устанавливается только после выполнения всех критериев и проверок; наличие созданного кода без проверки не считается завершением. При частичном выполнении статус остаётся `In Progress`. При переводе в `Blocked` в файле этапа нужно указать причину блокировки и перечень незавершённых работ.
+
+## Граница этапа 01
+
+Этап создаёт только основу тестовой системы и smoke tests для проверки discovery. Production-рефакторинг, предметные тесты, Docker-конфигурация и специализированные зависимости выполняются на следующих этапах.

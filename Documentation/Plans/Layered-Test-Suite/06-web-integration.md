@@ -1,5 +1,7 @@
 # Этап 6. Web integration tests
 
+Status: Not Started
+
 ## Подготовительный рефакторинг для тестируемости
 
 До создания `WebApplicationFactory` нужны небольшие явные seams:

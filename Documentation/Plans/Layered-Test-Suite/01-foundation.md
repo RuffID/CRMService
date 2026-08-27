@@ -1,5 +1,7 @@
 # Этап 1. Основа и структура проектов
 
+Status: Completed
+
 ## 1. Создать проекты
 
 Создать шесть SDK-style test-проектов из целевой структуры. Каждый `.csproj` должен явно содержать `<TargetFramework>net10.0</TargetFramework>`, nullable, implicit usings и `RootNamespace`, совпадающий с именем проекта. `TargetFramework` задаёт целевую платформу сборки и выполнения тестовой assembly.

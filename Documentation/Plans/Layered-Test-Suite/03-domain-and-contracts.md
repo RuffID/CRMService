@@ -1,5 +1,7 @@
 # Этап 3. Тесты Domain и Contracts
 
+Status: Not Started
+
 ## Domain.Tests
 
 Проверять только реальное поведение, а не автоматически покрывать каждый getter/setter.

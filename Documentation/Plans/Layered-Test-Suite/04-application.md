@@ -1,5 +1,7 @@
 # Этап 4. Тесты Application
 
+Status: Not Started
+
 ## Подход
 
 Application.Tests — быстрые unit-тесты. Репозитории, `IUnitOfWork`, `IOkdeskUnitOfWork`, внешние API, notifications, Options и logger заменяются контролируемыми doubles. EF Core provider и Docker здесь не используются.

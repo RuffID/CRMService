@@ -62,6 +62,20 @@ namespace CRMService.Web.Core
                 .Validate(options => !string.IsNullOrWhiteSpace(options.Token), "TelegramBot:Token is missing in config.json")
                 .ValidateOnStart();
             services.Configure<AuthorizationOptions>(opt => { opt.JWTSymmetricSecurityKey = conf[AuthorizationOptions.SectionName]!; });
+            services.AddOptions<DatabaseBackupOptions>()
+                .Bind(conf.GetSection(DatabaseBackupOptions.SECTION_NAME))
+                .Configure(options =>
+                    options.ConnectionString = conf.GetConnectionString("MSSql") ?? string.Empty)
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.ConnectionString),
+                    "ConnectionStrings:MSSql is missing")
+                .Validate(
+                    options => DatabaseBackupOptions.IsValidProjectName(options.ProjectName),
+                    "DatabaseBackup:ProjectName must contain only letters, digits, hyphens, or underscores")
+                .Validate(
+                    options => DatabaseBackupOptions.IsAbsoluteSqlServerPath(options.SqlServerPath),
+                    "DatabaseBackup:SqlServerPath must be an absolute SQL Server-visible path")
+                .ValidateOnStart();
 
             return services;
         }
@@ -197,13 +211,7 @@ namespace CRMService.Web.Core
             services.AddSingleton<BackgroundUpdateService>();
             services.AddSingleton<EquipmentCloudDbUpdateService>();
             services.AddScoped<DataBaseCheckUpService<MainContext>>();
-            services.AddScoped(sp =>
-            {
-                ILogger<BackupService<MainContext>> logger = sp.GetRequiredService<ILogger<BackupService<MainContext>>>();
-                string connectionString = builder.Configuration.GetConnectionString("MSSql")!;
-                string backupFolder = OperatingSystem.IsLinux() ? "/var/opt/mssql/backups" : Path.Combine(AppContext.BaseDirectory, "Backups");
-                return new BackupService<MainContext>(connectionString, backupFolder, logger);
-            });
+            services.AddScoped<SqlServerBackupService>();
 
             services.AddScoped<CompanyCategoryService>();
             services.AddScoped<CompanyService>();

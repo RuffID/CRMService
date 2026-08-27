@@ -38,7 +38,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 using (IServiceScope scope = app.Services.CreateScope())
 {
     DataBaseCheckUpService<MainContext> dbCheckUp = scope.ServiceProvider.GetRequiredService<DataBaseCheckUpService<MainContext>>();
-    dbCheckUp.CheckOrUpdateDB();
+    await dbCheckUp.CheckOrUpdateDBAsync(app.Lifetime.ApplicationStopping);
 }
 
 if (!app.Environment.IsDevelopment())

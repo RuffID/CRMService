@@ -88,14 +88,6 @@ namespace CRMService.Infrastructure.DataBase.Migrations
 
             migrationBuilder.Sql(
                 """
-                DECLARE @MAX_ISSUE_PRIORITY_ID INT;
-                SELECT @MAX_ISSUE_PRIORITY_ID = MAX([Id]) FROM [IssuePriority];
-
-                DBCC CHECKIDENT ('[IssuePriority]', RESEED, @MAX_ISSUE_PRIORITY_ID);
-                """);
-
-            migrationBuilder.Sql(
-                """
                 SET IDENTITY_INSERT [IssueStatus] ON;
 
                 INSERT INTO [IssueStatus] ([Id], [Code], [Name], [Color])
@@ -103,14 +95,6 @@ namespace CRMService.Infrastructure.DataBase.Migrations
                 FROM [IssueStatus_Old];
 
                 SET IDENTITY_INSERT [IssueStatus] OFF;
-                """);
-
-            migrationBuilder.Sql(
-                """
-                DECLARE @MAX_ISSUE_STATUS_ID INT;
-                SELECT @MAX_ISSUE_STATUS_ID = MAX([Id]) FROM [IssueStatus];
-
-                DBCC CHECKIDENT ('[IssueStatus]', RESEED, @MAX_ISSUE_STATUS_ID);
                 """);
 
             migrationBuilder.AddForeignKey(

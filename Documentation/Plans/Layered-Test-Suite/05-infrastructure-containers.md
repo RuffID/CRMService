@@ -1,6 +1,15 @@
 # Этап 5. Infrastructure и самоликвидирующиеся Docker-контейнеры
 
-Status: Not Started
+Status: Completed
+
+## Обнаруженные и исправленные неоднозначности
+
+- Generic `BackupService<TContext>` создавал `backupFolder` в файловой системе приложения, хотя `BACKUP DATABASE` записывает файл в файловой системе SQL Server. Сервис заменён на `SqlServerBackupService` с typed `DatabaseBackupOptions`: путь валидируется как абсолютный SQL Server-visible path и не создаётся приложением. Для Docker задокументирован отдельный named volume, монтируемый только в SQL Server.
+- Production migration `20260307072417_UpdatePriorityAndStatusModels` не применялась с нуля на SQL Server 2022: `DBCC CHECKIDENT` получал переменную как третий параметр. Лишние reseed-блоки удалены; перенос идентификаторов остаётся под `IDENTITY_INSERT`, а container regression test подтверждает последующую генерацию identity.
+
+## Текущее состояние
+
+Добавлены отдельные SQL Server/PostgreSQL collections с Testcontainers `4.14.0`, Respawn `6.2.1`, pinned images, динамическими ports и уникальными container/database names. SQL Server применяет все production migrations через `MigrateAsync`; PostgreSQL создаёт текущую Okdesk-схему через `EnsureCreatedAsync`. Быстрый suite завершён с результатом 43 passed, Docker suite — 16 passed, failed/skipped отсутствуют. После прогонов containers, volumes и host backup files не остаются.
 
 ## Пакеты и разделение suite
 
@@ -49,7 +58,7 @@ Status: Not Started
 - `JwtTokenService`: claims, issuer, audience, expiration и ошибка отсутствующего ключа;
 - `GetOkdeskEntityService`: pagination, limit, 404 mapping, cancellation и прочие HTTP-ошибки через fake `IHttpApiClient`;
 - `TelegramNotification`: method, URL, header, JSON body, invalid input, unsuccessful response и cancellation через fake `HttpMessageHandler`;
-- `BackupService`: отдельный SQL Server container scenario с container-local backup path; не писать backup на host и очищать файл вместе с контейнером;
+- `SqlServerBackupService`: отдельный SQL Server container scenario с container-local backup path; не писать backup на host и очищать файл вместе с контейнером;
 - `DataBaseCheckUpService`: connection failure, отсутствие migrations и pending migrations проверять отдельно, не запускать его автоматически для всех тестов.
 
 ## Fail-fast и эксплуатация

@@ -8,7 +8,6 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using CRMService.Application.Abstractions.Service;
@@ -17,13 +16,19 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class CompanyService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdSettings,
-        IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<CompanyService> logger)
+        IOkdeskEntityRequestService request, ICompanyDirectoryUnitOfWork unitOfWork, IOkdeskCompanyDirectorySource okdeskUnitOfWork, EntitySyncService sync, ILogger<CompanyService> logger)
     {
+        public Task<Company?> GetCompanyAsync(int id, CancellationToken ct = default) =>
+            unitOfWork.Company.GetItemByIdReadOnlyAsync(id, ct);
+
+        public Task<List<Company>> GetCompaniesByCategoryAsync(string categoryCode, CancellationToken ct = default) =>
+            unitOfWork.Company.GetByCategoryCodeReadOnlyAsync(categoryCode, ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<CompanyDto>>> GetCompaniesAsync(CancellationToken ct = default)
         {
-            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Company> companies = await unitOfWork.Company.GetItemsReadOnlyAsync(ct);
             return ServiceResult<List<CompanyDto>>.Ok(companies.OrderBy(company => company.Name).ThenBy(company => company.Id).ToDto().ToList());
         }
 
@@ -35,13 +40,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
 
-            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(
-                predicate: company => normalizedSearch == null
-                    || company.Name.Contains(normalizedSearch)
-                    || (company.AdditionalName != null && company.AdditionalName.Contains(normalizedSearch)),
-                asNoTracking: true,
-                include: query => query.Include(company => company.Category),
-                ct: ct);
+            List<Company> companies = await unitOfWork.Company.SearchReadOnlyAsync(normalizedSearch, ct);
 
             IEnumerable<Company> orderedCompanies = normalizedSearch == null
                 ? companies.OrderBy(company => company.Id)
@@ -94,10 +93,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Company>> GetCompaniesFromCloudDb(CancellationToken ct)
         {
-            List<Company> companies = await okdeskUnitOfWork.Company.GetItemsByPredicateAsync(
-                asNoTracking: true,
-                include: query => query.Include(x => x.Category),
-                ct: ct);
+            List<Company> companies = await okdeskUnitOfWork.Company.GetAllWithCategoryReadOnlyAsync(ct);
 
             return companies.OrderBy(x => x.Id).ToList();
         }
@@ -119,7 +115,7 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting to update companies from API.", nameof(UpdateCompaniesFromCloudApi));
 
-            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsReadOnlyAsync(ct);
 
             if (categories.Count != 0)
             {
@@ -162,7 +158,7 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             await CheckCompanyCategory(company, ct);
 
-            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct: ct);
+            Company? existingCompany = await unitOfWork.Company.GetItemByIdAsync(company.Id, ct);
 
             if (existingCompany == null)
                 unitOfWork.Company.Create(company);
@@ -180,7 +176,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return;
             }
 
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByPredicateAsync(c => c.Code == company.Category.Code, ct: ct);
+            CompanyCategory? category = await unitOfWork.CompanyCategory.GetByCodeAsync(company.Category.Code, ct);
             company.CategoryId = category?.Id;
 
             company.Category = null;

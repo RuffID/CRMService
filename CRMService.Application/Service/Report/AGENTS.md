@@ -11,6 +11,7 @@
 - страница отчета находится в `CRMService.Web/Pages/Report.cshtml`;
 - клиентский код отчетов находится в `CRMService.Web/wwwroot/js/reports`;
 - агрегирующие репозитории находятся в `CRMService.Infrastructure/DataBase/Repository/Report`;
+- report services используют `IReportsUnitOfWork`, ограниченный report repositories и нужными employee/plan references;
 - DTO отчетов находятся в `CRMService.Contracts/Models/Dto/Report`.
 
 Правила изменений:

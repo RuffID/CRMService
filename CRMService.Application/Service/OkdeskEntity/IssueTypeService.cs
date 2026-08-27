@@ -8,29 +8,29 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using CRMService.Application.Abstractions.Service;
 using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueTypeService> logger)
+    public class IssueTypeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IIssuesUnitOfWork unitOfWork, IOkdeskIssuesSource okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueTypeService> logger)
     {
+        public Task<IssueType?> GetIssueTypeAsync(string code, CancellationToken ct = default) =>
+            unitOfWork.IssueType.GetByCodeReadOnlyAsync(code, ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<TaskTypeDto>>> GetTypes(CancellationToken ct)
         {
-            List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAsync(asNoTracking: true,
-                include: t => t.Include(x => x.Group),
-                ct: ct);
+            List<IssueType> types = await unitOfWork.IssueType.GetAllWithGroupReadOnlyAsync(ct);
 
             return ServiceResult<List<TaskTypeDto>>.Ok(types.ToDto().ToList());
         }
 
         public async Task<ServiceResult<List<IssueTypeGroupDto>>> GetTypeGroups(CancellationToken ct)
         {
-            List<IssueTypeGroup> types = await unitOfWork.IssueTypeGroup.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssueTypeGroup> types = await unitOfWork.IssueTypeGroup.GetItemsReadOnlyAsync(ct);
 
             return ServiceResult<List<IssueTypeGroupDto>>.Ok(types.ToDto().ToList());
         }
@@ -43,10 +43,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
 
-            List<IssueType> types = await unitOfWork.IssueType.GetItemsByPredicateAsync(
-                predicate: type => normalizedSearch == null || (type.Name != null && type.Name.Contains(normalizedSearch)),
-                asNoTracking: true,
-                ct: ct);
+            List<IssueType> types = await unitOfWork.IssueType.SearchReadOnlyAsync(normalizedSearch, ct);
 
             IEnumerable<IssueType> orderedTypes = normalizedSearch == null
                 ? types.OrderBy(type => type.Id)
@@ -84,14 +81,14 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<List<IssueType>> GetIssueTypesFromCloudDb(CancellationToken ct)
         {
-            List<IssueType> issueTypes = await okdeskUnitOfWork.IssueType.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssueType> issueTypes = await okdeskUnitOfWork.IssueType.GetAllReadOnlyAsync(ct);
 
             return issueTypes.OrderBy(x => x.Id).ToList();
         }
 
         public async Task<List<IssueTypeGroup>> GetIssueTypeGroupsFromCloudDb(CancellationToken ct)
         {
-            List<IssueTypeGroup> issueTypes = await okdeskUnitOfWork.IssueTypeGroup.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssueTypeGroup> issueTypes = await okdeskUnitOfWork.IssueTypeGroup.GetAllReadOnlyAsync(ct);
 
             return issueTypes.OrderBy(x => x.Id).ToList();
         }
@@ -109,7 +106,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(item, async () =>
                 {
-                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByPredicateAsync(predicate: t => t.Code == item.Code, ct: ct);
+                    IssueType? existingTypes = await unitOfWork.IssueType.GetByCodeAsync(item.Code, ct);
 
                     if (existingTypes == null)
                         unitOfWork.IssueType.Create(item);
@@ -124,7 +121,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(item, async () =>
                 {
-                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByPredicateAsync(predicate: t => t.Code == item.Code, ct: ct);
+                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetByCodeAsync(item.Code, ct);
 
                     if (existingTypes == null)
                         unitOfWork.IssueTypeGroup.Create(item);
@@ -149,7 +146,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(item, async () =>
                 {
-                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdAsync(item.Id, asNoTracking: true, ct: ct);
+                    IssueTypeGroup? existingTypes = await unitOfWork.IssueTypeGroup.GetItemByIdReadOnlyAsync(item.Id, ct);
 
                     if (existingTypes == null)
                         unitOfWork.IssueTypeGroup.Create(item);
@@ -164,7 +161,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(item, async () =>
                 {
-                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdAsync(item.Id, asNoTracking: true, ct: ct);
+                    IssueType? existingTypes = await unitOfWork.IssueType.GetItemByIdReadOnlyAsync(item.Id, ct);
                     if (existingTypes == null)
                         unitOfWork.IssueType.Create(item);
                     else

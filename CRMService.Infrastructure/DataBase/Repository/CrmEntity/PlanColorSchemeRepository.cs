@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.CrmEntity
 {
-    public class PlanColorSchemeRepository(
+    public partial class PlanColorSchemeRepository(
         IGetItemByIdRepository<PlanColorScheme, Guid, MainContext> getItemById,
         ICreateItemRepository<PlanColorScheme, MainContext> create,
         IGetItemByPredicateRepository<PlanColorScheme, MainContext> getItemByPredicate,

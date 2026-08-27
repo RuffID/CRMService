@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.CrmEntity
 {
-    public class PlanRepository(
+    public partial class PlanRepository(
         IGetItemByIdRepository<Plan, Guid, MainContext> getItemById,
         ICreateItemRepository<Plan, MainContext> create,
         IGetItemByPredicateRepository<Plan, MainContext> getItemByPredicate,

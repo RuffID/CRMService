@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class KindController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class KindController(KindService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetKinds(CancellationToken ct = default)
         {
-            List<Kind> kinds = await unitOfWork.Kind.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Kind> kinds = await service.GetKindsAsync(ct);
 
             return Ok(kinds.ToDto());
         }

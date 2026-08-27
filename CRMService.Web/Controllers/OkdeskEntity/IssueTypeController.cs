@@ -13,7 +13,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueTypeController(IUnitOfWork unitOfWork, IssueTypeService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class IssueTypeController(IssueTypeService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueTypes(CancellationToken ct)
@@ -24,7 +24,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssueType([FromQuery] string code, CancellationToken ct)
         {
-            IssueType? type = await unitOfWork.IssueType.GetItemByPredicateAsync(it => it.Code == code, true, ct: ct);
+            IssueType? type = await service.GetIssueTypeAsync(code, ct);
 
             if (type == null)
                 return NotFound();

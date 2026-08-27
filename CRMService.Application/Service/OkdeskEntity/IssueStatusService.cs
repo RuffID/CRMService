@@ -13,13 +13,16 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueStatusService> logger)
+    public class IssueStatusService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IIssuesUnitOfWork unitOfWork, IOkdeskIssuesSource okdeskUnitOfWork, EntitySyncService sync, ILogger<IssueStatusService> logger)
     {
+        public Task<IssueStatus?> GetIssueStatusAsync(string code, CancellationToken ct = default) =>
+            unitOfWork.IssueStatus.GetByCodeReadOnlyAsync(code, ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<StatusDto>>> GetIssueStatusesAsync(CancellationToken ct)
         {
-            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsReadOnlyAsync(ct);
 
             return ServiceResult<List<StatusDto>>.Ok(statuses.ToDto().ToList());
         }
@@ -32,10 +35,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
 
-            List<IssueStatus> statuses = await unitOfWork.IssueStatus.GetItemsByPredicateAsync(
-                predicate: status => normalizedSearch == null || (status.Name != null && status.Name.Contains(normalizedSearch)),
-                asNoTracking: true,
-                ct: ct);
+            List<IssueStatus> statuses = await unitOfWork.IssueStatus.SearchReadOnlyAsync(normalizedSearch, ct);
 
             IEnumerable<IssueStatus> orderedStatuses = normalizedSearch == null
                 ? statuses.OrderBy(status => status.Id)
@@ -66,7 +66,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<List<IssueStatus>> GetIssueStatusesFromCloudDb(CancellationToken ct)
         {
-            List<IssueStatus> issueStatuses = await okdeskUnitOfWork.IssueStatus.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssueStatus> issueStatuses = await okdeskUnitOfWork.IssueStatus.GetAllReadOnlyAsync(ct);
 
             return issueStatuses.OrderBy(x => x.Id).ToList();
         }
@@ -83,7 +83,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByPredicateAsync(predicate: s => s.Code == item.Code, ct: ct);
+                        IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetByCodeAsync(item.Code, ct);
                         if (existingStatus == null)
                         {
                             item.Id = 0;
@@ -112,7 +112,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetItemByPredicateAsync(predicate: s => s.Code == item.Code, ct: ct);
+                        IssueStatus? existingStatus = await unitOfWork.IssueStatus.GetByCodeAsync(item.Code, ct);
                         if (existingStatus == null)
                         {
                             item.Id = 0;

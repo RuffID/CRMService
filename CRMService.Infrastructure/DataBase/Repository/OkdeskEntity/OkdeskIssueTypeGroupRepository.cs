@@ -5,7 +5,7 @@ using CRMService.Application.Abstractions.Database.Repository.OkdeskEntity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
-    public class OkdeskIssueTypeGroupRepository(
+    public partial class OkdeskIssueTypeGroupRepository(
         IGetItemByIdRepository<IssueTypeGroup, int, OkdeskContext> getItemById,
         IGetItemByPredicateRepository<IssueTypeGroup, OkdeskContext> getItemByPredicate) : IOkdeskIssueTypeGroupRepository
     {

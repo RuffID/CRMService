@@ -13,8 +13,11 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<KindService> logger)
+    public class KindService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IEquipmentUnitOfWork unitOfWork, IOkdeskEquipmentSource okdeskUnitOfWork, EntitySyncService sync, ILogger<KindService> logger)
     {
+        public Task<List<Kind>> GetKindsAsync(CancellationToken ct = default) =>
+            unitOfWork.Kind.GetItemsReadOnlyAsync(ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<LookupOptionDto>>> GetKindLookupAsync(EquipmentLookupListRequest requestModel, CancellationToken ct = default)
@@ -26,14 +29,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
             List<int>? modelIds = NormalizeIds(requestModel.ModelIds);
 
-            List<Kind> kinds = await unitOfWork.Kind.GetItemsByPredicateAsync(
-                predicate: kind =>
-                    (modelIds == null || kind.Models.Any(model => modelIds.Contains(model.Id)))
-                    && (normalizedSearch == null
-                        || kind.Name.Contains(normalizedSearch)
-                        || (kind.Code != null && kind.Code.Contains(normalizedSearch))),
-                asNoTracking: true,
-                ct: ct);
+            List<Kind> kinds = await unitOfWork.Kind.SearchReadOnlyAsync(normalizedSearch, modelIds, ct);
 
             IEnumerable<Kind> orderedKinds = normalizedSearch == null
                 ? kinds.OrderBy(kind => kind.Id)
@@ -65,7 +61,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Kind>?> GetKindsFromCloudDb(CancellationToken ct)
         {
-            List<Kind> kinds = await okdeskUnitOfWork.Kind.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Kind> kinds = await okdeskUnitOfWork.Kind.GetAllReadOnlyAsync(ct);
 
             return kinds.OrderBy(x => x.Id).ToList();
         }
@@ -82,7 +78,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     {
                         await sync.RunExclusive(item, async () =>
                         {
-                            Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
+                            Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct);
                             if (existingKinds == null)
                                 unitOfWork.Kind.Create(item);
                             else
@@ -112,7 +108,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct: ct);
+                        Kind? existingKinds = await unitOfWork.Kind.GetItemByIdAsync(item.Id, ct);
                         if (existingKinds == null)
                             unitOfWork.Kind.Create(item);
                         else

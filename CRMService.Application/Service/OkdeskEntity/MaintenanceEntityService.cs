@@ -6,7 +6,6 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using CRMService.Application.Abstractions.Service;
@@ -15,8 +14,14 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity
 {
     public class MaintenanceEntityService(IOptions<ApiEndpointOptions> endpoint,
-        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
+        IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IEquipmentUnitOfWork unitOfWork, IOkdeskEquipmentSource okdeskUnitOfWork, EntitySyncService sync, ILogger<MaintenanceEntityService> logger)
     {
+        public Task<MaintenanceEntity?> GetMaintenanceEntityAsync(int id, CancellationToken ct = default) =>
+            unitOfWork.MaintenanceEntity.GetItemByIdReadOnlyAsync(id, ct);
+
+        public Task<List<MaintenanceEntity>> GetMaintenanceEntitiesAsync(CancellationToken ct = default) =>
+            unitOfWork.MaintenanceEntity.GetItemsReadOnlyAsync(ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<LookupOptionDto>>> GetMaintenanceEntityLookupAsync(EquipmentLookupListRequest requestModel, CancellationToken ct = default)
@@ -28,16 +33,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
             List<int>? companyIds = NormalizeIds(requestModel.CompanyIds);
 
-            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(
-                predicate: maintenanceEntity =>
-                    (companyIds == null || (maintenanceEntity.CompanyId.HasValue && companyIds.Contains(maintenanceEntity.CompanyId.Value)))
-                    && (normalizedSearch == null
-                        || maintenanceEntity.Name.Contains(normalizedSearch)
-                        || (maintenanceEntity.Address != null && maintenanceEntity.Address.Contains(normalizedSearch))
-                        || (maintenanceEntity.Company != null && maintenanceEntity.Company.Name.Contains(normalizedSearch))),
-                asNoTracking: true,
-                include: query => query.Include(maintenanceEntity => maintenanceEntity.Company),
-                ct: ct);
+            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.SearchReadOnlyAsync(normalizedSearch, companyIds, ct);
 
             IEnumerable<MaintenanceEntity> orderedMaintenanceEntities = normalizedSearch == null
                 ? maintenanceEntities.OrderBy(maintenanceEntity => maintenanceEntity.Id)
@@ -75,10 +71,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<MaintenanceEntity>> GetMaintenanceEntitiesFromCloudDb(CancellationToken ct)
         {
-            List<MaintenanceEntity> maintenanceEntities = await okdeskUnitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(
-                asNoTracking: true,
-                include: query => query.Include(x => x.Company),
-                ct: ct);
+            List<MaintenanceEntity> maintenanceEntities = await okdeskUnitOfWork.MaintenanceEntity.GetAllWithCompanyReadOnlyAsync(ct);
 
             foreach (MaintenanceEntity item in maintenanceEntities)
                 item.CompanyId = item.Company?.Id;
@@ -141,7 +134,7 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             await CheckMaintenanceEntity(maintenanceEntity, ct);
 
-            MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(maintenanceEntity.Id, ct: ct);
+            MaintenanceEntity? existingMaintenance = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(maintenanceEntity.Id, ct);
             if (existingMaintenance == null)
                 unitOfWork.MaintenanceEntity.Create(maintenanceEntity);
             else
@@ -154,7 +147,7 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             if (maintenanceEntity.Company != null)
             {
-                Company? company = await unitOfWork.Company.GetItemByIdAsync(maintenanceEntity.Company.Id, true, ct: ct);
+                Company? company = await unitOfWork.Company.GetItemByIdReadOnlyAsync(maintenanceEntity.Company.Id, ct);
                 if (company == null)
                 {
                     logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for maintenanceEntity with id: {maintenanceEntityId}.",
@@ -168,7 +161,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
             else if (maintenanceEntity.CompanyId.HasValue)
             {
-                Company? company = await unitOfWork.Company.GetItemByIdAsync(maintenanceEntity.CompanyId.Value, true, ct: ct);
+                Company? company = await unitOfWork.Company.GetItemByIdReadOnlyAsync(maintenanceEntity.CompanyId.Value, ct);
                 if (company == null)
                 {
                     logger.LogWarning("[Method:{MethodName}] Company with id: {CompanyId} was not found for maintenanceEntity with id: {maintenanceEntityId}.",

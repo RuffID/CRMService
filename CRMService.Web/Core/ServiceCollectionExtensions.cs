@@ -180,13 +180,23 @@ namespace CRMService.Web.Core
             services.AddScoped<IpOkdeskWebHookActionFilterAttribute>();
             services.AddScoped<IAppDbContext<MainContext>>(sp => new EfDbContextAdapter<MainContext>(sp.GetRequiredService<MainContext>()));
             services.AddScoped<IAppDbContext<OkdeskContext>>(sp => new EfDbContextAdapter<OkdeskContext>(sp.GetRequiredService<OkdeskContext>()));
+            services.AddScoped<IMainDbContextSession, MainDbContextSession>();
+            services.AddScoped<IUnitOfWorkScope, MainDbUnitOfWorkScope>();
+            services.AddScoped<IAuthorizationUnitOfWork, AuthorizationUnitOfWork>();
+            services.AddScoped<IPlanSettingsUnitOfWork, PlanSettingsUnitOfWork>();
+            services.AddScoped<IReportsUnitOfWork, ReportsUnitOfWork>();
+            services.AddScoped<ICompanyDirectoryUnitOfWork, CompanyDirectoryUnitOfWork>();
+            services.AddScoped<IEquipmentUnitOfWork, EquipmentUnitOfWork>();
+            services.AddScoped<IIssuesUnitOfWork, IssuesUnitOfWork>();
+            services.AddScoped<IOkdeskCompanyDirectorySource, OkdeskCompanyDirectorySource>();
+            services.AddScoped<IOkdeskEquipmentSource, OkdeskEquipmentSource>();
+            services.AddScoped<IOkdeskIssuesSource, OkdeskIssuesSource>();
 
             services.AddSingleton<EntitySyncService>();
             services.AddSingleton<ServerData>();
             services.AddSingleton<BackgroundUpdateService>();
             services.AddSingleton<EquipmentCloudDbUpdateService>();
             services.AddScoped<DataBaseCheckUpService<MainContext>>();
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(sp =>
             {
                 ILogger<BackupService<MainContext>> logger = sp.GetRequiredService<ILogger<BackupService<MainContext>>>();
@@ -237,6 +247,7 @@ namespace CRMService.Web.Core
             services.AddScoped<IRandomStringGenerator, GenerateRandomString>();
             services.AddScoped<UserService>();
             services.AddScoped<Application.Service.Authorization.RoleService>();
+            services.AddScoped<AuthenticationService>();
             services.AddHttpClient<INotificationService, TelegramNotification>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(180);
@@ -305,7 +316,6 @@ namespace CRMService.Web.Core
             services.AddScoped<IOkdeskIssueTypeRepository, OkdeskIssueTypeRepository>();
             services.AddScoped<IOkdeskIssueTypeGroupRepository, OkdeskIssueTypeGroupRepository>();
             services.AddScoped<IOkdeskTimeEntryRepository, OkdeskTimeEntryRepository>();
-            services.AddScoped<IOkdeskUnitOfWork, OkdeskUnitOfWork>();
 
             services.AddScoped<IEmployeePerformanceReportRepository, EmployeePerformanceReportRepository>();
             services.AddScoped<ISpentTimeChartReportRepository, SpentTimeChartReportRepository>();

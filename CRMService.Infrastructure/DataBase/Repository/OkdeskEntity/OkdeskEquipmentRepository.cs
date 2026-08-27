@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
-    public class OkdeskEquipmentRepository(
+    public partial class OkdeskEquipmentRepository(
         IGetItemByIdRepository<Equipment, int, OkdeskContext> getItemById,
         IGetItemByPredicateRepository<Equipment, OkdeskContext> getItemByPredicate,
         IQueryRepository<Equipment, OkdeskContext> query) : IOkdeskEquipmentRepository

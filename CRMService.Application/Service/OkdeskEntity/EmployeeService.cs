@@ -8,7 +8,6 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using CRMService.Application.Abstractions.Service;
@@ -16,8 +15,17 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, IOkdeskEntityRequestService request, EntitySyncService sync, ILogger<EmployeeService> logger)
+    public class EmployeeService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, ICompanyDirectoryUnitOfWork unitOfWork, IOkdeskCompanyDirectorySource okdeskUnitOfWork, IOkdeskEntityRequestService request, EntitySyncService sync, ILogger<EmployeeService> logger)
     {
+        public Task<Employee?> GetEmployeeAsync(int id, CancellationToken ct = default) =>
+            unitOfWork.Employee.GetItemByIdReadOnlyAsync(id, ct);
+
+        public Task<List<EmployeeGroup>> GetEmployeeGroupConnectionsAsync(CancellationToken ct = default) =>
+            unitOfWork.EmployeeGroup.GetItemsReadOnlyAsync(ct);
+
+        public Task<List<Employee>> GetEmployeesByGroupAsync(int groupId, CancellationToken ct = default) =>
+            unitOfWork.Employee.GetWithGroupsReadOnlyAsync([groupId], includeInactive: true, ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<EmployeeDto>>> GetEmployees(List<int>? groupIds = null, CancellationToken ct = default)
@@ -25,21 +33,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<ServiceResult<List<EmployeeDto>>> GetEmployeesAsync(List<int>? groupIds = null, bool includeInactive = false, CancellationToken ct = default)
         {
-            List<Employee> employees;
-            if (groupIds != null && groupIds.Count > 0)
-            {
-                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.EmployeeGroups.Any(eg => groupIds.Contains(eg.GroupId)) && (includeInactive || e.Active),
-                    asNoTracking: true,
-                    include: e => e.Include(x => x.EmployeeGroups).ThenInclude(eg => eg.Group),
-                    ct: ct);
-            }
-            else
-            {
-                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => includeInactive || e.Active,
-                    asNoTracking: true,
-                    include: e => e.Include(x => x.EmployeeGroups).ThenInclude(eg => eg.Group),
-                    ct: ct);
-            }
+            List<Employee> employees = await unitOfWork.Employee.GetWithGroupsReadOnlyAsync(groupIds, includeInactive, ct);
 
             List<EmployeeDto> items = employees
                 .OrderBy(employee => employee.LastName)
@@ -60,15 +54,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
 
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(
-                predicate: employee =>
-                    (!activeOnly || employee.Active)
-                    && (normalizedSearch == null
-                        || (employee.LastName != null && employee.LastName.Contains(normalizedSearch))
-                        || (employee.FirstName != null && employee.FirstName.Contains(normalizedSearch))
-                        || (employee.Patronymic != null && employee.Patronymic.Contains(normalizedSearch))),
-                asNoTracking: true,
-                ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.SearchReadOnlyAsync(normalizedSearch, activeOnly, ct);
 
             IEnumerable<Employee> orderedEmployees = normalizedSearch == null
                 ? employees.OrderBy(employee => employee.Id)
@@ -102,10 +88,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Employee>> GetEmployeesFromCloudDb(CancellationToken ct)
         {
-            List<Employee> employees = await okdeskUnitOfWork.Employee.GetItemsByPredicateAsync(
-                predicate: e => EF.Property<string>(e, "Type") == "Employee",
-                asNoTracking: true,
-                ct: ct);
+            List<Employee> employees = await okdeskUnitOfWork.Employee.GetEmployeesReadOnlyAsync(ct);
 
             return employees.OrderBy(x => x.Id).ToList();
         }
@@ -120,7 +103,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(employee, async () =>
                     {
-                        Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
+                        Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct);
                         if (existingEmployee == null)
                             unitOfWork.Employee.Create(employee);
                         else
@@ -146,7 +129,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(employee, async () =>
                     {
-                        Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct: ct);
+                        Employee? existingEmployee = await unitOfWork.Employee.GetItemByIdAsync(employee.Id, ct);
                         if (existingEmployee == null)
                             unitOfWork.Employee.Create(employee);
                         else

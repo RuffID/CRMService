@@ -5,7 +5,7 @@ using CRMService.Application.Abstractions.Database.Repository.Entity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class IssueStatusRepository(
+    public partial class IssueStatusRepository(
         IGetItemByIdRepository<IssueStatus, int, MainContext> getItemById,
         IGetItemByPredicateRepository<IssueStatus, MainContext> getItemByPredicate,
         ICreateItemRepository<IssueStatus, MainContext> create

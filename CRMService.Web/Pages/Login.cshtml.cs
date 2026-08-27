@@ -9,11 +9,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using ApplicationAuthenticationService = CRMService.Application.Service.Authorization.AuthenticationService;
 
 namespace CRMService.Web.Pages
 {
     [CookieAuthorize]
-    public class LoginModel(IUnitOfWork unitOfWork, Hasher hash) : PageModel
+    public class LoginModel(ApplicationAuthenticationService authenticationService) : PageModel
     {
         [BindProperty]
         public UserPageRequest UserPage { get; set; } = new();
@@ -31,9 +32,9 @@ namespace CRMService.Web.Pages
             if (!ModelState.IsValid)
                 return Page();
 
-            User? user = await unitOfWork.User.GetItemByPredicateAsync(u => u.Login.ToLower() == UserPage.Login.ToLower(), asNoTracking: true, include: u => u.Include(u => u.Roles), ct);
+            User? user = await authenticationService.AuthenticateAsync(UserPage.Login, UserPage.Password, ignoreLoginCase: true, ct);
 
-            if (user is null || !user.Active || !hash.Verify(UserPage.Password, user.Password))
+            if (user is null)
             {
                 ModelState.AddModelError(string.Empty, "Неправильный логин или пароль.");
                 return Page();

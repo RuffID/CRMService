@@ -13,7 +13,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueStatusController(IUnitOfWork unitOfWork, IssueStatusService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class IssueStatusController(IssueStatusService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssueStatuses(CancellationToken ct)
@@ -24,7 +24,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssueStatus([FromQuery] string code, CancellationToken ct)
         {
-            IssueStatus? status = await unitOfWork.IssueStatus.GetItemByPredicateAsync(ip => ip.Code == code, asNoTracking: true, ct: ct);
+            IssueStatus? status = await service.GetIssueStatusAsync(code, ct);
 
             if (status == null)
                 return NotFound();

@@ -5,7 +5,7 @@ using CRMService.Application.Abstractions.Database.Repository.Entity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class EmployeeGroupRepository(
+    public partial class EmployeeGroupRepository(
         IGetItemByPredicateRepository<EmployeeGroup, MainContext> getItemByPredicate,
         ICreateItemRepository<EmployeeGroup, MainContext> create,
         IDeleteItemRepository<EmployeeGroup, MainContext> delete

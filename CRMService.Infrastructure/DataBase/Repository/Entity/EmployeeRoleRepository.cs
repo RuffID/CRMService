@@ -5,7 +5,7 @@ using CRMService.Application.Abstractions.Database.Repository.Entity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class EmployeeRoleRepository(
+    public partial class EmployeeRoleRepository(
         IGetItemByPredicateRepository<EmployeeRole, MainContext> getItemByPredicate,
         ICreateItemRepository<EmployeeRole, MainContext> create,
         IDeleteItemRepository<EmployeeRole, MainContext> delete

@@ -1,12 +1,11 @@
 using CRMService.Domain.Models.OkdeskEntity;
-using EFCoreLibrary.Abstractions.Database.Repository.Base;
-using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Application.Abstractions.Database.Repository.OkdeskEntity
 {
-    public interface IOkdeskEmployeeRepository :
-        IGetItemByIdRepository<Employee, int, DbContext>,
-        IGetItemByPredicateRepository<Employee, DbContext>
+    public interface IOkdeskEmployeeRepository
     {
+        Task<List<Employee>> GetEmployeesReadOnlyAsync(CancellationToken ct = default);
+        Task<List<Employee>> GetContactsByIdsReadOnlyAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default);
+        Task<Employee?> GetContactByIdReadOnlyAsync(int id, CancellationToken ct = default);
     }
 }

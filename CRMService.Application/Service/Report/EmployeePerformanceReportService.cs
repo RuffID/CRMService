@@ -7,7 +7,7 @@ using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.Report
 {
-    public class EmployeePerformanceReportService(IUnitOfWork unitOfWork) : IEmployeePerformanceReportService
+    public class EmployeePerformanceReportService(IReportsUnitOfWork unitOfWork) : IEmployeePerformanceReportService
     {
         public async Task<List<ReportInfo>> GetFullReportOnEmployees(DateTime dateFrom, DateTime dateTo, ReportRequest filters, CancellationToken ct)
         {
@@ -19,20 +19,19 @@ namespace CRMService.Application.Service.Report
             }
             else if (filters.HasGroups)
             {
-                employeeIds = (await unitOfWork.EmployeeGroup.GetItemsByPredicateAsync(
-                        eg => filters.GroupIds!.Contains(eg.GroupId),
-                        asNoTracking: true,
-                        ct: ct)).Select(x => x.EmployeeId).ToList();
+                employeeIds = (await unitOfWork.EmployeeGroup.GetByGroupIdsReadOnlyAsync(filters.GroupIds!, ct))
+                    .Select(x => x.EmployeeId)
+                    .ToList();
             }
             else
             {
-                employeeIds = (await unitOfWork.Employee.GetItemsByPredicateAsync(asNoTracking: true, ct: ct)).Select(e => e.Id).ToList();
+                employeeIds = (await unitOfWork.Employee.GetItemsReadOnlyAsync(ct)).Select(e => e.Id).ToList();
             }
 
             if (employeeIds.Count == 0)
                 return new();
 
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(e => employeeIds.Contains(e.Id), asNoTracking: true, ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, ct: ct);
 
             Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
 
@@ -43,15 +42,12 @@ namespace CRMService.Application.Service.Report
             {
                 Guid planId = filters.PlanId.Value;
 
-                Plan? plan = await unitOfWork.Plan.GetItemByIdAsync(planId, asNoTracking: true, ct: ct);
+                Plan? plan = await unitOfWork.Plan.GetItemByIdReadOnlyAsync(planId, ct);
                 if (plan != null)
                 {
                     planColor = plan.PlanColor;
 
-                    List<PlanSetting> planSettings = await unitOfWork.PlanSetting.GetItemsByPredicateAsync(
-                        x => x.PlanId == planId && employeeIds.Contains(x.EmployeeId),
-                        asNoTracking: true,
-                        ct: ct);
+                    List<PlanSetting> planSettings = await unitOfWork.PlanSetting.GetByPlanAndEmployeesReadOnlyAsync(planId, employeeIds, ct);
 
                     planMap = planSettings.ToDictionary(x => x.EmployeeId, x => x);
                 }

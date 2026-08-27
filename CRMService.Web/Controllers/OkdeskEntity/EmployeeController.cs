@@ -13,12 +13,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeController(IUnitOfWork unitOfWork, EmployeeService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class EmployeeController(EmployeeService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetEmployee([FromQuery] int id, CancellationToken ct)
         {
-            Employee? employee = await unitOfWork.Employee.GetItemByIdAsync(id, true, ct: ct);
+            Employee? employee = await service.GetEmployeeAsync(id, ct);
 
             if (employee == null)
                 return NotFound();
@@ -35,7 +35,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet("connections_with_group")]
         public async Task<IActionResult> GetGroupEmployeesConnections(CancellationToken ct = default)
         {
-            List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<EmployeeGroup> connections = await service.GetEmployeeGroupConnectionsAsync(ct);
 
             return Ok(connections.ToDto());
         }
@@ -43,7 +43,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet("by_group")]
         public async Task<IActionResult> GetEmployeesByGroup([FromQuery] int groupId, CancellationToken ct)
         {
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.EmployeeGroups.Any(eg => eg.GroupId == groupId), asNoTracking: true, ct: ct);
+            List<Employee> employees = await service.GetEmployeesByGroupAsync(groupId, ct);
 
             return Ok(employees.ToDto());
         }

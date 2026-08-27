@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class MaintenanceEntityController(IUnitOfWork unitOfWork, MaintenanceEntityService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class MaintenanceEntityController(MaintenanceEntityService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetMaintenanceEntity([FromQuery] int id, CancellationToken ct)
         {
-            MaintenanceEntity? maintenanceEntity = await unitOfWork.MaintenanceEntity.GetItemByIdAsync(id, asNoTracking: true, ct: ct);
+            MaintenanceEntity? maintenanceEntity = await service.GetMaintenanceEntityAsync(id, ct);
 
             if (maintenanceEntity == null)
                 return NotFound();
@@ -28,7 +28,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet("list")]
         public async Task<IActionResult> GetMaintenanceEntities(CancellationToken ct = default)
         {
-            List<MaintenanceEntity> maintenanceEntities = await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<MaintenanceEntity> maintenanceEntities = await service.GetMaintenanceEntitiesAsync(ct);
 
             return Ok(maintenanceEntities.ToDto());
         }

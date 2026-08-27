@@ -22,6 +22,8 @@
 - API-контроллеры справочников находятся в `CRMService.Web/Controllers/OkdeskEntity`;
 - доменные модели находятся в `CRMService.Domain/Models/OkdeskEntity`;
 - маппинги DTO находятся в `CRMService.Application/Common/Mapping/OkdeskEntity`.
+- локальные изменения разделены между `ICompanyDirectoryUnitOfWork`, `IEquipmentUnitOfWork` и `IIssuesUnitOfWork`;
+- облачный OkdeskContext доступен через read-only `IOkdeskCompanyDirectorySource`, `IOkdeskEquipmentSource` и `IOkdeskIssuesSource` без формального transaction scope.
 
 Правила изменений:
 - обновления должны быть идемпотентными и не создавать дубли при повторном запуске;

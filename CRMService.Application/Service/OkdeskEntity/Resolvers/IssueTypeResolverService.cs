@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class IssueTypeResolverService(
-        IUnitOfWork unitOfWork,
+        IIssuesUnitOfWork unitOfWork,
         IssueTypeService issueTypeService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<IssueTypeResolverService> logger)
@@ -16,7 +16,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 
             return referenceResolveHelper.ResolveAsync(
                 issueType.Code,
-                async token => (await unitOfWork.IssueType.GetItemByPredicateAsync(t => t.Code == issueType.Code, true, ct: token))?.Id,
+                async token => (await unitOfWork.IssueType.GetByCodeReadOnlyAsync(issueType.Code, token))?.Id,
                 issueTypeService.UpdateIssueTypesFromCloudDb,
                 code => $"issue-type:{code}",
                 code => $"Type with code: {code} was not found for issue with id: {issueId}. Refreshing issue types from API.",

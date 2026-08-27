@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Authorization
 {
-    public class UserRoleRepository(
+    public partial class UserRoleRepository(
         IGetItemByPredicateRepository<UserRole, MainContext> getItemByPredicate,
         ICreateItemRepository<UserRole, MainContext> create,
         IDeleteItemRepository<UserRole, MainContext> delete

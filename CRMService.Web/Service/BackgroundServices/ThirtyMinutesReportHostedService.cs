@@ -1,5 +1,4 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
-using CRMService.Domain.Models.Constants;
+﻿using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
 
@@ -19,7 +18,6 @@ namespace CRMService.Web.Service.BackgroundServices
                 try
                 {
                     using IServiceScope scope = scopeFactory.CreateScope();
-                    IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                     IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                     TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
 
@@ -31,12 +29,7 @@ namespace CRMService.Web.Service.BackgroundServices
 
                     // Ниже обновляется списанное время по заявкам, которые были обновлены в течении определённого промежутка времени. Это нужно для того, чтобы в отчетах отображалось актуальное списанное время.
                     // Получение из БД заявок, которые были обновлены за определённый промежуток времени
-                    List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
-                        i => i.DeletedAt == null
-                        && i.Id >= 0
-                        && i.EmployeesUpdatedAt >= dateFrom
-                        && i.EmployeesUpdatedAt <= dateTo,
-                        asNoTracking: true, ct: stoppingToken);
+                    List<Issue> issuesFromLocalDb = await issueService.GetUpdatedLocalIssuesAsync(dateFrom, dateTo, stoppingToken);
 
                     // Обновление списанного времени по каждой заявке, которая была обновлена в течении определённого промежутка времени
                     if (issuesFromLocalDb.Count != 0)

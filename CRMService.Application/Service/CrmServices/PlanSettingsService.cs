@@ -9,13 +9,13 @@ using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.CrmServices
 {
-    public class PlanSettingsService(IUnitOfWork unitOfWork, EmployeeService employeeService) : IPlanSettingsService
+    public class PlanSettingsService(IPlanSettingsUnitOfWork unitOfWork, EmployeeService employeeService) : IPlanSettingsService
     {
         private const int DEFAULT_PLAN_SWITCH_SECONDS = 10;
 
         public async Task<ServiceResult<List<PlanDto>>> GetPlans(CancellationToken ct = default)
         {
-            List<Plan> plans = await unitOfWork.Plan.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Plan> plans = await unitOfWork.Plan.GetItemsReadOnlyAsync(ct);
 
             List<PlanDto> dto = plans.OrderBy(x => x.Name).Select(x => new PlanDto
                 {
@@ -71,7 +71,7 @@ namespace CRMService.Application.Service.CrmServices
             if (duplicateNames.Count > 0)
                 return ServiceResult<bool>.Fail(400, "Plan names must be unique.");
 
-            List<Plan> existing = await unitOfWork.Plan.GetItemsByPredicateAsync(ct: ct);
+            List<Plan> existing = await unitOfWork.Plan.GetItemsAsync(ct);
             Dictionary<Guid, Plan> existingMap = existing.ToDictionary(x => x.Id, x => x);
             HashSet<Guid> keepIds = normalizedItems
                 .Where(x => x.Id.HasValue)
@@ -142,7 +142,7 @@ namespace CRMService.Application.Service.CrmServices
             if (planId == Guid.Empty)
                 return ServiceResult<List<EmployeePlanRowDto>>.Fail(400, "PlanId is required.");
 
-            Plan? plan = await unitOfWork.Plan.GetItemByIdAsync(planId, asNoTracking: true, ct: ct);
+            Plan? plan = await unitOfWork.Plan.GetItemByIdReadOnlyAsync(planId, ct);
             if (plan == null)
                 return ServiceResult<List<EmployeePlanRowDto>>.Fail(404, "Plan not found.");
 
@@ -154,10 +154,7 @@ namespace CRMService.Application.Service.CrmServices
             List<int> employeeIds = employees.Select(x => x.Id).ToList();
 
             List<PlanSetting> settings = await unitOfWork.PlanSetting
-                .GetItemsByPredicateAsync(
-                    x => x.PlanId == planId && employeeIds.Contains(x.EmployeeId),
-                    asNoTracking: true,
-                    ct: ct);
+                .GetByPlanAndEmployeesReadOnlyAsync(planId, employeeIds, ct);
 
             Dictionary<int, PlanSetting> map = settings.ToDictionary(x => x.EmployeeId, x => x);
 
@@ -204,14 +201,12 @@ namespace CRMService.Application.Service.CrmServices
                 employeeIds.Add(item.EmployeeId);
             }
 
-            List<Plan> plans = await unitOfWork.Plan.GetItemsByPredicateAsync(x => planIds.Contains(x.Id), asNoTracking: true, ct: ct);
+            List<Plan> plans = await unitOfWork.Plan.GetByIdsReadOnlyAsync(planIds, ct);
 
             if (plans.Count != planIds.Count)
                 return ServiceResult<bool>.Fail(400, "One or more plans do not exist.");
 
-            List<PlanSetting> existing = await unitOfWork.PlanSetting.GetItemsByPredicateAsync(
-                x => planIds.Contains(x.PlanId) && employeeIds.Contains(x.EmployeeId),
-                ct: ct);
+            List<PlanSetting> existing = await unitOfWork.PlanSetting.GetByPlansAndEmployeesAsync(planIds, employeeIds, ct);
 
             Dictionary<string, PlanSetting> map = existing.ToDictionary(
                 x => ComposePlanSettingKey(x.PlanId, x.EmployeeId),
@@ -257,8 +252,7 @@ namespace CRMService.Application.Service.CrmServices
             if (planId == Guid.Empty)
                 return ServiceResult<List<PlanColorSchemeDto>>.Fail(400, "PlanId is required.");
 
-            List<PlanColorScheme> rules = await unitOfWork.PlanColor
-                .GetItemsByPredicateAsync(x => x.PlanId == planId, asNoTracking: true, ct: ct);
+            List<PlanColorScheme> rules = await unitOfWork.PlanColor.GetByPlanIdReadOnlyAsync(planId, ct);
 
             List<PlanColorSchemeDto> dto = rules
                 .OrderBy(x => x.FromPercent)
@@ -305,11 +299,11 @@ namespace CRMService.Application.Service.CrmServices
             if (!ValidateRanges(items))
                 return ServiceResult<bool>.Fail(400, "Color ranges must not overlap.");
 
-            Plan? plan = await unitOfWork.Plan.GetItemByIdAsync(planId, asNoTracking: true, ct: ct);
+            Plan? plan = await unitOfWork.Plan.GetItemByIdReadOnlyAsync(planId, ct);
             if (plan == null)
                 return ServiceResult<bool>.Fail(404, "Plan not found.");
 
-            List<PlanColorScheme> existing = await unitOfWork.PlanColor.GetItemsByPredicateAsync(x => x.PlanId == planId, ct: ct);
+            List<PlanColorScheme> existing = await unitOfWork.PlanColor.GetByPlanIdAsync(planId, ct);
             Dictionary<Guid, PlanColorScheme> map = existing.ToDictionary(x => x.Id, x => x);
             HashSet<Guid?> keepIds = items.Where(x => x.Id.HasValue).Select(x => x.Id).ToHashSet();
 
@@ -348,7 +342,7 @@ namespace CRMService.Application.Service.CrmServices
 
         private async Task<GeneralSettings> EnsureGeneralSettings(CancellationToken ct)
         {
-            List<GeneralSettings> settings = await unitOfWork.GeneralSettings.GetItemsByPredicateAsync(ct: ct);
+            List<GeneralSettings> settings = await unitOfWork.GeneralSettings.GetItemsAsync(ct);
             GeneralSettings? existing = settings.FirstOrDefault();
 
             if (existing != null)

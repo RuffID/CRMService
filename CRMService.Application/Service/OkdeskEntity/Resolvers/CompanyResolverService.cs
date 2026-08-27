@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class CompanyResolverService(
-        IUnitOfWork unitOfWork,
+        IIssuesUnitOfWork unitOfWork,
         CompanyService companyService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<CompanyResolverService> logger)
@@ -21,7 +21,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         {
             return referenceResolveHelper.ResolveAsync(
                 companyId,
-                async token => (await unitOfWork.Company.GetItemByIdAsync(companyId, true, ct: token))?.Id,
+                async token => (await unitOfWork.Company.GetItemByIdReadOnlyAsync(companyId, token))?.Id,
                 token => companyService.UpdateCompanyFromCloudApi(companyId, token),
                 id => $"company:{id}",
                 id => $"Company with id: {id} was not found for issue with id: {issueId}. Refreshing company from API.",

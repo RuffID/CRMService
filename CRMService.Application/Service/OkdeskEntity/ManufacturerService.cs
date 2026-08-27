@@ -13,8 +13,11 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<ManufacturerService> logger)
+    public class ManufacturerService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IEquipmentUnitOfWork unitOfWork, IOkdeskEquipmentSource okdeskUnitOfWork, EntitySyncService sync, ILogger<ManufacturerService> logger)
     {
+        public Task<List<Manufacturer>> GetManufacturersAsync(CancellationToken ct = default) =>
+            unitOfWork.Manufacturer.GetItemsReadOnlyAsync(ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<LookupOptionDto>>> GetManufacturerLookupAsync(EquipmentLookupListRequest requestModel, CancellationToken ct = default)
@@ -26,14 +29,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
             List<int>? modelIds = NormalizeIds(requestModel.ModelIds);
 
-            List<Manufacturer> manufacturers = await unitOfWork.Manufacturer.GetItemsByPredicateAsync(
-                predicate: manufacturer =>
-                    (modelIds == null || manufacturer.Models.Any(model => modelIds.Contains(model.Id)))
-                    && (normalizedSearch == null
-                        || manufacturer.Name.Contains(normalizedSearch)
-                        || (manufacturer.Code != null && manufacturer.Code.Contains(normalizedSearch))),
-                asNoTracking: true,
-                ct: ct);
+            List<Manufacturer> manufacturers = await unitOfWork.Manufacturer.SearchReadOnlyAsync(normalizedSearch, modelIds, ct);
 
             IEnumerable<Manufacturer> orderedManufacturers = normalizedSearch == null
                 ? manufacturers.OrderBy(manufacturer => manufacturer.Id)
@@ -65,7 +61,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Manufacturer>> GetManufacturersFromCloudDb(CancellationToken ct)
         {
-            List<Manufacturer> manufacturers = await okdeskUnitOfWork.Manufacturer.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Manufacturer> manufacturers = await okdeskUnitOfWork.Manufacturer.GetAllReadOnlyAsync(ct);
             
             return manufacturers.OrderBy(x => x.Id).ToList();
         }
@@ -80,7 +76,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(newManufacturer, async () =>
                     {
-                        Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
+                        Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct);
                         if (existingManufacturer == null)
                             unitOfWork.Manufacturer.Create(newManufacturer);
                         else
@@ -104,7 +100,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(newManufacturer, async () =>
                 {
-                    Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct: ct);
+                    Manufacturer? existingManufacturer = await unitOfWork.Manufacturer.GetItemByIdAsync(newManufacturer.Id, ct);
                     if (existingManufacturer == null)
                         unitOfWork.Manufacturer.Create(newManufacturer);
                     else

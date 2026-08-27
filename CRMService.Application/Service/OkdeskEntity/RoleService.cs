@@ -9,8 +9,11 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, EmployeeService employeeService, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, EntitySyncService sync, ILogger<RoleService> logger)
+    public class RoleService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, EmployeeService employeeService, IOkdeskEntityRequestService request, ICompanyDirectoryUnitOfWork unitOfWork, EntitySyncService sync, ILogger<RoleService> logger)
     {
+        public Task<List<OkdeskRole>> GetRolesAsync(CancellationToken ct = default) =>
+            unitOfWork.OkdeskRole.GetItemsReadOnlyAsync(ct);
+
         private async Task<List<OkdeskRole>> GetRolesFromCloudApi()
         {
             string link = $"{endpoint.Value.OkdeskApi}/employees/roles?api_token={okdeskSettings.Value.OkdeskApiToken}";
@@ -31,7 +34,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             {
                 await sync.RunExclusive(role, async () =>
                 {
-                    OkdeskRole? existingRole = await unitOfWork.OkdeskRole.GetItemByIdAsync(role.Id, ct: ct);
+                    OkdeskRole? existingRole = await unitOfWork.OkdeskRole.GetItemByIdAsync(role.Id, ct);
 
                     if (existingRole == null)
                         unitOfWork.OkdeskRole.Create(role);
@@ -70,8 +73,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 // Загрузить существующие связи по затронутым сотрудникам
                 // Берём все роли этих сотрудников, чтобы удалить лишнее относительно снапшота из API
-                List<EmployeeRole> existingLinks = await unitOfWork.EmployeeRole
-                    .GetItemsByPredicateAsync(er => employeeIdsIncoming.Contains(er.EmployeeId), asNoTracking: true, ct: ct);
+                List<EmployeeRole> existingLinks = await unitOfWork.EmployeeRole.GetByEmployeeIdsReadOnlyAsync(employeeIdsIncoming, ct);
 
                 List<EmployeeRole> toAdd = desired.Except(existingLinks, EmployeeRole.Comparer).ToList();
                 List<EmployeeRole> toDelete = existingLinks.Except(desired, EmployeeRole.Comparer).ToList();

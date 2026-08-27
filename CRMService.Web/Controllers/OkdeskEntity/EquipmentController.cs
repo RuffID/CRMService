@@ -13,12 +13,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class EquipmentController(IUnitOfWork unitOfWork, EquipmentService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class EquipmentController(EquipmentService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetEquipment([FromQuery] int id, CancellationToken ct)
         {
-            Equipment? equipment = await unitOfWork.Equipment.GetItemByIdAsync(id, asNoTracking: true, include: e => e.Include(e => e.Parameters), ct: ct);
+            Equipment? equipment = await service.GetEquipmentAsync(id, ct);
 
             if (equipment == null)
                 return NotFound();
@@ -29,7 +29,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet("by_maintenance_entity")]
         public async Task<IActionResult> GetEquipmentsByMaintenanceEntity([FromQuery] int maintenanceEntityId, CancellationToken ct)
         {
-            List<Equipment> equipments = await unitOfWork.Equipment.GetItemsByPredicateAsync(predicate: e => e.MaintenanceEntitiesId == maintenanceEntityId, asNoTracking: true, include: me => me.Include(me => me.Parameters), ct: ct);
+            List<Equipment> equipments = await service.GetEquipmentsByMaintenanceEntityAsync(maintenanceEntityId, ct);
 
             return Ok(equipments.ToDto());
         }
@@ -37,7 +37,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet("by_company")]
         public async Task<IActionResult> GetEquipmentsByCompany([FromQuery] int companyId, CancellationToken ct)
         {
-            List<Equipment> equipments = await unitOfWork.Equipment.GetItemsByPredicateAsync(predicate: e => e.CompanyId == companyId, asNoTracking: true, include: e => e.Include(e => e.Parameters), ct: ct);
+            List<Equipment> equipments = await service.GetEquipmentsByCompanyAsync(companyId, ct);
 
             return Ok(equipments.ToDto());
         }

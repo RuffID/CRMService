@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
-    public class OkdeskIssuePriorityRepository(
+    public partial class OkdeskIssuePriorityRepository(
         IGetItemByIdRepository<IssuePriority, int, OkdeskContext> getItemById,
         IGetItemByPredicateRepository<IssuePriority, OkdeskContext> getItemByPredicate) : IOkdeskIssuePriorityRepository
     {

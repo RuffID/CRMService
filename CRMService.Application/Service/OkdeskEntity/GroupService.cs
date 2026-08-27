@@ -13,13 +13,13 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<GroupService> logger)
+    public class GroupService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, ICompanyDirectoryUnitOfWork unitOfWork, IOkdeskCompanyDirectorySource okdeskUnitOfWork, EntitySyncService sync, ILogger<GroupService> logger)
     {
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<GroupDto>>> GetGroups(CancellationToken ct = default)
         {
-            List<Group> groups = await unitOfWork.Group.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Group> groups = await unitOfWork.Group.GetItemsReadOnlyAsync(ct);
 
             return ServiceResult<List<GroupDto>>.Ok(groups.ToDto().ToList());
         }
@@ -32,10 +32,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
 
-            List<Group> groups = await unitOfWork.Group.GetItemsByPredicateAsync(
-                predicate: group => normalizedSearch == null || (group.Name != null && group.Name.Contains(normalizedSearch)),
-                asNoTracking: true,
-                ct: ct);
+            List<Group> groups = await unitOfWork.Group.SearchReadOnlyAsync(normalizedSearch, ct);
 
             IEnumerable<Group> orderedGroups = normalizedSearch == null
                 ? groups.OrderBy(group => group.Id)
@@ -66,7 +63,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Group>> GetGroupsFromCloudDb(CancellationToken ct)
         {
-            List<Group> groups = await okdeskUnitOfWork.Group.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Group> groups = await okdeskUnitOfWork.Group.GetAllReadOnlyAsync(ct);
 
             return groups.OrderBy(x => x.Id).ToList();
         }
@@ -85,7 +82,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     {
                         group.Employees?.Clear();
 
-                        Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+                        Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct);
 
                         if (existingGroup == null)
                             unitOfWork.Group.Create(group);
@@ -112,7 +109,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(group, async () =>
                     {
-                        Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct: ct);
+                        Group? existingGroup = await unitOfWork.Group.GetItemByIdAsync(group.Id, ct);
                         if (existingGroup == null)
                             unitOfWork.Group.Create(group);
                         else
@@ -162,10 +159,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             List<int> employeeIds = allEmployeesFromApi.Select(e => e.Id).Distinct().ToList();
 
             List<EmployeeGroup> existing = await unitOfWork.EmployeeGroup
-                .GetItemsByPredicateAsync(
-                    eg => employeeIds.Contains(eg.EmployeeId) && groupIds.Contains(eg.GroupId),
-                    asNoTracking: true,
-                    ct: ct);
+                .GetByEmployeesAndGroupsReadOnlyAsync(employeeIds, groupIds, ct);
 
             List<EmployeeGroup> toAdd = desired.Except(existing, EmployeeGroup.Comparer).ToList();
             List<EmployeeGroup> toDelete = existing.Except(desired, EmployeeGroup.Comparer).ToList();

@@ -5,7 +5,7 @@ using CRMService.Application.Abstractions.Database.Repository.Entity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class ParameterRepository(
+    public partial class ParameterRepository(
         IGetItemByPredicateRepository<EquipmentParameter, MainContext> getItemByPredicate,
         ICreateItemRepository<EquipmentParameter, MainContext> create
     ) : IParameterRepository

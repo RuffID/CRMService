@@ -1,13 +1,11 @@
-using Microsoft.EntityFrameworkCore;
-using EFCoreLibrary.Abstractions.Database.Repository.Base;
-using CRMService.Contracts.Models.Dto.OkdeskEntity;
+using CRMService.Application.Abstractions.Database.Repository.Base;
 using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Abstractions.Database.Repository.Entity
 {
     public interface IParameterRepository :
-        IGetItemByPredicateRepository<EquipmentParameter, DbContext>,
-        ICreateItemRepository<EquipmentParameter, DbContext>
+        ICreateItemRepository<EquipmentParameter>
     {
+        Task<List<EquipmentParameter>> GetByEquipmentIdAsync(int equipmentId, CancellationToken ct = default);
     }
 }

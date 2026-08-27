@@ -1,13 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using CRMService.Application.Abstractions.Database.Repository.Base;
 using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Abstractions.Database.Repository.Entity
 {
     public interface IKindParamsRepository :
-        IGetItemByPredicateRepository<KindParam, DbContext>,
-        ICreateItemRepository<KindParam, DbContext>,
-        IDeleteItemRepository<KindParam, DbContext>
+        ICreateItemRepository<KindParam>,
+        IDeleteItemRepository<KindParam>
     {
+        Task<List<KindParam>> GetByKindIdsReadOnlyAsync(IReadOnlyCollection<int> kindIds, CancellationToken ct = default);
     }
 }

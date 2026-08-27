@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
-    public class OkdeskKindParamsRepository(
+    public partial class OkdeskKindParamsRepository(
         IGetItemByPredicateRepository<KindParam, OkdeskContext> getItemByPredicate) : IOkdeskKindParamsRepository
     {
         public Task<KindParam?> GetItemByPredicateAsync(Expression<Func<KindParam, bool>> predicate, bool asNoTracking = false, Func<IQueryable<KindParam>, IQueryable<KindParam>>? include = null, CancellationToken ct = default)

@@ -6,7 +6,7 @@ using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.Report
 {
-    public class IssueDynamicsChartService(IUnitOfWork unitOfWork) : IIssueDynamicsChartService
+    public class IssueDynamicsChartService(IReportsUnitOfWork unitOfWork) : IIssueDynamicsChartService
     {
         public async Task<IssueDynamicsChartDto> GetIssueDynamicsChartAsync(IssueDynamicsChartRequest request, CancellationToken ct)
         {

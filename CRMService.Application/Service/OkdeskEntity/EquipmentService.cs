@@ -7,7 +7,6 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using CRMService.Application.Abstractions.Service;
@@ -19,8 +18,8 @@ namespace CRMService.Application.Service.OkdeskEntity
         IOptions<ApiEndpointOptions> endpoint,
         IOptions<OkdeskOptions> okdeskSettings,
         IOkdeskEntityRequestService request,
-        IUnitOfWork unitOfWork,
-        IOkdeskUnitOfWork okdeskUnitOfWork,
+        IEquipmentUnitOfWork unitOfWork,
+        IOkdeskEquipmentSource okdeskUnitOfWork,
         EntitySyncService sync,
         CompanyResolverService companyResolver,
         KindParameterResolverService kindParameterResolver,
@@ -30,6 +29,15 @@ namespace CRMService.Application.Service.OkdeskEntity
         ModelResolverService modelResolver,
         ILogger<EquipmentService> logger)
     {
+        public Task<Equipment?> GetEquipmentAsync(int id, CancellationToken ct = default) =>
+            unitOfWork.Equipment.GetWithParametersReadOnlyAsync(id, ct);
+
+        public Task<List<Equipment>> GetEquipmentsByMaintenanceEntityAsync(int maintenanceEntityId, CancellationToken ct = default) =>
+            unitOfWork.Equipment.GetByMaintenanceEntityWithParametersReadOnlyAsync(maintenanceEntityId, ct);
+
+        public Task<List<Equipment>> GetEquipmentsByCompanyAsync(int companyId, CancellationToken ct = default) =>
+            unitOfWork.Equipment.GetByCompanyWithParametersReadOnlyAsync(companyId, ct);
+
         private const int MAX_PAGE_SIZE = 100;
         private const int QUICK_COUNT_LIMIT = 1000;
         private const int QUICK_COUNT_QUERY_LIMIT = QUICK_COUNT_LIMIT + 1;
@@ -87,21 +95,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (equipmentId <= 0)
                 return ServiceResult<EquipmentDetailsDto>.Fail(400, "Идентификатор оборудования должен быть больше нуля.");
 
-            Equipment? equipment = await unitOfWork.Equipment.GetItemByIdAsync(
-                equipmentId,
-                asNoTracking: true,
-                include: query => query
-                    .Include(item => item.Company)
-                        .ThenInclude(company => company!.Category)
-                    .Include(item => item.Kind)
-                        .ThenInclude(kind => kind!.KindParams)
-                            .ThenInclude(kindParam => kindParam.KindParameter)
-                    .Include(item => item.Manufacturer)
-                    .Include(item => item.Model)
-                    .Include(item => item.MaintenanceEntities)
-                    .Include(item => item.Parameters)
-                        .ThenInclude(parameter => parameter.KindParameter),
-                ct: ct);
+            Equipment? equipment = await unitOfWork.Equipment.GetDetailsReadOnlyAsync(equipmentId, ct);
 
             if (equipment == null)
                 return ServiceResult<EquipmentDetailsDto>.Fail(404, "Оборудование не найдено.");
@@ -210,7 +204,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             else
                 existingEquipment.CopyData(equipment);
 
-            List<EquipmentParameter> existingParameters = await unitOfWork.Parameter.GetItemsByPredicateAsync(p => p.EquipmentId == equipment.Id, ct: ct);
+            List<EquipmentParameter> existingParameters = await unitOfWork.Parameter.GetByEquipmentIdAsync(equipment.Id, ct);
             Dictionary<int, EquipmentParameter> existingParametersByKindParameterId = existingParameters
                 .Where(p => p.KindParameterId.HasValue)
                 .ToDictionary(p => p.KindParameterId!.Value);
@@ -387,22 +381,22 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<Company> companies = companyIds.Count == 0
                 ? new ()
-                : await unitOfWork.Company.GetItemsByPredicateAsync(c => companyIds.Contains(c.Id), asNoTracking: true, ct: ct);
+                : await unitOfWork.Company.GetByIdsReadOnlyAsync(companyIds, ct);
             List<MaintenanceEntity> maintenanceEntities = maintenanceEntityIds.Count == 0
                 ? new ()
-                : await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(m => maintenanceEntityIds.Contains(m.Id), asNoTracking: true, ct: ct);
+                : await unitOfWork.MaintenanceEntity.GetByIdsReadOnlyAsync(maintenanceEntityIds, ct);
             List<Manufacturer> manufacturers = manufacturerCodes.Count == 0
                 ? new ()
-                : await unitOfWork.Manufacturer.GetItemsByPredicateAsync(m => manufacturerCodes.Contains(m.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.Manufacturer.GetByCodesReadOnlyAsync(manufacturerCodes, ct);
             List<Kind> kinds = kindCodes.Count == 0
                 ? new ()
-                : await unitOfWork.Kind.GetItemsByPredicateAsync(k => kindCodes.Contains(k.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.Kind.GetByCodesReadOnlyAsync(kindCodes, ct);
             List<Model> models = modelCodes.Count == 0
                 ? new ()
-                : await unitOfWork.Model.GetItemsByPredicateAsync(m => modelCodes.Contains(m.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.Model.GetByCodesReadOnlyAsync(modelCodes, ct);
             List<KindsParameter> kindParameters = parameterCodes.Count == 0
                 ? new ()
-                : await unitOfWork.KindParameter.GetItemsByPredicateAsync(kp => parameterCodes.Contains(kp.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.KindParameter.GetByCodesReadOnlyAsync(parameterCodes, ct);
 
             // Заполняет кэши связанных сущностей для пачки оборудования.
             return new EquipmentBatchContext(

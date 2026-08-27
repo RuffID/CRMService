@@ -7,7 +7,6 @@ using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -20,8 +19,8 @@ namespace CRMService.Application.Service.OkdeskEntity
         IOptions<ApiEndpointOptions> endpoint,
         IOptions<OkdeskOptions> okdeskSettings,
         IOkdeskEntityRequestService itemService,
-        IUnitOfWork unitOfWork,
-        IOkdeskUnitOfWork okdeskUnitOfWork,
+        IIssuesUnitOfWork unitOfWork,
+        IOkdeskIssuesSource okdeskUnitOfWork,
         EntitySyncService sync,
         CompanyResolverService companyResolver,
         EmployeeResolverService employeeResolver,
@@ -31,6 +30,15 @@ namespace CRMService.Application.Service.OkdeskEntity
         MaintenanceEntityResolverService maintenanceEntityResolver,
         ILogger<IssueService> logger)
     {
+        public Task<List<Issue>> GetIssuesAsync(int startIndex, int limit, CancellationToken ct = default) =>
+            unitOfWork.Issue.GetFromIdReadOnlyAsync(startIndex, limit, ct);
+
+        public Task<Issue?> GetIssueAsync(int id, CancellationToken ct = default) =>
+            unitOfWork.Issue.GetItemByIdReadOnlyAsync(id, ct);
+
+        public Task<List<Issue>> GetUpdatedLocalIssuesAsync(DateTime dateFrom, DateTime dateTo, CancellationToken ct = default) =>
+            unitOfWork.Issue.GetUpdatedLocalReadOnlyAsync(dateFrom, dateTo, ct);
+
         private const int MAX_PAGE_SIZE = 100;
         private const int QUICK_COUNT_LIMIT = 1000;
         private const int QUICK_COUNT_QUERY_LIMIT = QUICK_COUNT_LIMIT + 1;
@@ -89,25 +97,14 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (id <= 0)
                 return ServiceResult<IssueDetailsDto>.Fail(400, "Идентификатор заявки должен быть больше нуля.");
 
-            Issue? issue = await unitOfWork.Issue.GetItemByIdAsync(
-                id,
-                asNoTracking: true,
-                include: query => query
-                    .Include(current => current.Company)
-                    .ThenInclude(company => company!.Category)
-                    .Include(current => current.ServiceObject)
-                    .Include(current => current.Assignee)
-                    .Include(current => current.Priority)
-                    .Include(current => current.Status)
-                    .Include(current => current.Type),
-                ct: ct);
+            Issue? issue = await unitOfWork.Issue.GetDetailsReadOnlyAsync(id, ct);
 
             if (issue == null || issue.DeletedAt.HasValue)
                 return ServiceResult<IssueDetailsDto>.Fail(404, "Заявка не найдена.");
 
             Employee? author = null;
             if (issue.AuthorId.HasValue && issue.AuthorId.Value > 0)
-                author = await unitOfWork.Employee.GetItemByIdAsync(issue.AuthorId.Value, asNoTracking: true, ct: ct);
+                author = await unitOfWork.Employee.GetItemByIdReadOnlyAsync(issue.AuthorId.Value, ct);
 
             return ServiceResult<IssueDetailsDto>.Ok(new IssueDetailsDto
             {
@@ -152,7 +149,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             long employeeStartIndex = 0;
             HashSet<int> processedIssueIds = new();
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id >= employeeStartIndex && e.Active, asNoTracking: true, ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.GetActiveFromIdReadOnlyAsync(employeeStartIndex, inclusive: true, ct);
             long pageNubmer = 1;
 
             while (employees.Count != 0)
@@ -162,7 +159,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 employeeStartIndex = employees.Last().Id;
 
-                employees = await unitOfWork.Employee.GetItemsByPredicateAsync(predicate: e => e.Id > employeeStartIndex && e.Active, asNoTracking: true, ct: ct);
+                employees = await unitOfWork.Employee.GetActiveFromIdReadOnlyAsync(employeeStartIndex, inclusive: false, ct);
             }
 
             await UpdateIssuesForAssigneeAsync(dateFrom, dateTo, 0, pageNubmer, startIndex, limit, processedIssueIds, ct);
@@ -356,7 +353,7 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             HashSet<int> issueIds = issues.Select(issue => issue.Id).ToHashSet();
 
-            List<Issue> existingIssues = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate: issue => issueIds.Contains(issue.Id), ct: ct);
+            List<Issue> existingIssues = await unitOfWork.Issue.GetByIdsAsync(issueIds, ct);
 
             Dictionary<int, Issue> existingIssuesById = existingIssues.ToDictionary(issue => issue.Id);
 
@@ -555,34 +552,31 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             List<Company> companies = companyIds.Count == 0
                 ? new()
-                : await unitOfWork.Company.GetItemsByPredicateAsync(company => companyIds.Contains(company.Id), asNoTracking: true, ct: ct);
+                : await unitOfWork.Company.GetByIdsReadOnlyAsync(companyIds, ct);
 
             List<MaintenanceEntity> serviceObjects = serviceObjectIds.Count == 0
                 ? new()
-                : await unitOfWork.MaintenanceEntity.GetItemsByPredicateAsync(serviceObject => serviceObjectIds.Contains(serviceObject.Id), asNoTracking: true, ct: ct);
+                : await unitOfWork.MaintenanceEntity.GetByIdsReadOnlyAsync(serviceObjectIds, ct);
 
             List<Employee> employees = employeeIds.Count == 0
                 ? new()
-                : await unitOfWork.Employee.GetItemsByPredicateAsync(employee => employeeIds.Contains(employee.Id), asNoTracking: true, ct: ct);
+                : await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, ct: ct);
 
             List<IssueStatus> statuses = statusCodes.Count == 0
                 ? new()
-                : await unitOfWork.IssueStatus.GetItemsByPredicateAsync(status => statusCodes.Contains(status.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.IssueStatus.GetByCodesReadOnlyAsync(statusCodes, ct);
 
             List<IssueType> types = typeCodes.Count == 0
                 ? new()
-                : await unitOfWork.IssueType.GetItemsByPredicateAsync(type => typeCodes.Contains(type.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.IssueType.GetByCodesReadOnlyAsync(typeCodes, ct);
 
             List<IssuePriority> priorities = priorityCodes.Count == 0
                 ? new()
-                : await unitOfWork.IssuePriority.GetItemsByPredicateAsync(priority => priorityCodes.Contains(priority.Code), asNoTracking: true, ct: ct);
+                : await unitOfWork.IssuePriority.GetByCodesReadOnlyAsync(priorityCodes, ct);
 
             List<Employee> contactAuthors = authorIds.Count == 0
                 ? new()
-                : await okdeskUnitOfWork.Employee.GetItemsByPredicateAsync(
-                    employee => authorIds.Contains(employee.Id) && EF.Property<string>(employee, "Type") == "Contact",
-                    asNoTracking: true,
-                    ct: ct);
+                : await okdeskUnitOfWork.Employee.GetContactsByIdsReadOnlyAsync(authorIds, ct);
 
             return new IssueBatchContext(
                 companies.Select(company => company.Id).ToHashSet(),
@@ -596,10 +590,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<int?> ResolveAuthorIdAsync(int authorId, int issueId, CancellationToken ct)
         {
-            Employee? contactAuthor = await okdeskUnitOfWork.Employee.GetItemByPredicateAsync(
-                employee => employee.Id == authorId && EF.Property<string>(employee, "Type") == "Contact",
-                asNoTracking: true,
-                ct: ct);
+            Employee? contactAuthor = await okdeskUnitOfWork.Employee.GetContactByIdReadOnlyAsync(authorId, ct);
 
             if (contactAuthor != null)
                 return null;

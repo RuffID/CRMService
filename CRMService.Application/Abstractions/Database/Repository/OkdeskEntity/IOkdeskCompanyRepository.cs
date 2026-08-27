@@ -1,12 +1,9 @@
 using CRMService.Domain.Models.OkdeskEntity;
-using EFCoreLibrary.Abstractions.Database.Repository.Base;
-using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Application.Abstractions.Database.Repository.OkdeskEntity
 {
-    public interface IOkdeskCompanyRepository :
-        IGetItemByIdRepository<Company, int, DbContext>,
-        IGetItemByPredicateRepository<Company, DbContext>
+    public interface IOkdeskCompanyRepository
     {
+        Task<List<Company>> GetAllWithCategoryReadOnlyAsync(CancellationToken ct = default);
     }
 }

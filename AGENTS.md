@@ -13,7 +13,7 @@
 
 Основной пользовательский интерфейс строится вокруг Razor Pages. Страницы обычно отдают статическую разметку и загружают данные через handlers PageModel или отдельные API-эндпоинты. Клиентская логика лежит в `CRMService.Web/wwwroot/js`, а серверная прикладная логика — в сервисах `CRMService.Application/Service`.
 
-Данные из Okdesk и связанных источников попадают в локальную CRM через ручные API-команды, фоновые обновления и вебхуки. Для доступа к основной базе использовать `IUnitOfWork`, для источника Okdesk — `IOkdeskUnitOfWork`; не смешивать прямой доступ к контекстам с прикладной логикой без необходимости.
+Данные из Okdesk и связанных источников попадают в локальную CRM через ручные API-команды, фоновые обновления и вебхуки. Для MainContext использовать узкие сценарные Unit of Work (`IAuthorizationUnitOfWork`, `IPlanSettingsUnitOfWork`, `IReportsUnitOfWork`, `ICompanyDirectoryUnitOfWork`, `IEquipmentUnitOfWork`, `IIssuesUnitOfWork`). Read-only доступ к OkdeskContext разделён на предметные source-контракты. Не смешивать прямой доступ к контекстам с прикладной логикой и не создавать новый глобальный агрегатор repositories.
 
 ## Документация функционала
 

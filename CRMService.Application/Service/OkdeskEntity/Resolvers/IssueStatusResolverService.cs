@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class IssueStatusResolverService(
-        IUnitOfWork unitOfWork,
+        IIssuesUnitOfWork unitOfWork,
         IssueStatusService issueStatusService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<IssueStatusResolverService> logger)
@@ -16,7 +16,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 
             return referenceResolveHelper.ResolveAsync(
                 issueStatus.Code,
-                async token => (await unitOfWork.IssueStatus.GetItemByPredicateAsync(s => s.Code == issueStatus.Code, true, ct: token))?.Id,
+                async token => (await unitOfWork.IssueStatus.GetByCodeReadOnlyAsync(issueStatus.Code, token))?.Id,
                 issueStatusService.UpdateIssueStatusesFromCloudDb,
                 code => $"issue-status:{code}",
                 code => $"Status with code: {code} was not found for issue with id: {issueId}. Refreshing statuses from API.",

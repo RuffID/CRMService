@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class KindResolverService(
-        IUnitOfWork unitOfWork,
+        IEquipmentUnitOfWork unitOfWork,
         KindService kindService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<KindResolverService> logger)
@@ -21,7 +21,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 
             return referenceResolveHelper.ResolveAsync(
                 kind.Code,
-                async token => (await unitOfWork.Kind.GetItemByPredicateAsync(k => k.Code == kind.Code, true, ct: token))?.Id,
+                async token => (await unitOfWork.Kind.GetByCodeReadOnlyAsync(kind.Code, token))?.Id,
                 kindService.UpdateKindsFromCloudApi,
                 code => $"kind:{code}",
                 code => $"Kind with code: {code} was not found for {ownerEntityName} with id: {ownerEntityId}. Refreshing kinds from API.",

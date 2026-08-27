@@ -6,11 +6,11 @@ using CRMService.Application.Common.Mapping.Authorize;
 
 namespace CRMService.Application.Service.Authorization
 {
-    public class RoleService(IUnitOfWork unitOfWork)
+    public class RoleService(IAuthorizationUnitOfWork unitOfWork)
     {
         public async Task<ServiceResult<List<CrmRoleDto>>> GetRolesAsync(CancellationToken ct)
         {
-            List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<CrmRole> roles = await unitOfWork.CrmRole.GetItemsReadOnlyAsync(ct);
 
             return ServiceResult<List<CrmRoleDto>>.Ok(roles.ToDto().ToList());
         }

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class MaintenanceEntityResolverService(
-        IUnitOfWork unitOfWork,
+        IEquipmentUnitOfWork unitOfWork,
         MaintenanceEntityService maintenanceEntityService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<MaintenanceEntityResolverService> logger)
@@ -21,7 +21,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         {
             return referenceResolveHelper.ResolveAsync(
                 maintenanceEntityId,
-                async token => (await unitOfWork.MaintenanceEntity.GetItemByIdAsync(maintenanceEntityId, true, ct: token))?.Id,
+                async token => (await unitOfWork.MaintenanceEntity.GetItemByIdReadOnlyAsync(maintenanceEntityId, token))?.Id,
                 token => maintenanceEntityService.UpdateMaintenanceEntityFromCloudApi(maintenanceEntityId, token),
                 id => $"maintenance-entity:{id}",
                 id => $"Service object with id: {id} was not found for issue with id: {issueId}. Refreshing maintenance entity from API.",

@@ -5,7 +5,7 @@ using CRMService.Application.Abstractions.Database.Repository.Entity;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class TimeEntryRepository(
+    public partial class TimeEntryRepository(
         IGetItemByIdRepository<TimeEntry, int, MainContext> getItemById,
         IGetItemByPredicateRepository<TimeEntry, MainContext> getItemByPredicate,
         ICreateItemRepository<TimeEntry, MainContext> create,

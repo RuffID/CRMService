@@ -7,7 +7,7 @@ using CRMService.Application.Abstractions.Service;
 
 namespace CRMService.Application.Service.Report
 {
-    public class SpentTimeChartService(IUnitOfWork unitOfWork) : ISpentTimeChartService
+    public class SpentTimeChartService(IReportsUnitOfWork unitOfWork) : ISpentTimeChartService
     {
         public async Task<TimeChartDto> GetSpentTimeChart(TimeChartRequest request, CancellationToken ct)
         {
@@ -36,10 +36,7 @@ namespace CRMService.Application.Service.Report
                 };
             }
 
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(
-                e => employeeIds.Contains(e.Id) && e.Active,
-                asNoTracking: true,
-                ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, activeOnly: true, ct);
 
             Dictionary<int, string> employeeNames = employees
                 .OrderBy(e => e.LastName)
@@ -79,10 +76,7 @@ namespace CRMService.Application.Service.Report
                 };
             }
 
-            List<Group> groups = await unitOfWork.Group.GetItemsByPredicateAsync(
-                g => groupIds.Contains(g.Id),
-                asNoTracking: true,
-                ct: ct);
+            List<Group> groups = await unitOfWork.Group.GetByIdsReadOnlyAsync(groupIds, ct);
 
             Dictionary<int, string> groupNames = groups
                 .OrderBy(g => g.Name)
@@ -115,18 +109,12 @@ namespace CRMService.Application.Service.Report
             {
                 List<int> groupIds = request.GroupIds!.Distinct().ToList();
 
-                List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetItemsByPredicateAsync(
-                        eg => groupIds.Contains(eg.GroupId),
-                        asNoTracking: true,
-                        ct: ct);
+                List<EmployeeGroup> connections = await unitOfWork.EmployeeGroup.GetByGroupIdsReadOnlyAsync(groupIds, ct);
 
                 return connections.Select(x => x.EmployeeId).Distinct().ToList();
             }
 
-            List<Employee> employees = await unitOfWork.Employee.GetItemsByPredicateAsync(
-                    e => e.Active,
-                    asNoTracking: true,
-                    ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.GetWithGroupsReadOnlyAsync(null, includeInactive: false, ct);
 
             return employees.Select(e => e.Id).ToList();
         }
@@ -136,7 +124,7 @@ namespace CRMService.Application.Service.Report
             if (request.HasGroups)
                 return request.GroupIds!.Distinct().ToList();
 
-            return (await unitOfWork.Group.GetItemsByPredicateAsync(asNoTracking: true, ct: ct)).Select(g => g.Id).ToList();
+            return (await unitOfWork.Group.GetItemsReadOnlyAsync(ct)).Select(g => g.Id).ToList();
         }
 
         private static List<TimeChartSeriesDto> BuildSeries(List<int> entityIds, Dictionary<int, string> entityNames, List<TimeChartPointInfo> points, List<DateTime> buckets)

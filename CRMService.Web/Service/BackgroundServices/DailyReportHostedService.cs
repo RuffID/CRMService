@@ -1,5 +1,4 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
-using CRMService.Domain.Models.Constants;
+﻿using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
 
@@ -19,7 +18,6 @@ namespace CRMService.Web.Service.BackgroundServices
                 try
                 {
                     using IServiceScope scope = scopeFactory.CreateScope();
-                    IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                     IssueService issueService = scope.ServiceProvider.GetRequiredService<IssueService>();
                     TimeEntryService timeEntryService = scope.ServiceProvider.GetRequiredService<TimeEntryService>();
 
@@ -32,12 +30,7 @@ namespace CRMService.Web.Service.BackgroundServices
 
                     await timeEntryService.UpdateTimeEntriesFromCloudDb(dateFrom, dateTo, stoppingToken);
 
-                    List<Issue> issuesFromLocalDb = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate:
-                        i => i.DeletedAt == null
-                        && i.Id >= 0
-                        && i.EmployeesUpdatedAt >= dateFrom
-                        && i.EmployeesUpdatedAt <= dateTo,
-                        asNoTracking: true, ct: stoppingToken);
+                    List<Issue> issuesFromLocalDb = await issueService.GetUpdatedLocalIssuesAsync(dateFrom, dateTo, stoppingToken);
 
                     if (issuesFromLocalDb.Count != 0)
                     {

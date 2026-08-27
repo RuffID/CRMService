@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
 {
-    public class OkdeskIssueRepository(
+    public partial class OkdeskIssueRepository(
         IGetItemByIdRepository<Issue, int, OkdeskContext> getItemById,
         IGetItemByPredicateRepository<Issue, OkdeskContext> getItemByPredicate,
         IQueryRepository<Issue, OkdeskContext> issueQuery,

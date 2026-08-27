@@ -8,8 +8,11 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<KindParameterService> logger)
+    public class KindParameterService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IEquipmentUnitOfWork unitOfWork, IOkdeskEquipmentSource okdeskUnitOfWork, EntitySyncService sync, ILogger<KindParameterService> logger)
     {
+        public Task<List<KindsParameter>> GetKindParametersAsync(CancellationToken ct = default) =>
+            unitOfWork.KindParameter.GetItemsReadOnlyAsync(ct);
+
         public async Task<List<KindsParameter>> GetKindParametersFromCloudApi(CancellationToken ct)
         {
             string link = $"{endpoint.Value.OkdeskApi}/equipments/parameters?api_token={okdeskSettings.Value.OkdeskApiToken}";
@@ -19,7 +22,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<KindsParameter>> GetKindParametersFromCloudDb(CancellationToken ct)
         {
-            List<KindsParameter> parameters = await okdeskUnitOfWork.KindParameter.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<KindsParameter> parameters = await okdeskUnitOfWork.KindParameter.GetAllReadOnlyAsync(ct);
 
             return parameters.OrderBy(x => x.Id).ToList();
         }
@@ -37,7 +40,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        KindsParameter? existingParameter = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
+                        KindsParameter? existingParameter = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct);
 
                         if (existingParameter == null)
                             unitOfWork.KindParameter.Create(item);
@@ -64,7 +67,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(item, async () =>
                     {
-                        KindsParameter? existingParameter = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct: ct);
+                        KindsParameter? existingParameter = await unitOfWork.KindParameter.GetItemByIdAsync(item.Id, ct);
 
                         if (existingParameter == null)
                             unitOfWork.KindParameter.Create(item);

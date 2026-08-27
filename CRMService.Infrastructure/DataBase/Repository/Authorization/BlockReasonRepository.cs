@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Authorization
 {
-    public class BlockReasonRepository(
+    public partial class BlockReasonRepository(
         IGetItemByIdRepository<BlockReason, Guid, MainContext> getItemById,
         IGetItemByPredicateRepository<BlockReason, MainContext> getItemByPredicate,
         ICreateItemRepository<BlockReason, MainContext> create

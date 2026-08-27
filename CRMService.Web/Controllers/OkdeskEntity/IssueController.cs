@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssueController(IUnitOfWork unitOfWork, IssueService issueService, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class IssueController(IssueService issueService, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssues([FromQuery] int startIndex = 0, CancellationToken ct = default)
         {
-            List<Issue> issues = await unitOfWork.Issue.GetItemsByPredicateAsync(predicate: i => i.Id >= startIndex, take: LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, asNoTracking: true, ct: ct);
+            List<Issue> issues = await issueService.GetIssuesAsync(startIndex, LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_DB, ct);
 
             return Ok(issues.ToDto());
         }
@@ -25,7 +25,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssue([FromQuery] int id, CancellationToken ct)
         {
-            Issue? issue = await unitOfWork.Issue.GetItemByIdAsync(id: id, asNoTracking: true, ct: ct);
+            Issue? issue = await issueService.GetIssueAsync(id, ct);
 
             if (issue == null)
                 return NotFound();

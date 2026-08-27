@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CompanyController(IUnitOfWork unitOfWork, CompanyService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class CompanyController(CompanyService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> GetCompany([FromQuery] int id, CancellationToken ct)
         {
-            Company? company = await unitOfWork.Company.GetItemByIdAsync(id, asNoTracking: true, ct: ct);
+            Company? company = await service.GetCompanyAsync(id, ct);
 
             if (company == null)
                 return NotFound();
@@ -28,7 +28,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet("by_category")]
         public async Task<IActionResult> GetCompaniesByCategory([FromQuery] string categoryCode, CancellationToken ct = default)
         {
-            List<Company> companies = await unitOfWork.Company.GetItemsByPredicateAsync(predicate: c => c.Category!.Code == categoryCode, ct: ct);
+            List<Company> companies = await service.GetCompaniesByCategoryAsync(categoryCode, ct);
 
             return Ok(companies.ToDto());
         }

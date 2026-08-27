@@ -13,13 +13,16 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, EntitySyncService sync, ILogger<IssuePriorityService> logger)
+    public class IssuePriorityService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdeskSettings, IOkdeskEntityRequestService request, IIssuesUnitOfWork unitOfWork, IOkdeskIssuesSource okdeskUnitOfWork, EntitySyncService sync, ILogger<IssuePriorityService> logger)
     {
+        public Task<IssuePriority?> GetIssuePriorityAsync(string code, CancellationToken ct = default) =>
+            unitOfWork.IssuePriority.GetByCodeReadOnlyAsync(code, ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<PriorityDto>>> GetIssuePrioritiesAsync(CancellationToken ct)
         {
-            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsReadOnlyAsync(ct);
 
             return ServiceResult<List<PriorityDto>>.Ok(priorities.ToDto().ToList());
         }
@@ -32,10 +35,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             string? normalizedSearch = NormalizeSearch(requestModel.Search);
 
-            List<IssuePriority> priorities = await unitOfWork.IssuePriority.GetItemsByPredicateAsync(
-                predicate: priority => normalizedSearch == null || (priority.Name != null && priority.Name.Contains(normalizedSearch)),
-                asNoTracking: true,
-                ct: ct);
+            List<IssuePriority> priorities = await unitOfWork.IssuePriority.SearchReadOnlyAsync(normalizedSearch, ct);
 
             IEnumerable<IssuePriority> orderedPriorities = normalizedSearch == null
                 ? priorities.OrderBy(priority => priority.Id)
@@ -66,7 +66,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task<List<IssuePriority>> GetIssuePrioritiesFromCloudDb(CancellationToken ct)
         {
-            List<IssuePriority> issuePriorities = await okdeskUnitOfWork.IssuePriority.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<IssuePriority> issuePriorities = await okdeskUnitOfWork.IssuePriority.GetAllReadOnlyAsync(ct);
 
             return issuePriorities.OrderBy(x => x.Id).ToList();
         }
@@ -83,7 +83,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(priority, async () =>
                     {
-                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByPredicateAsync(predicate: p => p.Code == priority.Code, ct: ct);
+                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetByCodeAsync(priority.Code, ct);
                         if (existingPriority == null)
                         {
                             priority.Id = 0;
@@ -112,7 +112,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 {
                     await sync.RunExclusive(priority, async () =>
                     {
-                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetItemByPredicateAsync(predicate: p => p.Code == priority.Code, ct: ct);
+                        IssuePriority? existingPriority = await unitOfWork.IssuePriority.GetByCodeAsync(priority.Code, ct);
                         if (existingPriority == null)
                         {
                             priority.Id = 0;

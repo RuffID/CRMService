@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ModelController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class ModelController(ModelService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetModels(CancellationToken ct = default)
         {
-            List<Model> models = await unitOfWork.Model.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Model> models = await service.GetModelsAsync(ct);
 
             return Ok(models.ToDto());
         }

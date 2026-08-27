@@ -7,7 +7,6 @@ using CRMService.Contracts.Models.Request;
 using CRMService.Contracts.Models.Responses.Results;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using CRMService.Application.Abstractions.Service;
@@ -19,13 +18,16 @@ namespace CRMService.Application.Service.OkdeskEntity
         IOptions<ApiEndpointOptions> endpoint,
         IOptions<OkdeskOptions> okdeskSettings,
         IOkdeskEntityRequestService request,
-        IUnitOfWork unitOfWork,
-        IOkdeskUnitOfWork okdeskUnitOfWork,
+        IEquipmentUnitOfWork unitOfWork,
+        IOkdeskEquipmentSource okdeskUnitOfWork,
         EntitySyncService sync,
         KindResolverService kindResolver,
         ManufacturerResolverService manufacturerResolver,
         ILogger<ModelService> logger)
     {
+        public Task<List<Model>> GetModelsAsync(CancellationToken ct = default) =>
+            unitOfWork.Model.GetItemsReadOnlyAsync(ct);
+
         private const int DEFAULT_LOOKUP_LIMIT = 20;
 
         public async Task<ServiceResult<List<LookupOptionDto>>> GetModelLookupAsync(EquipmentLookupListRequest requestModel, CancellationToken ct = default)
@@ -38,17 +40,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             List<int>? typeIds = NormalizeIds(requestModel.TypeIds);
             List<int>? manufacturerIds = NormalizeIds(requestModel.ManufacturerIds);
 
-            List<Model> models = await unitOfWork.Model.GetItemsByPredicateAsync(
-                predicate: model =>
-                    (typeIds == null || (model.KindId.HasValue && typeIds.Contains(model.KindId.Value)))
-                    && (manufacturerIds == null || (model.ManufacturerId.HasValue && manufacturerIds.Contains(model.ManufacturerId.Value)))
-                    && (normalizedSearch == null
-                        || model.Name.Contains(normalizedSearch)
-                        || (model.Code != null && model.Code.Contains(normalizedSearch))
-                        || (model.Manufacturer != null && model.Manufacturer.Name.Contains(normalizedSearch))),
-                asNoTracking: true,
-                include: query => query.Include(model => model.Manufacturer),
-                ct: ct);
+            List<Model> models = await unitOfWork.Model.SearchReadOnlyAsync(normalizedSearch, typeIds, manufacturerIds, ct);
 
             IEnumerable<Model> orderedModels = normalizedSearch == null
                 ? models.OrderBy(model => model.Id)
@@ -82,7 +74,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task<List<Model>> GetModelsFromCloudDb(CancellationToken ct)
         {
-            List<Model> models = await okdeskUnitOfWork.Model.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Model> models = await okdeskUnitOfWork.Model.GetAllReadOnlyAsync(ct);
 
             return models.OrderBy(x => x.Id).ToList();
         }

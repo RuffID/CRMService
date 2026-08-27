@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class KindParamService(IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, ILogger<KindParamService> logger)
+    public class KindParamService(IEquipmentUnitOfWork unitOfWork, IOkdeskEquipmentSource okdeskUnitOfWork, ILogger<KindParamService> logger)
     {
         private async Task<List<KindParam>> GetConnectionsFromCloudDb(CancellationToken ct)
         {
-            List<KindParam> parameters = await okdeskUnitOfWork.KindParams.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<KindParam> parameters = await okdeskUnitOfWork.KindParams.GetAllReadOnlyAsync(ct);
 
             return parameters.OrderBy(x => x.KindId).ThenBy(x => x.KindParameterId).ToList();
         }
@@ -27,7 +27,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
             await ValidateConnectionReferences(kindIds, kindParameterIds, ct);
 
-            List<KindParam> existingLinks = await unitOfWork.KindParams.GetItemsByPredicateAsync(kp => kindIds.Contains(kp.KindId), asNoTracking: true, ct: ct);
+            List<KindParam> existingLinks = await unitOfWork.KindParams.GetByKindIdsReadOnlyAsync(kindIds, ct);
 
             List<KindParam> toAdd = connections.Except(existingLinks, KindParam.Comparer).ToList();
             List<KindParam> toDelete = existingLinks.Except(connections, KindParam.Comparer).ToList();
@@ -43,15 +43,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private async Task ValidateConnectionReferences(HashSet<int> kindIds, HashSet<int> kindParameterIds, CancellationToken ct)
         {
-            List<Kind> existingKinds = await unitOfWork.Kind.GetItemsByPredicateAsync(
-                kind => kindIds.Contains(kind.Id),
-                asNoTracking: true,
-                ct: ct);
+            List<Kind> existingKinds = await unitOfWork.Kind.GetByIdsReadOnlyAsync(kindIds, ct);
 
-            List<KindsParameter> existingKindParameters = await unitOfWork.KindParameter.GetItemsByPredicateAsync(
-                parameter => kindParameterIds.Contains(parameter.Id),
-                asNoTracking: true,
-                ct: ct);
+            List<KindsParameter> existingKindParameters = await unitOfWork.KindParameter.GetByIdsReadOnlyAsync(kindParameterIds, ct);
 
             List<int> missingKindIds = kindIds.Except(existingKinds.Select(kind => kind.Id)).OrderBy(id => id).ToList();
             List<int> missingKindParameterIds = kindParameterIds.Except(existingKindParameters.Select(parameter => parameter.Id)).OrderBy(id => id).ToList();

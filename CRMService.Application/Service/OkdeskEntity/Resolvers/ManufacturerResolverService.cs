@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class ManufacturerResolverService(
-        IUnitOfWork unitOfWork,
+        IEquipmentUnitOfWork unitOfWork,
         ManufacturerService manufacturerService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<ManufacturerResolverService> logger)
@@ -21,7 +21,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 
             return referenceResolveHelper.ResolveAsync(
                 manufacturer.Code,
-                async token => (await unitOfWork.Manufacturer.GetItemByPredicateAsync(m => m.Code == manufacturer.Code, true, ct: token))?.Id,
+                async token => (await unitOfWork.Manufacturer.GetByCodeReadOnlyAsync(manufacturer.Code, token))?.Id,
                 manufacturerService.UpdateManufacturersFromCloudApi,
                 code => $"manufacturer:{code}",
                 code => $"Manufacturer with code: {code} was not found for {ownerEntityName} with id: {ownerEntityId}. Refreshing manufacturers from API.",

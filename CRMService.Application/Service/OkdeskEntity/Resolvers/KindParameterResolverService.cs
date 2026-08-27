@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace CRMService.Application.Service.OkdeskEntity.Resolvers
 {
     public class KindParameterResolverService(
-        IUnitOfWork unitOfWork,
+        IEquipmentUnitOfWork unitOfWork,
         KindParameterService kindParameterService,
         ReferenceResolveHelper referenceResolveHelper,
         ILogger<KindParameterResolverService> logger)
@@ -13,7 +13,7 @@ namespace CRMService.Application.Service.OkdeskEntity.Resolvers
         {
             return referenceResolveHelper.ResolveAsync(
                 kindParameterCode,
-                async token => (await unitOfWork.KindParameter.GetItemByPredicateAsync(kp => kp.Code == kindParameterCode, true, ct: token))?.Id,
+                async token => (await unitOfWork.KindParameter.GetByCodeReadOnlyAsync(kindParameterCode, token))?.Id,
                 kindParameterService.UpdateKindParametersFromCloudApi,
                 code => $"kind-parameter:{code}",
                 code => $"Kind parameter with code: {code} was not found for equipment with id: {equipmentId}. Refreshing kind parameters from API.",

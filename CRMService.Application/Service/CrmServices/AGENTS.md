@@ -12,6 +12,7 @@
 - страница настроек планов находится в `CRMService.Web/Pages/PlanSettings.cshtml`;
 - клиентский код страницы находится в `CRMService.Web/wwwroot/js/settings/planSettings.js`;
 - доменные модели планов находятся в `CRMService.Domain/Models/CrmEntities`.
+- доступ к планам, общим настройкам, нормам и цветовым правилам объединён в `IPlanSettingsUnitOfWork`.
 
 Правила изменений:
 - сохранять планы, значения сотрудников и цветовые правила как единый пользовательский сценарий;

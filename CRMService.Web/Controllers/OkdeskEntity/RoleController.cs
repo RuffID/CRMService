@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class RoleController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class RoleController(RoleService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetRoles(CancellationToken ct = default)
         {
-            List<OkdeskRole> roles = await unitOfWork.OkdeskRole.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<OkdeskRole> roles = await service.GetRolesAsync(ct);
 
             return Ok(roles.ToDto());
         }

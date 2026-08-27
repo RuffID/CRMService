@@ -1,13 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using CRMService.Application.Abstractions.Database.Repository.Base;
 using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Abstractions.Database.Repository.Entity
 {
     public interface IEmployeeGroupRepository :
-        IGetItemByPredicateRepository<EmployeeGroup, DbContext>,
-        ICreateItemRepository<EmployeeGroup, DbContext>,
-        IDeleteItemRepository<EmployeeGroup, DbContext>
+        IGetItemsRepository<EmployeeGroup>,
+        ICreateItemRepository<EmployeeGroup>,
+        IDeleteItemRepository<EmployeeGroup>
     {
+        Task<List<EmployeeGroup>> GetByGroupIdsReadOnlyAsync(IReadOnlyCollection<int> groupIds, CancellationToken ct = default);
+        Task<List<EmployeeGroup>> GetByEmployeesAndGroupsReadOnlyAsync(IReadOnlyCollection<int> employeeIds, IReadOnlyCollection<int> groupIds, CancellationToken ct = default);
     }
 }

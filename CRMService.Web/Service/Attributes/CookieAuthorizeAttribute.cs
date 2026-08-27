@@ -1,5 +1,6 @@
 ﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Domain.Models.Authorization;
+using CRMService.Application.Service.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -44,8 +45,8 @@ namespace CRMService.Web.Service.Attributes
                 return;
             }
 
-            IUnitOfWork unitOfWork = httpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            User? user = await unitOfWork.User.GetItemByIdAsync(userId, asNoTracking: true, u => u.Include(u => u.Roles), httpContext.RequestAborted);
+            AuthenticationService authenticationService = httpContext.RequestServices.GetRequiredService<AuthenticationService>();
+            User? user = await authenticationService.GetUserWithRolesAsync(userId, httpContext.RequestAborted);
 
             if (user is null || !user.Active)
             {

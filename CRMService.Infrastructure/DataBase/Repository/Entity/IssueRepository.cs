@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Infrastructure.DataBase.Repository.Entity
 {
-    public class IssueRepository(
+    public partial class IssueRepository(
         IGetItemByIdRepository<Issue, int, MainContext> getItemById,
         IGetItemByPredicateRepository<Issue, MainContext> getItemByPredicate,
         ICreateItemRepository<Issue, MainContext> create,

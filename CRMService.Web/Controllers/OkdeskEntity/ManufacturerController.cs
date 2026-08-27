@@ -12,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ManufacturerController(IUnitOfWork unitOfWork, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class ManufacturerController(ManufacturerService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetManufacturers(CancellationToken ct = default)
         {
-            List<Manufacturer> manufacturers = await unitOfWork.Manufacturer.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<Manufacturer> manufacturers = await service.GetManufacturersAsync(ct);
 
             return Ok(manufacturers.ToDto());
         }

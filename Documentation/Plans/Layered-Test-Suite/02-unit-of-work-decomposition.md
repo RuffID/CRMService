@@ -1,12 +1,55 @@
 # Этап 2. Декомпозиция Unit of Work
 
-Status: Not Started
+Status: Completed
 
 ## Проблема
 
 Текущие `IUnitOfWork` и `UnitOfWork` агрегируют репозитории авторизации, CRM-настроек, отчётов и всех локальных сущностей Okdesk. Конструктор инфраструктурной реализации содержит десятки зависимостей, а application services и web controllers получают доступ к данным, которые не относятся к их сценарию. Это god object: он скрывает реальные зависимости, усложняет unit-тесты и повышает связанность модулей.
 
 `IOkdeskUnitOfWork` меньше по поведению, но повторяет ту же проблему для PostgreSQL-источника: единый контракт предоставляет все облачные репозитории сразу. Его также нужно разделить, иначе после удаления основного god object останется второй.
+
+## Фактические consumers до декомпозиции
+
+| Consumer | MainContext repositories/operations | OkdeskContext repositories | Новая граница |
+|---|---|---|---|
+| `Authorization/UserService` | `User`, `CrmRole`, `Employee`, save | — | `IAuthorizationUnitOfWork` |
+| `Authorization/RoleService` | `CrmRole` | — | `IAuthorizationUnitOfWork` |
+| `Report/EmployeePerformanceReportService` | `EmployeePerformanceReport`, `Employee`, `EmployeeGroup`, `Plan`, `PlanSetting` | — | `IReportsUnitOfWork` |
+| `Report/SpentTimeChartService` | `SpentTimeChartReport`, `Employee`, `EmployeeGroup`, `Group` | — | `IReportsUnitOfWork` |
+| `Report/IssueDynamicsChartService` | `IssueDynamicsChartReport` | — | `IReportsUnitOfWork` |
+| `CrmServices/PlanSettingsService` | `Plan`, `GeneralSettings`, `PlanSetting`, `PlanColor`, save | — | `IPlanSettingsUnitOfWork` |
+| `CompanyService` | `Company`, `CompanyCategory`, save | `Company` | `ICompanyDirectoryUnitOfWork` + `IOkdeskCompanyDirectorySource` |
+| `CompanyCategoryService` | `CompanyCategory`, save | `CompanyCategory` | `ICompanyDirectoryUnitOfWork` + `IOkdeskCompanyDirectorySource` |
+| `EmployeeService` | `Employee`, save | `Employee` | `ICompanyDirectoryUnitOfWork` + `IOkdeskCompanyDirectorySource` |
+| `GroupService` | `Group`, `EmployeeGroup`, save | `Group` | `ICompanyDirectoryUnitOfWork` + `IOkdeskCompanyDirectorySource` |
+| `OkdeskEntity/RoleService` | `OkdeskRole`, `EmployeeRole`, save | — | `ICompanyDirectoryUnitOfWork` |
+| `EquipmentService` | `Equipment`, `Parameter`, `Company`, `MaintenanceEntity`, `Manufacturer`, `Kind`, `Model`, `KindParameter`, save | `Equipment` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| `KindService` | `Kind`, save | `Kind` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| `KindParameterService` | `KindParameter`, save | `KindParameter` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| `KindParamService` | `Kind`, `KindParameter`, `KindParams`, save | `KindParams` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| `MaintenanceEntityService` | `MaintenanceEntity`, `Company`, save | `MaintenanceEntity` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| `ManufacturerService` | `Manufacturer`, save | `Manufacturer` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| `ModelService` | `Model`, save | `Model` | `IEquipmentUnitOfWork` + `IOkdeskEquipmentSource` |
+| equipment resolvers (`KindParameter`, `Kind`, `MaintenanceEntity`, `Manufacturer`, `Model`) | одноимённые repositories | — | `IEquipmentUnitOfWork` |
+| `IssueService` | `Issue`, `Employee`, `Company`, `MaintenanceEntity`, `IssueStatus`, `IssueType`, `IssuePriority`, save | `Issue`, `Employee` | `IIssuesUnitOfWork` + `IOkdeskIssuesSource` |
+| `IssuePriorityService` | `IssuePriority`, save | `IssuePriority` | `IIssuesUnitOfWork` + `IOkdeskIssuesSource` |
+| `IssueStatusService` | `IssueStatus`, save | `IssueStatus` | `IIssuesUnitOfWork` + `IOkdeskIssuesSource` |
+| `IssueTypeService` | `IssueType`, `IssueTypeGroup`, save | `IssueType`, `IssueTypeGroup` | `IIssuesUnitOfWork` + `IOkdeskIssuesSource` |
+| `TimeEntryService` | `TimeEntry`, `Issue`, `Employee`, save | `TimeEntry` | `IIssuesUnitOfWork` + `IOkdeskIssuesSource` |
+| issue resolvers (`Company`, `Employee`, `IssuePriority`, `IssueStatus`, `IssueType`) | одноимённые repositories | — | `IIssuesUnitOfWork` |
+| `LoginController` | `User`, `Session`, save | — | координация перенесена в `AuthenticationService` → `IAuthorizationUnitOfWork` |
+| `Pages/Login` и `CookieAuthorizeAttribute` | `User` | — | `AuthenticationService` → `IAuthorizationUnitOfWork` |
+| `CategoryController` | `CompanyCategory`, save | — | `CompanyCategoryService` → `ICompanyDirectoryUnitOfWork` |
+| `CompanyController` | `Company` | — | `CompanyService` → `ICompanyDirectoryUnitOfWork` |
+| `EmployeeController` | `Employee`, `EmployeeGroup` | — | `EmployeeService` → `ICompanyDirectoryUnitOfWork` |
+| `EquipmentController` | `Equipment` | — | `EquipmentService` → `IEquipmentUnitOfWork` |
+| `IssueController` | `Issue` | — | `IssueService` → `IIssuesUnitOfWork` |
+| `IssuePriorityController`, `IssueStatusController`, `IssueTypeController` | соответствующий справочник | — | соответствующий Application service → `IIssuesUnitOfWork` |
+| `KindController`, `KindParameterController`, `MaintenanceEntityController`, `ManufacturerController`, `ModelController` | соответствующий справочник | — | соответствующий Application service → `IEquipmentUnitOfWork` |
+| Okdesk `RoleController` | `OkdeskRole` | — | `RoleService` → `ICompanyDirectoryUnitOfWork` |
+| `DailyReportHostedService`, `ThirtyMinutesReportHostedService` | `Issue` | — | `IssueService` → `IIssuesUnitOfWork` |
+
+Полностью закомментированные legacy authorization controllers не являлись runtime-consumers и удалены вместе с мёртвым кодом.
 
 ## Целевая модель
 
@@ -79,8 +122,8 @@ IssuesUnitOfWork
 ## Тестовое сопровождение
 
 - Application tests подменяют один небольшой сценарный Unit of Work, а не десятки несвязанных repositories.
-- Infrastructure container tests подтверждают, что repositories одного сценария используют общий MainContext и transaction.
-- Для каждого сценарного Unit of Work проверить save, commit, rollback и cancellation.
+- Изолированные Infrastructure tests подтверждают делегирование save/commit/rollback/cancellation общей MainContext-сессии без подключения к БД; provider-level container coverage выполняется на этапе 05.
+- Для общей сессии сценарных Unit of Work проверить save, commit, rollback и cancellation.
 - Architecture tests запрещают зависимость Application от старых глобальных UoW и не позволяют сценарному контракту разрастись до всех repositories.
 - DI smoke test разрешает все сценарные Unit of Work с `ValidateScopes` и `ValidateOnBuild`.
 
@@ -90,4 +133,10 @@ IssuesUnitOfWork
 - Ни один application service или controller не получает доступ к несвязанным repositories через агрегирующий контракт.
 - Сохранение и транзакции остаются едиными для repositories одного сценария.
 - Application contracts не содержат EF Core деталей.
-- Все новые границы покрыты unit, container integration и architecture tests.
+- Все новые границы покрыты unit и architecture tests; общая save/transaction-сессия покрыта изолированными Infrastructure tests. Container integration относится к этапу 05.
+
+## Текущее состояние
+
+Глобальные `IUnitOfWork`/`UnitOfWork` и `IOkdeskUnitOfWork`/`OkdeskUnitOfWork` удалены. Consumers и DI переведены на шесть MainContext-границ и три read-only Okdesk source-контракта. Все Application repository-контракты переведены с EFCoreLibrary-интерфейсов на предметные методы: в публичных сигнатурах больше нет `DbContext`, `IQueryable`, expressions, tracking/include-параметров или EF Core types. Query composition, includes, tracking и Okdesk discriminator queries находятся в Infrastructure.
+
+Добавлены unit/static tests границ и изолированные tests общей save/transaction-сессии без БД, Docker, host и внешней сети. Provider-level container tests не добавлялись: они относятся к этапу 05 и исключены из этапа 02.

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.OkdeskEntity
 {
-    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, IOkdeskEntityRequestService request, IUnitOfWork unitOfWork, IOkdeskUnitOfWork okdeskUnitOfWork, ILogger<TimeEntryService> logger)
+    public class TimeEntryService(IOptions<ApiEndpointOptions> endpoint, IOptions<OkdeskOptions> okdesk, IOkdeskEntityRequestService request, IIssuesUnitOfWork unitOfWork, IOkdeskIssuesSource okdeskUnitOfWork, ILogger<TimeEntryService> logger)
     {
         public async Task<TimeEntries?> GetimeEntriesFromCloudApi(int issueId, CancellationToken ct)
         {
@@ -37,7 +37,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     await unitOfWork.SaveChangesAsync(ct);
                 }
 
-                List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
+                List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetByIssueIdReadOnlyAsync(issueId, ct);
 
                 if (existingTimeEntries.Count > 0)
                 {
@@ -51,7 +51,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             // Если пустые записи Time_entries, значит не удалось спарсить списанное время/его нет и выходит из метода
             if (timeEntry?.Time_Entries == null || timeEntry.Time_Entries.Length == 0)
             {
-                List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == issueId, asNoTracking: true, ct: ct);
+                List<TimeEntry> existingTimeEntries = await unitOfWork.TimeEntry.GetByIssueIdReadOnlyAsync(issueId, ct);
 
                 if (existingTimeEntries.Count > 0)
                 {
@@ -69,7 +69,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 entry.IssueId = issueId;
 
-                if (await unitOfWork.Employee.GetItemByIdAsync(entry.EmployeeId, asNoTracking: true, ct: ct) == null)
+                if (await unitOfWork.Employee.GetItemByIdReadOnlyAsync(entry.EmployeeId, ct) == null)
                 {
                     logger.LogWarning("[Method:{MethodName}] Employee {EmployeeId} not found in local DB.", 
                         nameof(UpdateTimeEntriesFromCloudApi), entry.EmployeeId);
@@ -121,7 +121,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         public async Task CreateOrUpdate(TimeEntry entry, CancellationToken ct)
         {
-            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdAsync(entry.IssueId, asNoTracking: true, ct: ct);
+            Issue? existingIssue = await unitOfWork.Issue.GetItemByIdReadOnlyAsync(entry.IssueId, ct);
 
             if (existingIssue == null)
             {
@@ -155,7 +155,7 @@ namespace CRMService.Application.Service.OkdeskEntity
             foreach (var group in groups)
             {
                 // выбрать только Id к удалению, без трекинга сущностей
-                List<TimeEntry> toDeleteEntries = await unitOfWork.TimeEntry.GetItemsByPredicateAsync(t => t.IssueId == group.IssueId && !group.CloudIds.Contains(t.Id), ct: ct);
+                List<TimeEntry> toDeleteEntries = await unitOfWork.TimeEntry.GetMissingFromCloudAsync(group.IssueId, group.CloudIds, ct);
 
                 if (toDeleteEntries.Count == 0)
                     continue;

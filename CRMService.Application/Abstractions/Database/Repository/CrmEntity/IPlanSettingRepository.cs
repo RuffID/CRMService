@@ -1,13 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using EFCoreLibrary.Abstractions.Database.Repository.Base;
+using CRMService.Application.Abstractions.Database.Repository.Base;
 using CRMService.Domain.Models.CrmEntities;
 
 namespace CRMService.Application.Abstractions.Database.Repository.CrmEntity
 {
     public interface IPlanSettingRepository :
-        IGetItemByPredicateRepository<PlanSetting, DbContext>,
-        ICreateItemRepository<PlanSetting, DbContext>,
-        IDeleteItemRepository<PlanSetting, DbContext>
+        ICreateItemRepository<PlanSetting>,
+        IDeleteItemRepository<PlanSetting>
     {
+        Task<List<PlanSetting>> GetByPlanAndEmployeesReadOnlyAsync(Guid planId, IReadOnlyCollection<int> employeeIds, CancellationToken ct = default);
+        Task<List<PlanSetting>> GetByPlansAndEmployeesAsync(IReadOnlyCollection<Guid> planIds, IReadOnlyCollection<int> employeeIds, CancellationToken ct = default);
     }
 }

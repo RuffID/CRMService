@@ -4,7 +4,6 @@ using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
 using CRMService.Contracts.Models.Dto.OkdeskEntity;
 using CRMService.Domain.Models.Constants;
-using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Application.Common.Mapping.OkdeskEntity;
 using CRMService.Web.Service.BackgroundServices;
 
@@ -13,12 +12,12 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController(IUnitOfWork unitOfWork, CompanyCategoryService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class CategoryController(CompanyCategoryService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetCategories(CancellationToken ct = default)
         {
-            List<CompanyCategory> categories = await unitOfWork.CompanyCategory.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+            List<CompanyCategory> categories = await service.GetCategoriesAsync(ct);
 
             return Ok(categories.ToDto());
         }
@@ -26,7 +25,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetCategory([FromQuery] int id, CancellationToken ct)
         {
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(id, asNoTracking: true, ct: ct);
+            CompanyCategory? category = await service.GetCategoryAsync(id, ct);
 
             if (category == null)
                 return NotFound();
@@ -37,14 +36,8 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPut, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> UpdateCategory([FromBody] CompanyCategoryDto updatedCategory, CancellationToken ct)
         {
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(updatedCategory.Id, ct: ct);
-
-            if (category == null)
+            if (!await service.UpdateCategoryAsync(updatedCategory.ToEntity(), ct))
                 return NotFound();
-
-            category.CopyData(updatedCategory.ToEntity());
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             return NoContent();
         }
@@ -52,14 +45,8 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpPost, Authorize(Roles = RolesConstants.ADMIN)]
         public async Task<IActionResult> CreateCategory([FromBody] CompanyCategoryDto categoryCreate, CancellationToken ct)
         {
-            CompanyCategory? category = await unitOfWork.CompanyCategory.GetItemByIdAsync(categoryCreate.Id, asNoTracking: true, ct: ct);
-
-            if (category != null)
+            if (!await service.CreateCategoryAsync(categoryCreate.ToEntity(), ct))
                 return Conflict("Id: already exist");
-
-            unitOfWork.CompanyCategory.Create(categoryCreate.ToEntity());
-
-            await unitOfWork.SaveChangesAsync(ct);
 
             return NoContent();
         }

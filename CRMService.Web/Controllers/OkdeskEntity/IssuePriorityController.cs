@@ -13,7 +13,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class IssuePriorityController(IUnitOfWork unitOfWork, IssuePriorityService service, BackgroundUpdateService backgroundUpdateService) : Controller
+    public class IssuePriorityController(IssuePriorityService service, BackgroundUpdateService backgroundUpdateService) : Controller
     {
         [HttpGet("list")]
         public async Task<IActionResult> GetIssuePriorities(CancellationToken ct)
@@ -24,7 +24,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
         [HttpGet]
         public async Task<IActionResult> GetIssuePriority([FromQuery] string code, CancellationToken ct)
         {
-            IssuePriority? prioriy = await unitOfWork.IssuePriority.GetItemByPredicateAsync(ip => ip.Code == code, asNoTracking: true, ct: ct);
+            IssuePriority? prioriy = await service.GetIssuePriorityAsync(code, ct);
 
             if (prioriy == null)
                 return NotFound();

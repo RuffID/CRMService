@@ -43,7 +43,7 @@ tests/
 | Этап | Статус | План |
 |---|---|---|
 | 01 | Completed | [Основа и структура проектов](01-foundation.md) |
-| 02 | Not Started | [Декомпозиция Unit of Work](02-unit-of-work-decomposition.md) |
+| 02 | Completed | [Декомпозиция Unit of Work](02-unit-of-work-decomposition.md) |
 | 03 | Not Started | [Domain и Contracts](03-domain-and-contracts.md) |
 | 04 | Not Started | [Application](04-application.md) |
 | 05 | Not Started | [Infrastructure и Testcontainers](05-infrastructure-containers.md) |

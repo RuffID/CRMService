@@ -56,6 +56,13 @@ public class CrmWebApplicationFactory : WebApplicationFactory<ReportBackgroundSe
             configuration.AddInMemoryCollection(CreateConfiguration());
         });
 
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<IHostedService, ThirtyMinutesReportHostedService>();
+            services.AddSingleton<IHostedService, DailyReportHostedService>();
+            services.AddSingleton<IHostedService, UpdateDirectoriesHostedService>();
+        });
+
         builder.ConfigureTestServices(services =>
         {
             ReplaceDatabaseContexts(services);

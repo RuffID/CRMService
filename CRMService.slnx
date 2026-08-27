@@ -2,6 +2,11 @@
   <File Path="CRMService.Testing.props" />
   <File Path="global.json" />
 
+  <Folder Name="/.github/">
+    <File Path=".github/AGENTS.md" />
+    <File Path=".github/workflows/test-suite.yml" />
+  </Folder>
+
   <Project Path="CRMService.Application/CRMService.Application.csproj" />
   <Project Path="CRMService.Contracts/CRMService.Contracts.csproj" />
   <Project Path="CRMService.Domain/CRMService.Domain.csproj" />
@@ -19,9 +24,13 @@
     <File Path="Documentation/Plans/Layered-Test-Suite/05-infrastructure-containers.md" />
     <File Path="Documentation/Plans/Layered-Test-Suite/06-web-integration.md" />
     <File Path="Documentation/Plans/Layered-Test-Suite/07-quality-gates-and-rollout.md" />
+    <File Path="Documentation/Plans/Layered-Test-Suite/08-di-and-production-layer-boundaries.md" />
   </Folder>
 
   <Folder Name="/tests/">
+    <File Path="tests/AGENTS.md" />
+    <File Path="tests/coverage-baseline.json" />
+    <File Path="tests/coverage.runsettings" />
     <Project Path="tests/CRMService.Domain.Tests/CRMService.Domain.Tests.csproj" />
     <Project Path="tests/CRMService.Contracts.Tests/CRMService.Contracts.Tests.csproj" />
     <Project Path="tests/CRMService.Application.Tests/CRMService.Application.Tests.csproj" />

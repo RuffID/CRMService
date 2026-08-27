@@ -1,6 +1,27 @@
 # Этап 7. Архитектурные проверки, CI и развитие покрытия
 
-Status: Not Started
+Status: Completed
+
+## Реализовано
+
+Архитектурные проверки покрывают направление `ProjectReference`, публичные DI aggregates, владение MVC/PageModel, DbContext и repository implementations, отсутствие Infrastructure implementations в конструкторах Application services, критические lifetimes/duplicates, порядок webhook handlers, заменяемость production registrations в Web test host и точный состав repositories сценарных Unit of Work.
+
+Добавлен GitHub Actions workflow `.github/workflows/test-suite.yml`, запускаемый на `push`, `pull_request` и вручную. Fast matrix выполняет шесть test-проектов без Docker, публикует TRX/Cobertura и запрещает снижение line/branch baseline. Отдельный container job проверяет Docker, запускает Infrastructure tests с trait `Dependency=Docker`, публикует TRX/Cobertura и ограниченные container logs при сбое.
+
+Coverage baseline хранится в `tests/coverage-baseline.json`, общие exclusions — в `tests/coverage.runsettings`. Из baseline исключены test assemblies, migrations, generated/designer code и Contracts DTO без поведения. Проверка baseline выполняется непосредственно внутри GitHub workflow без project scripts и дополнительных NuGet-пакетов.
+
+## Результаты локальной проверки
+
+| Набор | Тесты | Line | Branch |
+|---|---:|---:|---:|
+| Domain | 39 passed | 29.97% | 78.95% |
+| Contracts | 11 passed | 61.02% | 0.00% |
+| Application | 82 passed | 18.98% | 13.13% |
+| Infrastructure fast | 43 passed | 12.94% | 2.42% |
+| Web fast | 46 passed | 22.84% | 6.65% |
+| Architecture | 18 passed | 3.19% | 0.90% |
+
+Все шесть проектов восстановлены и собраны без warnings. Быстрые тесты выполнены без БД, Docker, production secrets, production jobs и внешней сети. Docker tests локально повторно не запускались; их отдельный CI-контур использует существующие trait, fixtures, timeout и cleanup strategy этапа 05.
 
 ## Architecture.Tests
 

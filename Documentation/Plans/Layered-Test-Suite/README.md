@@ -4,7 +4,7 @@
 
 Создать в `tests` отдельные тестовые проекты для всех проектов решения и отделить быстрые тесты от проверок, которым нужны ASP.NET Core host и реальные СУБД. Инфраструктурные тесты должны работать с SQL Server и PostgreSQL в Docker-контейнерах и гарантированно освобождать контейнеры после выполнения.
 
-На момент составления плана папка `tests` пуста. В решении находятся пять production-проектов на `net10.0`: Domain, Contracts, Application, Infrastructure и Web. `MainContext` использует SQL Server и имеет EF Core migrations; `OkdeskContext` использует PostgreSQL и отдельных migrations не имеет.
+На момент первоначального составления плана папка `tests` была пуста. Сейчас созданы отдельные проекты для Domain, Contracts, Application, Infrastructure, Web и архитектурных проверок. В решении находятся пять production-проектов на `net10.0`: Domain, Contracts, Application, Infrastructure и Web. `MainContext` использует SQL Server и имеет EF Core migrations; `OkdeskContext` использует PostgreSQL и отдельных migrations не имеет.
 
 ## Целевая структура
 
@@ -21,7 +21,7 @@ tests/
   CRMService.Architecture.Tests/
 ```
 
-Проекты должны быть добавлены в solution и сгруппированы в solution folder `tests`. Каждый проект ссылается только на проверяемый слой и действительно необходимые нижележащие проекты.
+Проекты добавлены в `CRMService.slnx` и сгруппированы в solution folder `tests`. Каждый проект ссылается только на проверяемый слой и действительно необходимые нижележащие проекты.
 
 ## Общие решения
 
@@ -48,7 +48,12 @@ tests/
 | 04 | Completed | [Application](04-application.md) |
 | 05 | Completed | [Infrastructure и Testcontainers](05-infrastructure-containers.md) |
 | 06 | Completed | [Web integration](06-web-integration.md) |
-| 07 | Not Started | [Архитектурные проверки, CI и развитие покрытия](07-quality-gates-and-rollout.md) |
+| 07 | Completed | [Архитектурные проверки, CI и развитие покрытия](07-quality-gates-and-rollout.md) |
+| 08 | Completed | [Архитектурные тесты DI и границ production-слоёв](08-di-and-production-layer-boundaries.md) |
+
+Этап 08 добавлен вне первоначальной последовательности после разделения production DI registrations между Application, Infrastructure и Web. Он фиксирует `ProjectReference`, публичные aggregate DI methods, владение реализациями, lifetimes и уникальность registrations, порядок webhook handlers, authentication/Data Protection и заменяемость production services в test host.
+
+Этап 08 не заменяет этап 07: он отдельно документирует DI-границы, тогда как этап 07 завершает общие архитектурные ограничения, GitHub Actions jobs, публикацию coverage/TRX и coverage baseline. Все этапы плана завершены.
 
 ## Жизненный цикл этапов
 

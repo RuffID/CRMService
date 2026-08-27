@@ -1,0 +1,201 @@
+name: Layered test suite
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: layered-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  unit-tests:
+    name: Fast tests (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: domain
+            project: tests/CRMService.Domain.Tests/CRMService.Domain.Tests.csproj
+          - name: contracts
+            project: tests/CRMService.Contracts.Tests/CRMService.Contracts.Tests.csproj
+          - name: application
+            project: tests/CRMService.Application.Tests/CRMService.Application.Tests.csproj
+          - name: infrastructure
+            project: tests/CRMService.Infrastructure.IntegrationTests/CRMService.Infrastructure.IntegrationTests.csproj
+          - name: web
+            project: tests/CRMService.Web.IntegrationTests/CRMService.Web.IntegrationTests.csproj
+          - name: architecture
+            project: tests/CRMService.Architecture.Tests/CRMService.Architecture.Tests.csproj
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'CRMService.Testing.props', 'NuGet.config', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore "${{ matrix.project }}"
+
+      - name: Build
+        run: dotnet build "${{ matrix.project }}" -c Debug --no-restore
+
+      - name: Test with coverage
+        run: >-
+          dotnet test --project "${{ matrix.project }}"
+          -c Debug
+          --no-restore
+          --no-build
+          --filter-not-trait "Dependency=Docker"
+          --minimum-expected-tests 1
+          --results-directory "artifacts/test-results/${{ matrix.name }}"
+          --report-trx
+          --report-trx-filename "${{ matrix.name }}.trx"
+          --coverage
+          --coverage-output "coverage.cobertura.xml"
+          --coverage-output-format cobertura
+          --coverage-settings "tests/coverage.runsettings"
+
+      - name: Enforce coverage baseline
+        shell: bash
+        env:
+          COVERAGE_SUITE: ${{ matrix.name }}
+          COVERAGE_REPORT: artifacts/test-results/${{ matrix.name }}/coverage.cobertura.xml
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import xml.etree.ElementTree as ET
+
+          suite = os.environ["COVERAGE_SUITE"]
+          report_path = os.environ["COVERAGE_REPORT"]
+
+          with open("tests/coverage-baseline.json", encoding="utf-8") as baseline_file:
+              baseline = json.load(baseline_file)
+
+          suite_baseline = baseline["suites"][suite]
+          coverage = ET.parse(report_path).getroot()
+          actual_line = float(coverage.attrib["line-rate"])
+          actual_branch = float(coverage.attrib["branch-rate"])
+          required_line = float(suite_baseline["lineRate"])
+          required_branch = float(suite_baseline["branchRate"])
+          tolerance = float(baseline["tolerance"])
+
+          print(
+              f"{suite}: line {actual_line:.2%} (baseline {required_line:.2%}), "
+              f"branch {actual_branch:.2%} (baseline {required_branch:.2%})"
+          )
+
+          failures = []
+          if actual_line + tolerance < required_line:
+              failures.append("line coverage fell below baseline")
+          if actual_branch + tolerance < required_branch:
+              failures.append("branch coverage fell below baseline")
+
+          if failures:
+              raise SystemExit(f"{suite}: {', '.join(failures)}")
+          PY
+
+      - name: Upload fast-test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-tests-${{ matrix.name }}
+          path: artifacts/test-results/${{ matrix.name }}/
+          if-no-files-found: error
+          retention-days: 14
+
+  container-tests:
+    name: Container tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'CRMService.Testing.props', 'NuGet.config', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Verify Docker
+        run: docker info
+
+      - name: Restore
+        run: dotnet restore "tests/CRMService.Infrastructure.IntegrationTests/CRMService.Infrastructure.IntegrationTests.csproj"
+
+      - name: Build
+        run: >-
+          dotnet build
+          "tests/CRMService.Infrastructure.IntegrationTests/CRMService.Infrastructure.IntegrationTests.csproj"
+          -c Debug
+          --no-restore
+
+      - name: Run Docker tests
+        run: >-
+          dotnet test --project
+          "tests/CRMService.Infrastructure.IntegrationTests/CRMService.Infrastructure.IntegrationTests.csproj"
+          -c Debug
+          --no-restore
+          --no-build
+          --filter-trait "Dependency=Docker"
+          --minimum-expected-tests 1
+          --timeout 35m
+          --results-directory "artifacts/test-results/container"
+          --report-trx
+          --report-trx-filename "container.trx"
+          --coverage
+          --coverage-output "coverage.cobertura.xml"
+          --coverage-output-format cobertura
+          --coverage-settings "tests/coverage.runsettings"
+
+      - name: Capture limited container logs
+        if: failure()
+        shell: bash
+        run: |
+          mkdir -p artifacts/container-logs
+          docker ps -a --format '{{.ID}} {{.Names}} {{.Image}} {{.Status}}' > artifacts/container-logs/containers.txt
+          docker ps -aq | head -20 | while read -r container_id; do
+            docker logs --tail 200 "$container_id" > "artifacts/container-logs/${container_id}.log" 2>&1 || true
+          done
+
+      - name: Upload container-test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-tests
+          path: |
+            artifacts/test-results/container/
+            artifacts/container-logs/
+          if-no-files-found: warn
+          retention-days: 14

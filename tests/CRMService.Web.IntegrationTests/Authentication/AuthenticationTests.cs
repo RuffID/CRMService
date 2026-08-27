@@ -1,6 +1,7 @@
 using System.Net;
 using CRMService.Application.Models.ConfigClass;
 using CRMService.Web.IntegrationTests.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -60,6 +61,7 @@ public class AuthenticationTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Null(response.Headers.Location);
     }
 
     [Fact]
@@ -82,18 +84,32 @@ public class AuthenticationTests
     }
 
     [Fact]
-    public void CookieAndJwtOptions_UseExpectedProductionContractsWithTestSigningKey()
+    public void SmartCookieAndJwtOptions_UseExpectedProductionContractsWithTestSigningKey()
     {
         using CrmWebApplicationFactory factory = new();
         using IServiceScope scope = factory.Services.CreateScope();
+        AuthenticationOptions authentication =
+            scope.ServiceProvider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
+        IOptionsMonitor<PolicySchemeOptions> policyOptions =
+            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<PolicySchemeOptions>>();
         IOptionsMonitor<CookieAuthenticationOptions> cookieOptions =
             scope.ServiceProvider.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>();
         IOptionsMonitor<JwtBearerOptions> jwtOptions =
             scope.ServiceProvider.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>();
 
+        PolicySchemeOptions smart = policyOptions.Get("Smart");
         CookieAuthenticationOptions cookie = cookieOptions.Get(CookieAuthenticationDefaults.AuthenticationScheme);
         JwtBearerOptions jwt = jwtOptions.Get(JwtBearerDefaults.AuthenticationScheme);
+        DefaultHttpContext bearerContext = new();
+        bearerContext.Request.Headers.Authorization = "Bearer test-token";
+        DefaultHttpContext cookieContext = new();
 
+        Assert.Equal("Smart", authentication.DefaultScheme);
+        Assert.Equal("Smart", authentication.DefaultAuthenticateScheme);
+        Assert.Equal("Smart", authentication.DefaultChallengeScheme);
+        Assert.NotNull(smart.ForwardDefaultSelector);
+        Assert.Equal(JwtBearerDefaults.AuthenticationScheme, smart.ForwardDefaultSelector(bearerContext));
+        Assert.Equal(CookieAuthenticationDefaults.AuthenticationScheme, smart.ForwardDefaultSelector(cookieContext));
         Assert.Equal(".CRMService.Cookies", cookie.Cookie.Name);
         Assert.Equal("/login", cookie.LoginPath.Value);
         Assert.Equal("/accessdenied", cookie.AccessDeniedPath.Value);

@@ -14,7 +14,7 @@ namespace CRMService.Web.IntegrationTests.Hosting;
 public class DependencyInjectionTests
 {
     [Fact]
-    public void TestHost_ValidatesAndResolvesKeyServicesWithTestReplacements()
+    public async Task TestHost_ValidatesAndResolvesKeyServicesWithTestReplacements()
     {
         using CrmWebApplicationFactory factory = new();
         IServiceProvider root = factory.Services;
@@ -38,6 +38,16 @@ public class DependencyInjectionTests
         Assert.Equal("EphemeralDataProtectionProvider", services.GetRequiredService<IDataProtectionProvider>().GetType().Name);
         Assert.Equal("test-okdesk-token", services.GetRequiredService<IConfiguration>()["OkdeskApiToken"]);
         Assert.Equal(1, factory.StartupInitializer.InitializeCount);
+
+        IWebhookHandler[] webhookHandlers = services.GetServices<IWebhookHandler>().ToArray();
+        Assert.Equal(
+            [factory.FirstWebhookHandler, factory.MatchingWebhookHandler, factory.LastWebhookHandler],
+            webhookHandlers);
+
+        Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider authenticationSchemes =
+            services.GetRequiredService<Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider>();
+        Assert.NotNull(await authenticationSchemes.GetSchemeAsync(TestAuthenticationHandler.SCHEME_NAME));
+        Assert.NotNull(await authenticationSchemes.GetSchemeAsync("Smart"));
 
         Type[] hostedTypes = root.GetServices<IHostedService>().Select(service => service.GetType()).ToArray();
         Assert.DoesNotContain(typeof(ThirtyMinutesReportHostedService), hostedTypes);

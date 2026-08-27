@@ -12,3 +12,5 @@
 - Контейнерные тесты будущих этапов маркируются `[Trait("Dependency", "Docker")]`; контейнеры не переиспользуются между отдельными прогонами.
 
 Быстрые тесты запускаются командой `dotnet test --project "tests\<Project>\<Project>.csproj" --filter-not-trait "Dependency=Docker"`. Docker-тесты запускаются отдельно с `--filter-trait "Dependency=Docker"` только в окружении, где Docker явно доступен.
+
+CI запускает быстрые проекты отдельной matrix job, сохраняет TRX/Cobertura и запрещает снижение line/branch baseline из `tests/coverage-baseline.json`. Общие исключения coverage находятся в `tests/coverage.runsettings`; migrations, generated code и test assemblies не входят в baseline. Docker-набор выполняется отдельной job и не участвует в быстром gate.

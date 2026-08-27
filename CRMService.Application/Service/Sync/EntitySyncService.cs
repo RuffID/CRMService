@@ -17,7 +17,15 @@ namespace CRMService.Application.Service.Sync
             LockEntry entry = locks.AddOrUpdate(key, _ => new LockEntry(), (_, existing) => existing);
 
             Interlocked.Increment(ref entry.UsersCount);
-            await entry.Semaphore.WaitAsync(ct);
+            try
+            {
+                await entry.Semaphore.WaitAsync(ct);
+            }
+            catch
+            {
+                RemoveUser(key, entry);
+                throw;
+            }
 
             try
             {
@@ -26,12 +34,16 @@ namespace CRMService.Application.Service.Sync
             finally
             {
                 entry.Semaphore.Release();
+                RemoveUser(key, entry);
+            }
+        }
 
-                if (Interlocked.Decrement(ref entry.UsersCount) == 0 
-                    && locks.TryRemove(new KeyValuePair<EntitySyncKey, LockEntry>(key, entry)))
-                {
-                    entry.Semaphore.Dispose();
-                }
+        private void RemoveUser(EntitySyncKey key, LockEntry entry)
+        {
+            if (Interlocked.Decrement(ref entry.UsersCount) == 0
+                && locks.TryRemove(new KeyValuePair<EntitySyncKey, LockEntry>(key, entry)))
+            {
+                entry.Semaphore.Dispose();
             }
         }
 

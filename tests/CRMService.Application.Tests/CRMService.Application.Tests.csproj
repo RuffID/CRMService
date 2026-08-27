@@ -9,6 +9,16 @@
   <Import Project="..\..\CRMService.Testing.props" />
 
   <ItemGroup>
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\CRMService.Application\CRMService.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="EFCoreLibrary">
+      <HintPath>..\..\libs\EFCoreLibrary.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

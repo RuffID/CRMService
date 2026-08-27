@@ -9,13 +9,14 @@ namespace CRMService.Application.Service.Authorization
     {
         private const string CHARTS = ConstSymbols.UPALPHABET + ConstSymbols.LOWALPHABET + ConstSymbols.NUMBERS + ConstSymbols.SYMBOLS;
 
-        private readonly Random rand = new();
         public string GetRandomString(int length = 12)
         {
-            StringBuilder sb = new(length - 1);
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+            StringBuilder sb = new(length);
             for (int i = 0; i < length; i++)
             {
-                sb.Append(CHARTS[rand.Next(0, CHARTS.Length - 1)]);
+                sb.Append(CHARTS[RandomNumberGenerator.GetInt32(CHARTS.Length)]);
             }
             return sb.ToString();
         }

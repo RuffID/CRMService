@@ -241,6 +241,7 @@ namespace CRMService.Web.Core
             services.AddSingleton<IReportBackgroundService, ReportBackgroundService>();
 
             services.AddScoped<IOkdeskEntityRequestService, GetOkdeskEntityService>();
+            services.AddScoped<IDirectoryUpdateOperations, DirectoryUpdateOperations>();
             services.AddScoped<UpdateDirectoriesService>();
             services.AddScoped<Hasher>();
             services.AddScoped<IAccessTokenService, JwtTokenService>();

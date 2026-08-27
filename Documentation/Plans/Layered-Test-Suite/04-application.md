@@ -1,6 +1,6 @@
 # Этап 4. Тесты Application
 
-Status: Not Started
+Status: Completed
 
 ## Подход
 
@@ -36,3 +36,11 @@ Application.Tests — быстрые unit-тесты. Репозитории, `I
 - Ни один тест Application не вызывает сеть, EF Core database provider или файловую систему.
 - Для каждого крупного сервиса есть happy path, ожидаемая ошибка и cancellation/exception path, если он поддерживается.
 - Проверяются как возвращаемые данные, так и границы: вызовы repository, `SaveChangesAsync`, transaction и внешних сервисов.
+
+## Текущее состояние
+
+Application.Tests содержит быстрые изолированные проверки `Hasher`, `GenerateRandomString`, `EntitySyncService`, Authorization, PlanSettings, mapping-классов, report services, Okdesk lookup/sync-сценариев, resolver helper, webhook и фиксированного порядка `UpdateDirectoriesService`. Узкие repository, scenario Unit of Work, logger, Options, token/random и внешние request-контракты заменены NSubstitute; реальные HTTP, БД, EF provider, host, Docker, файловая система и процессы не используются.
+
+Для порядка обновления справочников введён `IDirectoryUpdateOperations`: `UpdateDirectoriesService` хранит последовательность и fail-fast поведение, а `DirectoryUpdateOperations` адаптирует вызовы существующих предметных сервисов. Production DI регистрирует scoped-реализацию без изменения порядка операций.
+
+Тестами обнаружены и исправлены два production-дефекта: генератор случайной строки исключал последний допустимый символ и не имел явной проверки отрицательной длины; `EntitySyncService` не уменьшал счётчик пользователей блокировки при cancellation во время ожидания semaphore. Неожиданные ошибки и cancellation продолжают распространяться без fallback.

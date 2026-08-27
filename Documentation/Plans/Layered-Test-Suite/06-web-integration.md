@@ -6,11 +6,12 @@ Status: Not Started
 
 До создания `WebApplicationFactory` нужны небольшие явные seams:
 
-1. Добавить доступный тестам `public partial class Program` без переноса прикладных регистраций обратно в `Program.cs`.
-2. Сделать startup-проверку `DataBaseCheckUpService<MainContext>` заменяемой/отключаемой тестовой регистрацией. Production-поведение остаётся fail-fast; test host не должен автоматически выполнять backup или migration.
-3. Разделить конфигурацию DI так, чтобы test factory могла заменить оба DbContext и внешние HTTP clients после production registrations.
-4. Устранить запись Data Protection keys в рабочий каталог test host: использовать test-only ephemeral provider либо уникальный временный каталог с обязательным удалением.
-5. Передавать тестовую конфигурацию in-memory; не использовать реальные токены, connection strings и `Config/config.json` как источник секретов.
+1. Сделать startup-проверку `DataBaseCheckUpService<MainContext>` заменяемой/отключаемой тестовой регистрацией. Production-поведение остаётся fail-fast; test host не должен автоматически выполнять backup или migration.
+2. Разделить конфигурацию DI так, чтобы test factory могла заменить оба DbContext и внешние HTTP clients после production registrations.
+3. Устранить запись Data Protection keys в рабочий каталог test host: использовать test-only ephemeral provider либо уникальный временный каталог с обязательным удалением.
+4. Передавать тестовую конфигурацию in-memory; не использовать реальные токены, connection strings и `Config/config.json` как источник секретов.
+
+Не добавлять `public partial class Program` только ради тестов: test factory должна использовать существующую точку входа/доступный тип Web assembly без изменения `Program.cs`, если фактическая конфигурация `WebApplicationFactory` работает без такого seam.
 
 Эти изменения выполнять отдельными точечными commits/этапами и сначала зафиксировать существующее поведение smoke-тестами.
 

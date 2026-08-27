@@ -1,23 +1,10 @@
-﻿using CRMService.Application.Service.OkdeskEntity;
+using CRMService.Application.Abstractions.Service;
 using Microsoft.Extensions.Logging;
 
 namespace CRMService.Application.Service.Hosted
 {
     public class UpdateDirectoriesService(
-        KindService kind,
-        KindParameterService kindParameter,
-        KindParamService kindParam,
-        ManufacturerService manufacturer,
-        ModelService model,
-        CompanyCategoryService category,
-        CompanyService company,
-        MaintenanceEntityService maintenance,
-        RoleService role,
-        EmployeeService employee,
-        GroupService group,
-        IssuePriorityService priority,
-        IssueTypeService type,
-        IssueStatusService status,
+        IDirectoryUpdateOperations operations,
         ILoggerFactory logger)
     {
         private readonly ILogger<UpdateDirectoriesService> _logger = logger.CreateLogger<UpdateDirectoriesService>();
@@ -26,39 +13,23 @@ namespace CRMService.Application.Service.Hosted
         {
             _logger.LogInformation("[Method:{MethodName}] Starting updating directories.", nameof(RunUpdateDirectories));
 
-            await kind.UpdateKindsFromCloudApi(ct);
-
-            await kindParameter.UpdateKindParametersFromCloudDb(ct);
-
-            await kindParam.UpsertConnectionsFromCloudDb(ct);
-
-            await manufacturer.UpdateManufacturersFromCloudApi(ct);
-
-            await model.UpdateModelsFromCloudApi(ct);
-
-            await category.CheckAnonymousCategory(ct);
-
-            await category.UpdateCategoriesFromCloudDb(ct);
-
-            await company.UpdateCompaniesFromCloudApi(ct);
-
-            await maintenance.UpdateMaintenanceEntitiesFromCloudApi(ct);
-
-            await role.UpdateRolesFromCloudApi(ct);
-
-            await group.UpdateGroupsFromCloudApi(ct);
-
-            await employee.UpdateEmployeesFromCloudApi(ct);
-
-            await group.UpsertEmployeeGroupConnectionsFromApi(ct);
-
-            await role.UpsertEmployeeRoleConnectionsFromApi(ct);
-
-            await priority.UpdateIssuePrioritiesFromCloudApi(ct);
-
-            await type.UpdateIssueTypesFromCloudDb(ct);
-
-            await status.UpdateIssueStatusesFromCloudApi(ct);
+            await operations.UpdateKindsAsync(ct);
+            await operations.UpdateKindParametersAsync(ct);
+            await operations.UpdateKindParameterConnectionsAsync(ct);
+            await operations.UpdateManufacturersAsync(ct);
+            await operations.UpdateModelsAsync(ct);
+            await operations.EnsureAnonymousCategoryAsync(ct);
+            await operations.UpdateCategoriesAsync(ct);
+            await operations.UpdateCompaniesAsync(ct);
+            await operations.UpdateMaintenanceEntitiesAsync(ct);
+            await operations.UpdateRolesAsync(ct);
+            await operations.UpdateGroupsAsync(ct);
+            await operations.UpdateEmployeesAsync(ct);
+            await operations.UpdateEmployeeGroupConnectionsAsync(ct);
+            await operations.UpdateEmployeeRoleConnectionsAsync(ct);
+            await operations.UpdateIssuePrioritiesAsync(ct);
+            await operations.UpdateIssueTypesAsync(ct);
+            await operations.UpdateIssueStatusesAsync(ct);
 
             _logger.LogInformation("[Method:{MethodName}] Directories update completed.", nameof(RunUpdateDirectories));
         }

@@ -1,12 +1,12 @@
-using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Application.Models.OkdeskSource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
 {
-    public class KindsParameterOkdeskConfigure : IEntityTypeConfiguration<KindsParameter>
+    public class OkdeskKindParameterConfigure : IEntityTypeConfiguration<OkdeskKindParameterRecord>
     {
-        public void Configure(EntityTypeBuilder<KindsParameter> builder)
+        public void Configure(EntityTypeBuilder<OkdeskKindParameterRecord> builder)
         {
             builder.ToTable("equipment_parameters");
             builder.HasKey(x => x.Id);
@@ -15,9 +15,6 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.Property(x => x.Code).HasColumnName("code");
             builder.Property(x => x.Name).HasColumnName("name");
             builder.Property(x => x.FieldType).HasColumnName("field_type");
-            builder.Ignore(x => x.Equipment_kind_codes);
-            builder.Ignore(x => x.KindParams);
-            builder.Ignore(x => x.Parameters);
         }
     }
 }

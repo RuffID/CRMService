@@ -1,4 +1,4 @@
-﻿using CRMService.Infrastructure.DataBase.ModelsConfigure.Authorization;
+using CRMService.Infrastructure.DataBase.ModelsConfigure.Authorization;
 using CRMService.Infrastructure.DataBase.ModelsConfigure.CrmEntity;
 using CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity;
 using CRMService.Domain.Models.Authorization;
@@ -42,6 +42,10 @@ public partial class MainContext(DbContextOptions<MainContext> options) : DbCont
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasSequence<int>("KindsParameterLocalIdSequence")
+            .StartsAt(-1)
+            .IncrementsBy(-1);
+
         modelBuilder
             .ApplyConfiguration(new CompanyConfigure())
             .ApplyConfiguration(new CompanyCategoryConfigure())

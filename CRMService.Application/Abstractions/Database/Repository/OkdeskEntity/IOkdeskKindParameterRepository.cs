@@ -1,9 +1,9 @@
-using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Application.Models.OkdeskSource;
 
 namespace CRMService.Application.Abstractions.Database.Repository.OkdeskEntity
 {
     public interface IOkdeskKindParameterRepository
     {
-        Task<List<KindsParameter>> GetAllReadOnlyAsync(CancellationToken ct = default);
+        Task<List<OkdeskKindParameterRecord>> GetAllReadOnlyAsync(CancellationToken ct = default);
     }
 }

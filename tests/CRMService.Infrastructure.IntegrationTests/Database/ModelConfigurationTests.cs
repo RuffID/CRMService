@@ -1,3 +1,4 @@
+using CRMService.Application.Models.OkdeskSource;
 using CRMService.Domain.Models.Authorization;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Infrastructure.DataBase;
@@ -27,6 +28,14 @@ public class ModelConfigurationTests
         IEntityType parameter = context.Model.FindEntityType(typeof(EquipmentParameter))!;
         Assert.Equal([nameof(EquipmentParameter.EquipmentId), nameof(EquipmentParameter.KindParameterId)], parameter.FindPrimaryKey()!.Properties.Select(x => x.Name));
         Assert.NotNull(parameter.FindProperty(nameof(EquipmentParameter.Value))!.GetValueConverter());
+
+        IEntityType kindParameter = context.Model.FindEntityType(typeof(KindsParameter))!;
+        Assert.Equal(ValueGenerated.OnAdd, kindParameter.FindProperty(nameof(KindsParameter.Id))!.ValueGenerated);
+        Assert.Equal("NEXT VALUE FOR [KindsParameterLocalIdSequence]", kindParameter.FindProperty(nameof(KindsParameter.Id))!.GetDefaultValueSql());
+        Assert.True(kindParameter.GetIndexes().Single(index => index.Properties.Single().Name == nameof(KindsParameter.Code)).IsUnique);
+        Assert.True(kindParameter.GetIndexes().Single(index => index.Properties.Single().Name == nameof(KindsParameter.OkdeskId)).IsUnique);
+        Assert.Equal(-1, context.Model.FindSequence("KindsParameterLocalIdSequence")!.StartValue);
+        Assert.Equal(-1, context.Model.FindSequence("KindsParameterLocalIdSequence")!.IncrementBy);
 
         IEntityType issue = context.Model.FindEntityType(typeof(Issue))!;
         Assert.Equal("Issue", issue.GetTableName());
@@ -58,5 +67,13 @@ public class ModelConfigurationTests
         IEntityType employee = context.Model.FindEntityType(typeof(Employee))!;
         Assert.Equal("users", employee.GetTableName());
         Assert.Equal("type", employee.FindProperty("Type")!.GetColumnName());
+
+        IEntityType kindParameter = context.Model.FindEntityType(typeof(OkdeskKindParameterRecord))!;
+        Assert.Equal("equipment_parameters", kindParameter.GetTableName());
+        Assert.Equal("id", kindParameter.FindProperty(nameof(OkdeskKindParameterRecord.Id))!.GetColumnName());
+
+        IEntityType kindParameterConnection = context.Model.FindEntityType(typeof(OkdeskKindParameterConnectionRecord))!;
+        Assert.Equal("equipment_kind_parameters", kindParameterConnection.GetTableName());
+        Assert.Equal("parameter_id", kindParameterConnection.FindProperty(nameof(OkdeskKindParameterConnectionRecord.KindParameterId))!.GetColumnName());
     }
 }

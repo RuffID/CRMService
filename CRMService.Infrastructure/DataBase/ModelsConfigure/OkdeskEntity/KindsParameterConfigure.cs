@@ -1,4 +1,4 @@
-﻿using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -18,7 +18,15 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever();
+                .HasDefaultValueSql("NEXT VALUE FOR [KindsParameterLocalIdSequence]")
+                .ValueGeneratedOnAdd();
+
+            builder.HasIndex(e => e.Code, "UX_KindsParameters_Code")
+                .IsUnique();
+
+            builder.HasIndex(e => e.OkdeskId, "UX_KindsParameters_OkdeskId")
+                .IsUnique()
+                .HasFilter("[OkdeskId] IS NOT NULL");
 
             builder.Property(e => e.Code)
                 .HasMaxLength(30);

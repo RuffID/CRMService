@@ -1,4 +1,3 @@
-﻿using CRMService.Application.Abstractions.Database.Repository;
 using CRMService.Domain.Models.Constants;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Service.OkdeskEntity;
@@ -30,6 +29,7 @@ namespace CRMService.Web.Controllers.OkdeskEntity
                 async (provider, token) =>
                 {
                     await provider.GetRequiredService<KindParameterService>().UpdateKindParametersFromCloudApi(token);
+                    await provider.GetRequiredService<KindParameterService>().UpdateKindParametersFromCloudDb(token);
                     await provider.GetRequiredService<KindParamService>().UpsertConnectionsFromCloudDb(token);
                 });
 

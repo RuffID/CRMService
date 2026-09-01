@@ -1,4 +1,5 @@
 using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Application.Models.OkdeskSource;
 using CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,8 +12,8 @@ namespace CRMService.Infrastructure.DataBase
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Group> Groups { get; set; }
         public DbSet<Kind> Kinds { get; set; }
-        public DbSet<KindsParameter> KindsParameters { get; set; }
-        public DbSet<KindParam> KindParams { get; set; }
+        public DbSet<OkdeskKindParameterRecord> KindsParameters { get; set; }
+        public DbSet<OkdeskKindParameterConnectionRecord> KindParams { get; set; }
         public DbSet<MaintenanceEntity> MaintenanceEntities { get; set; }
         public DbSet<Manufacturer> Manufacturers { get; set; }
         public DbSet<Model> Models { get; set; }
@@ -32,8 +33,8 @@ namespace CRMService.Infrastructure.DataBase
                 .ApplyConfiguration(new EmployeeOkdeskConfigure())
                 .ApplyConfiguration(new GroupOkdeskConfigure())
                 .ApplyConfiguration(new KindOkdeskConfigure())
-                .ApplyConfiguration(new KindsParameterOkdeskConfigure())
-                .ApplyConfiguration(new KindParamOkdeskConfigure())
+                .ApplyConfiguration(new OkdeskKindParameterConfigure())
+                .ApplyConfiguration(new OkdeskKindParameterConnectionConfigure())
                 .ApplyConfiguration(new MaintenanceEntityOkdeskConfigure())
                 .ApplyConfiguration(new ManufacturerOkdeskConfigure())
                 .ApplyConfiguration(new ModelOkdeskConfigure())

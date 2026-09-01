@@ -1,6 +1,4 @@
-﻿using EFCoreLibrary.Abstractions.Entity;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+using EFCoreLibrary.Abstractions.Entity;
 
 namespace CRMService.Domain.Models.OkdeskEntity
 {
@@ -8,27 +6,58 @@ namespace CRMService.Domain.Models.OkdeskEntity
     {
         public int Id { get; set; }
 
-        public string Code { get; set; } = string.Empty;
+        public int? OkdeskId { get; private set; }
 
-        public string? Name { get; set; }
+        public string Code { get; private set; } = string.Empty;
 
-        [JsonPropertyName("field_type")]
-        [JsonConverter(typeof(EquipmentParameterFieldTypeJsonConverter))]
-        public EquipmentParameterFieldType? FieldType { get; set; }
+        public string? Name { get; private set; }
 
-        [NotMapped]
-        public string[]? Equipment_kind_codes { get; set; }
+        public EquipmentParameterFieldType? FieldType { get; private set; }
 
         public virtual ICollection<KindParam> KindParams { get; set; } = new List<KindParam>();
 
         public virtual ICollection<EquipmentParameter> Parameters { get; set; } = new List<EquipmentParameter>();
 
+        private KindsParameter()
+        {
+        }
+
+        public KindsParameter(string code, string? name, EquipmentParameterFieldType? fieldType, int? okdeskId = null)
+        {
+            UpdateDetails(code, name, fieldType);
+
+            if (okdeskId.HasValue)
+                SetOkdeskId(okdeskId.Value);
+        }
+
         public void CopyData(KindsParameter parameter)
         {
-            Code = parameter.Code;
-            Name = parameter.Name;
-            FieldType = parameter.FieldType;
-            Equipment_kind_codes = parameter.Equipment_kind_codes;
+            ArgumentNullException.ThrowIfNull(parameter);
+
+            UpdateDetails(parameter.Code, parameter.Name, parameter.FieldType);
+
+            if (parameter.OkdeskId.HasValue)
+                SetOkdeskId(parameter.OkdeskId.Value);
+        }
+
+        public void UpdateDetails(string code, string? name, EquipmentParameterFieldType? fieldType)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(code);
+
+            Code = code;
+            Name = name;
+            FieldType = fieldType;
+        }
+
+        public void SetOkdeskId(int okdeskId)
+        {
+            if (okdeskId <= 0)
+                throw new ArgumentOutOfRangeException(nameof(okdeskId), okdeskId, "Okdesk identifier must be positive.");
+
+            if (OkdeskId.HasValue && OkdeskId.Value != okdeskId)
+                throw new InvalidOperationException($"Okdesk identifier for kind parameter '{Code}' cannot be changed from '{OkdeskId.Value}' to '{okdeskId}'.");
+
+            OkdeskId = okdeskId;
         }
     }
 }

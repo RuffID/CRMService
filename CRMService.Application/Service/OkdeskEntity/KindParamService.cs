@@ -1,4 +1,5 @@
 using CRMService.Application.Abstractions.Database.Repository;
+using CRMService.Application.Models.OkdeskSource;
 using CRMService.Domain.Models.OkdeskEntity;
 using Microsoft.Extensions.Logging;
 
@@ -6,9 +7,9 @@ namespace CRMService.Application.Service.OkdeskEntity
 {
     public class KindParamService(IEquipmentUnitOfWork unitOfWork, IOkdeskEquipmentSource okdeskUnitOfWork, ILogger<KindParamService> logger)
     {
-        private async Task<List<KindParam>> GetConnectionsFromCloudDb(CancellationToken ct)
+        private async Task<List<OkdeskKindParameterConnectionRecord>> GetConnectionsFromCloudDb(CancellationToken ct)
         {
-            List<KindParam> parameters = await okdeskUnitOfWork.KindParams.GetAllReadOnlyAsync(ct);
+            List<OkdeskKindParameterConnectionRecord> parameters = await okdeskUnitOfWork.KindParams.GetAllReadOnlyAsync(ct);
 
             return parameters.OrderBy(x => x.KindId).ThenBy(x => x.KindParameterId).ToList();
         }
@@ -17,15 +18,25 @@ namespace CRMService.Application.Service.OkdeskEntity
         {
             logger.LogInformation("[Method:{MethodName}] Starting to update kind-parameter connections from DB.", nameof(UpsertConnectionsFromCloudDb));
 
-            List<KindParam> connections = await GetConnectionsFromCloudDb(ct);
+            List<OkdeskKindParameterConnectionRecord> sourceConnections = await GetConnectionsFromCloudDb(ct);
 
-            if (connections.Count == 0)
+            if (sourceConnections.Count == 0)
                 return;
 
-            HashSet<int> kindIds = new (connections.Select(c => c.KindId));
-            HashSet<int> kindParameterIds = new(connections.Select(c => c.KindParameterId));
+            HashSet<int> kindIds = new(sourceConnections.Select(c => c.KindId));
+            HashSet<int> okdeskKindParameterIds = new(sourceConnections.Select(c => c.KindParameterId));
 
-            await ValidateConnectionReferences(kindIds, kindParameterIds, ct);
+            Dictionary<int, int> localParameterIdsByOkdeskId = await ResolveLocalParameterIds(okdeskKindParameterIds, ct);
+            await ValidateKindReferences(kindIds, ct);
+
+            List<KindParam> connections = sourceConnections
+                .Select(connection => new KindParam
+                {
+                    KindId = connection.KindId,
+                    KindParameterId = localParameterIdsByOkdeskId[connection.KindParameterId]
+                })
+                .Distinct(KindParam.Comparer)
+                .ToList();
 
             List<KindParam> existingLinks = await unitOfWork.KindParams.GetByKindIdsReadOnlyAsync(kindIds, ct);
 
@@ -41,26 +52,44 @@ namespace CRMService.Application.Service.OkdeskEntity
             await unitOfWork.SaveChangesAsync(ct);
         }
 
-        private async Task ValidateConnectionReferences(HashSet<int> kindIds, HashSet<int> kindParameterIds, CancellationToken ct)
+        private async Task<Dictionary<int, int>> ResolveLocalParameterIds(HashSet<int> okdeskKindParameterIds, CancellationToken ct)
+        {
+            List<KindsParameter> existingKindParameters = await unitOfWork.KindParameter.GetByOkdeskIdsReadOnlyAsync(okdeskKindParameterIds, ct);
+            Dictionary<int, int> localIdsByOkdeskId = existingKindParameters
+                .Where(parameter => parameter.OkdeskId.HasValue)
+                .ToDictionary(parameter => parameter.OkdeskId!.Value, parameter => parameter.Id);
+            List<int> missingOkdeskIds = okdeskKindParameterIds
+                .Except(localIdsByOkdeskId.Keys)
+                .OrderBy(id => id)
+                .ToList();
+
+            if (missingOkdeskIds.Count == 0)
+                return localIdsByOkdeskId;
+
+            string missingOkdeskIdsText = string.Join(", ", missingOkdeskIds);
+            logger.LogError("[Method:{MethodName}] Cannot update kind-parameter connections because Okdesk parameters are missing locally. Missing Okdesk parameter IDs: [{MissingOkdeskIds}].",
+                nameof(UpsertConnectionsFromCloudDb), missingOkdeskIdsText);
+
+            throw new InvalidOperationException(
+                $"Cannot update kind-parameter connections because Okdesk parameters are missing locally. Missing Okdesk parameter IDs: [{missingOkdeskIdsText}].");
+        }
+
+        private async Task ValidateKindReferences(HashSet<int> kindIds, CancellationToken ct)
         {
             List<Kind> existingKinds = await unitOfWork.Kind.GetByIdsReadOnlyAsync(kindIds, ct);
 
-            List<KindsParameter> existingKindParameters = await unitOfWork.KindParameter.GetByIdsReadOnlyAsync(kindParameterIds, ct);
-
             List<int> missingKindIds = kindIds.Except(existingKinds.Select(kind => kind.Id)).OrderBy(id => id).ToList();
-            List<int> missingKindParameterIds = kindParameterIds.Except(existingKindParameters.Select(parameter => parameter.Id)).OrderBy(id => id).ToList();
 
-            if (missingKindIds.Count == 0 && missingKindParameterIds.Count == 0)
+            if (missingKindIds.Count == 0)
                 return;
 
             string missingKindIdsText = string.Join(", ", missingKindIds);
-            string missingKindParameterIdsText = string.Join(", ", missingKindParameterIds);
 
-            logger.LogError("[Method:{MethodName}] Cannot update kind-parameter connections because referenced entities are missing. Missing kind IDs: [{MissingKindIds}]. Missing kind parameter IDs: [{MissingKindParameterIds}].",
-                nameof(UpsertConnectionsFromCloudDb), missingKindIdsText, missingKindParameterIdsText);
+            logger.LogError("[Method:{MethodName}] Cannot update kind-parameter connections because referenced equipment kinds are missing. Missing kind IDs: [{MissingKindIds}].",
+                nameof(UpsertConnectionsFromCloudDb), missingKindIdsText);
 
             throw new InvalidOperationException(
-                $"Cannot update kind-parameter connections because referenced entities are missing. Missing kind IDs: [{missingKindIdsText}]. Missing kind parameter IDs: [{missingKindParameterIdsText}].");
+                $"Cannot update kind-parameter connections because referenced equipment kinds are missing. Missing kind IDs: [{missingKindIdsText}].");
         }
     }
 }

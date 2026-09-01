@@ -1,4 +1,5 @@
 using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Application.Models.OkdeskSource;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity;
@@ -52,12 +53,12 @@ public partial class OkdeskKindRepository
 
 public partial class OkdeskKindParameterRepository
 {
-    public Task<List<KindsParameter>> GetAllReadOnlyAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+    public Task<List<OkdeskKindParameterRecord>> GetAllReadOnlyAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 }
 
 public partial class OkdeskKindParamsRepository
 {
-    public Task<List<KindParam>> GetAllReadOnlyAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+    public Task<List<OkdeskKindParameterConnectionRecord>> GetAllReadOnlyAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
 }
 
 public partial class OkdeskMaintenanceEntityRepository

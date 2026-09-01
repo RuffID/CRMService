@@ -142,8 +142,11 @@ public partial class KindParameterRepository
     public Task<KindsParameter?> GetItemByIdReadOnlyAsync(int id, CancellationToken ct = default) => getItemById.GetItemByIdAsync(id, true, ct: ct);
     public Task<List<KindsParameter>> GetItemsAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(ct: ct);
     public Task<List<KindsParameter>> GetItemsReadOnlyAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
+    public Task<KindsParameter?> GetByCodeAsync(string code, CancellationToken ct = default) => getItemByPredicate.GetItemByPredicateAsync(x => x.Code == code, ct: ct);
     public Task<KindsParameter?> GetByCodeReadOnlyAsync(string code, CancellationToken ct = default) => getItemByPredicate.GetItemByPredicateAsync(x => x.Code == code, true, ct: ct);
+    public Task<KindsParameter?> GetByOkdeskIdAsync(int okdeskId, CancellationToken ct = default) => getItemByPredicate.GetItemByPredicateAsync(x => x.OkdeskId == okdeskId, ct: ct);
     public Task<List<KindsParameter>> GetByIdsReadOnlyAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(x => ids.Contains(x.Id), asNoTracking: true, ct: ct);
+    public Task<List<KindsParameter>> GetByOkdeskIdsReadOnlyAsync(IReadOnlyCollection<int> okdeskIds, CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(x => x.OkdeskId.HasValue && okdeskIds.Contains(x.OkdeskId.Value), asNoTracking: true, ct: ct);
     public Task<List<KindsParameter>> GetByCodesReadOnlyAsync(IReadOnlyCollection<string> codes, CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(x => codes.Contains(x.Code), asNoTracking: true, ct: ct);
 }
 

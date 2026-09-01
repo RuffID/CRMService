@@ -8,8 +8,11 @@ namespace CRMService.Application.Abstractions.Database.Repository.Entity
         IGetItemsRepository<KindsParameter>,
         ICreateItemRepository<KindsParameter>
     {
+        Task<KindsParameter?> GetByCodeAsync(string code, CancellationToken ct = default);
         Task<KindsParameter?> GetByCodeReadOnlyAsync(string code, CancellationToken ct = default);
+        Task<KindsParameter?> GetByOkdeskIdAsync(int okdeskId, CancellationToken ct = default);
         Task<List<KindsParameter>> GetByIdsReadOnlyAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default);
+        Task<List<KindsParameter>> GetByOkdeskIdsReadOnlyAsync(IReadOnlyCollection<int> okdeskIds, CancellationToken ct = default);
         Task<List<KindsParameter>> GetByCodesReadOnlyAsync(IReadOnlyCollection<string> codes, CancellationToken ct = default);
     }
 }

@@ -39,7 +39,7 @@ public class ModelConfigurationTests
     public void OkdeskContext_TableKeysShadowColumnsAndDeleteBehavior_MatchCloudSchema()
     {
         DbContextOptions<OkdeskContext> options = new DbContextOptionsBuilder<OkdeskContext>()
-            .UseNpgsql("Host=localhost;Database=metadata_only;Username=unused;Password=unused")
+            .UseSqlServer("Server=localhost;Database=metadata_only;User Id=sa;Password=Unused_Strong!1;TrustServerCertificate=True")
             .Options;
         using OkdeskContext context = new(options);
 

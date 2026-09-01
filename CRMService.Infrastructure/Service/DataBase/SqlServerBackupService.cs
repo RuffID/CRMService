@@ -21,7 +21,8 @@ public class SqlServerBackupService(
         if (!DatabaseBackupOptions.IsValidProjectName(_options.ProjectName))
             throw new InvalidOperationException("SQL Server backup project name must contain only letters, digits, hyphens, or underscores.");
 
-        if (!DatabaseBackupOptions.IsAbsoluteSqlServerPath(_options.SqlServerPath))
+        string sqlServerPath = _options.GetSqlServerPathForCurrentOperatingSystem();
+        if (!DatabaseBackupOptions.IsAbsoluteSqlServerPath(sqlServerPath))
             throw new InvalidOperationException("SQL Server-visible backup path must be absolute.");
 
         SqlConnectionStringBuilder connectionString = new(_options.ConnectionString);
@@ -30,7 +31,7 @@ public class SqlServerBackupService(
 
         string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fffffff", CultureInfo.InvariantCulture);
         string backupFileName = $"backup_{_options.ProjectName}_{timestamp}_{Guid.NewGuid():N}.bak";
-        string backupFilePath = CombineSqlServerPath(_options.SqlServerPath, backupFileName);
+        string backupFilePath = CombineSqlServerPath(sqlServerPath, backupFileName);
         string escapedDatabaseName = connectionString.InitialCatalog.Replace("]", "]]", StringComparison.Ordinal);
         string escapedBackupFilePath = backupFilePath.Replace("'", "''", StringComparison.Ordinal);
         string sql = $"BACKUP DATABASE [{escapedDatabaseName}] TO DISK = N'{escapedBackupFilePath}' WITH FORMAT, INIT, NAME = 'Scheduled Backup';";

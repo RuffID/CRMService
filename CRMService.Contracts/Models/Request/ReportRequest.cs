@@ -1,4 +1,4 @@
-﻿namespace CRMService.Contracts.Models.Request
+namespace CRMService.Contracts.Models.Request
 {
     public class ReportRequest
     {
@@ -14,6 +14,7 @@
         public bool HideWithoutSolved { get; set; }
         public bool HideWithoutCurrent { get; set; }
         public bool HideWithoutTime { get; set; }
+        public bool ActiveOnly { get; set; } = true;
 
         public bool HasEmployees => EmployeeIds != null && EmployeeIds.Count > 0;
         public bool HasStatus => StatusIds != null && StatusIds.Count > 0;

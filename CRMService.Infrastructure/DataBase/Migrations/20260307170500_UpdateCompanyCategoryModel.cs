@@ -1,3 +1,5 @@
+using CRMService.Infrastructure.DataBase;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -5,6 +7,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CRMService.Infrastructure.DataBase.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(MainContext))]
+    [Migration("20260307170500_UpdateCompanyCategoryModel")]
     public partial class UpdateCompanyCategoryModel : Migration
     {
         /// <inheritdoc />

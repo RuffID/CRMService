@@ -1,4 +1,4 @@
-﻿using CRMService.Application.Models.ConfigClass;
+using CRMService.Application.Models.ConfigClass;
 using CRMService.Domain.Models.OkdeskEntity;
 using CRMService.Application.Models.WebHook;
 using CRMService.Application.Service.OkdeskEntity;
@@ -34,7 +34,7 @@ namespace CRMService.Application.Service.Webhook
                     await CreateIssue(@event.Issue, @event.Event!.Event_type, ct);
                     break;
                 case "new_assignee":
-                    await UpdateIssue(@event.Issue, @event.Event!.Event_type, ct);
+                    await UpdateIssue(@event.Issue, @event.Event.Event_type, @event.Event.New_Assignee, ct);
                     break;
                 case "update_issue_work_type":
                     await UpdateIssue(@event.Issue, @event.Event!.Event_type, ct);
@@ -133,9 +133,12 @@ namespace CRMService.Application.Service.Webhook
             }, ct);
         }
 
-        private async Task UpdateIssue(IssueWebHook issueJson, string eventType, CancellationToken ct)
+        private Task UpdateIssue(IssueWebHook issueJson, string eventType, CancellationToken ct) =>
+            UpdateIssue(issueJson, eventType, issueJson.EffectiveAssignee, ct);
+
+        private async Task UpdateIssue(IssueWebHook issueJson, string eventType, AssigneeWebHook? assignee, CancellationToken ct)
         {
-            Issue issue = issueJson.ConvertToIssue();
+            Issue issue = issueJson.ConvertToIssue(assignee);
 
             await sync.RunExclusive(issue, async () =>
             {
@@ -148,7 +151,7 @@ namespace CRMService.Application.Service.Webhook
                     issueJson.Type?.Code,
                     issueJson.Client?.Company?.Id,
                     issueJson.Maintenance_entity?.Id,
-                    issueJson.EffectiveAssignee?.Employee?.Id);
+                    issue.AssigneeId);
 
                 await issueService.CreateOrUpdateAsync(issue, ct);
             }, ct);

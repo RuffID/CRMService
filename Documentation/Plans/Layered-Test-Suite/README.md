@@ -2,7 +2,7 @@
 
 ## Цель
 
-Создать в `tests` отдельные тестовые проекты для всех проектов решения и отделить быстрые тесты от проверок, которым нужны ASP.NET Core host и реальные СУБД. Инфраструктурные тесты должны работать с SQL Server и PostgreSQL в Docker-контейнерах и гарантированно освобождать контейнеры после выполнения.
+Создать в `tests` отдельные тестовые проекты для всех проектов решения и отделить быстрые тесты от проверок, которым нужны ASP.NET Core host и реальная СУБД. Инфраструктурные тесты должны работать с SQL Server в Docker-контейнере и гарантированно освобождать контейнер после выполнения.
 
 На момент первоначального составления плана папка `tests` была пуста. Сейчас созданы отдельные проекты для Domain, Contracts, Application, Infrastructure, Web и архитектурных проверок. В решении находятся пять production-проектов на `net10.0`: Domain, Contracts, Application, Infrastructure и Web. `MainContext` использует SQL Server и имеет EF Core migrations; `OkdeskContext` использует PostgreSQL и отдельных migrations не имеет.
 
@@ -36,7 +36,7 @@ tests/
 - Unit-тесты не обращаются к сети, файловой системе, системным процессам, Docker или реальной БД.
 - Тесты внешнего HTTP используют контролируемый `HttpMessageHandler`/fake `IHttpApiClient`, без исходящих запросов.
 - Docker-тесты помечаются `Trait("Dependency", "Docker")`; быстрый и контейнерный наборы выбираются командами Microsoft.Testing.Platform `--filter-not-trait "Dependency=Docker"` и `--filter-trait "Dependency=Docker"`.
-- EF Core InMemory не использовать для проверки репозиториев и конфигураций: он не воспроизводит поведение SQL Server/PostgreSQL.
+- EF Core InMemory не использовать для проверки репозиториев и конфигураций: он не воспроизводит поведение SQL Server.
 
 ## Порядок реализации
 

@@ -1,4 +1,4 @@
-﻿using CRMService.Application.Abstractions.Service;
+using CRMService.Application.Abstractions.Service;
 using EFCoreLibrary.Abstractions.Entity;
 using CRMService.Domain.Models.Constants;
 using HttpClientLibrary.Abstractions;
@@ -23,11 +23,14 @@ namespace CRMService.Infrastructure.Service.Requests
                 if (collection == null || collection.Count == 0)
                     yield break;
                 
-                if (collection.Last() is IEntity<int> entity)
-                    startIndex = entity.Id + 1;
-
                 if (pageNubmer != 0)
+                {
                     pageNubmer++;
+                }
+                else if (collection.Last() is IEntity<int> entity)
+                {
+                    startIndex = entity.Id;
+                }
 
                 yield return collection;
 
@@ -44,11 +47,17 @@ namespace CRMService.Infrastructure.Service.Requests
             if (limit > LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API) 
                 limit = LimitConstants.LIMIT_FOR_RETRIEVING_ENTITIES_FROM_API;
 
-            if (limit != 0 || startIndex != 0)
-                link += $"&page[size]={limit}&page[direction]=forward&page[from_id]={startIndex}";
-
             if (pageNubmer != 0)
+            {
+                if (limit != 0)
+                    link += $"&page[size]={limit}";
+
                 link += $"&page[number]={pageNubmer}";
+            }
+            else if (limit != 0 || startIndex != 0)
+            {
+                link += $"&page[size]={limit}&page[direction]=forward&page[from_id]={startIndex}";
+            }
 
             try
             {
@@ -57,9 +66,8 @@ namespace CRMService.Infrastructure.Service.Requests
             catch (HttpRequestFailedException ex)
             {
                 logger.LogWarning(ex, "[Method:{MethodName}] Failed to retrieve items from Okdesk API. Link: {Link}", nameof(GetRangeOfItemsAsync), link);
+                throw;
             }
-
-            return new List<T>();
         }
 
         public async Task<T?> GetItemAsync<T>(string link, CancellationToken ct = default)
@@ -75,9 +83,8 @@ namespace CRMService.Infrastructure.Service.Requests
             catch (HttpRequestFailedException ex)
             {
                 logger.LogWarning(ex, "[Method:{MethodName}] Failed to retrieve item from Okdesk API. Link: {Link}", nameof(GetItemAsync), link);
+                throw;
             }
-
-            return default;
         }
     }
 }

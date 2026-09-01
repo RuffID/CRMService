@@ -25,7 +25,7 @@ public class DependencyInjectionTests
         OkdeskContext okdeskContext = services.GetRequiredService<OkdeskContext>();
 
         Assert.Equal("Microsoft.EntityFrameworkCore.SqlServer", mainContext.Database.ProviderName);
-        Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", okdeskContext.Database.ProviderName);
+        Assert.Equal("Microsoft.EntityFrameworkCore.SqlServer", okdeskContext.Database.ProviderName);
         Assert.Contains("crm_web_tests", mainContext.Database.GetConnectionString(), StringComparison.Ordinal);
         Assert.Contains("crm_web_tests", okdeskContext.Database.GetConnectionString(), StringComparison.Ordinal);
         Assert.IsType<RecordingStartupInitializer>(services.GetRequiredService<IStartupInitializer>());

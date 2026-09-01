@@ -41,7 +41,6 @@ public partial class EmployeeGroupRepository
     public Task<List<EmployeeGroup>> GetItemsAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(ct: ct);
     public Task<List<EmployeeGroup>> GetItemsReadOnlyAsync(CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(asNoTracking: true, ct: ct);
     public Task<List<EmployeeGroup>> GetByGroupIdsReadOnlyAsync(IReadOnlyCollection<int> groupIds, CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(x => groupIds.Contains(x.GroupId), asNoTracking: true, ct: ct);
-    public Task<List<EmployeeGroup>> GetByEmployeesAndGroupsReadOnlyAsync(IReadOnlyCollection<int> employeeIds, IReadOnlyCollection<int> groupIds, CancellationToken ct = default) => getItemByPredicate.GetItemsByPredicateAsync(x => employeeIds.Contains(x.EmployeeId) && groupIds.Contains(x.GroupId), asNoTracking: true, ct: ct);
 }
 
 public partial class EmployeeRoleRepository

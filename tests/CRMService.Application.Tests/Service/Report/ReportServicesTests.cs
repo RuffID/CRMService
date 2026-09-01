@@ -12,6 +12,49 @@ namespace CRMService.Application.Tests.Service.Report;
 public class ReportServicesTests
 {
     [Fact]
+    public async Task GetFullReportOnEmployees_DefaultActiveFilter_ExcludesInactiveEmployees()
+    {
+        IReportsUnitOfWork unitOfWork = Substitute.For<IReportsUnitOfWork>();
+        Employee activeEmployee = new() { Id = 1, LastName = "Active", Active = true };
+        Employee inactiveEmployee = new() { Id = 2, LastName = "Inactive", Active = false };
+        unitOfWork.Employee.GetItemsReadOnlyAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Employee> { activeEmployee, inactiveEmployee }));
+        unitOfWork.Employee.GetByIdsReadOnlyAsync(Arg.Any<IReadOnlyCollection<int>>(), true, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Employee> { activeEmployee }));
+        ConfigureEmployeePerformanceReport(unitOfWork, [new SolvedIssuesCountInfo { EmployeeId = 1, Count = 1 }]);
+        EmployeePerformanceReportService service = new(unitOfWork);
+
+        List<ReportInfo> result = await service.GetFullReportOnEmployees(
+            new DateTime(2026, 9, 1),
+            new DateTime(2026, 9, 2),
+            new ReportRequest(),
+            TestContext.Current.CancellationToken);
+
+        Assert.Collection(result, item => Assert.Equal(activeEmployee.Id, item.EmployeeId));
+    }
+
+    [Fact]
+    public async Task GetFullReportOnEmployees_DisabledActiveFilter_IncludesInactiveEmployees()
+    {
+        IReportsUnitOfWork unitOfWork = Substitute.For<IReportsUnitOfWork>();
+        Employee inactiveEmployee = new() { Id = 2, LastName = "Inactive", Active = false };
+        unitOfWork.Employee.GetItemsReadOnlyAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Employee> { inactiveEmployee }));
+        unitOfWork.Employee.GetByIdsReadOnlyAsync(Arg.Any<IReadOnlyCollection<int>>(), false, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Employee> { inactiveEmployee }));
+        ConfigureEmployeePerformanceReport(unitOfWork, [new SolvedIssuesCountInfo { EmployeeId = 2, Count = 1 }]);
+        EmployeePerformanceReportService service = new(unitOfWork);
+
+        List<ReportInfo> result = await service.GetFullReportOnEmployees(
+            new DateTime(2026, 9, 1),
+            new DateTime(2026, 9, 2),
+            new ReportRequest { ActiveOnly = false },
+            TestContext.Current.CancellationToken);
+
+        Assert.Collection(result, item => Assert.Equal(inactiveEmployee.Id, item.EmployeeId));
+    }
+
+    [Fact]
     public async Task GetIssueDynamicsChartAsync_HourGranularity_PassesRangeAndBuildsBuckets()
     {
         IReportsUnitOfWork unitOfWork = Substitute.For<IReportsUnitOfWork>();
@@ -159,5 +202,28 @@ public class ReportServicesTests
                 default!,
                 default!,
                 TestContext.Current.CancellationToken);
+    }
+
+    private static void ConfigureEmployeePerformanceReport(
+        IReportsUnitOfWork unitOfWork,
+        List<SolvedIssuesCountInfo> openCounts)
+    {
+        unitOfWork.EmployeePerformanceReport
+            .GetOpenIssuesCountByEmployees(Arg.Any<ReportRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(openCounts));
+        unitOfWork.EmployeePerformanceReport
+            .GetSolvedIssuesCountByEmployees(
+                Arg.Any<DateTime>(),
+                Arg.Any<DateTime>(),
+                Arg.Any<ReportRequest>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<SolvedIssuesCountInfo>()));
+        unitOfWork.EmployeePerformanceReport
+            .GetSpentedTimeByEmployee(
+                Arg.Any<DateTime>(),
+                Arg.Any<DateTime>(),
+                Arg.Any<ReportRequest>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<SpentedTimeInfo>()));
     }
 }

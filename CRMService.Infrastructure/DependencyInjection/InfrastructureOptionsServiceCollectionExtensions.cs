@@ -40,8 +40,14 @@ internal static class InfrastructureOptionsServiceCollectionExtensions
                 options => DatabaseBackupOptions.IsValidProjectName(options.ProjectName),
                 "DatabaseBackup:ProjectName must contain only letters, digits, hyphens, or underscores")
             .Validate(
-                options => DatabaseBackupOptions.IsAbsoluteSqlServerPath(options.SqlServerPath),
-                "DatabaseBackup:SqlServerPath must be an absolute SQL Server-visible path")
+                options => DatabaseBackupOptions.IsAbsoluteWindowsSqlServerPath(options.WindowsSqlServerPath),
+                "DatabaseBackup:WindowsSqlServerPath must be an absolute Windows SQL Server-visible path")
+            .Validate(
+                options => DatabaseBackupOptions.IsAbsoluteLinuxSqlServerPath(options.LinuxSqlServerPath),
+                "DatabaseBackup:LinuxSqlServerPath must be an absolute Linux SQL Server-visible path")
+            .Validate(
+                _ => OperatingSystem.IsWindows() || OperatingSystem.IsLinux(),
+                "Database backup is supported only on Windows and Linux")
             .ValidateOnStart();
 
         return services;

@@ -285,7 +285,8 @@ public class SqlServerInfrastructureTests(SqlServerFixture fixture)
         {
             ConnectionString = connectionString,
             ProjectName = "CRMService",
-            SqlServerPath = sqlServerPath
+            WindowsSqlServerPath = sqlServerPath,
+            LinuxSqlServerPath = sqlServerPath
         };
 
         return new SqlServerBackupService(

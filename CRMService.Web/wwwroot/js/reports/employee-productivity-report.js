@@ -292,6 +292,7 @@ function buildReportPayload() {
         statusIds: (state.statuses || []).map(Number),
         priorityIds: (state.priorities || []).map(Number),
         typeIds: (state.types || []).map(Number),
+        activeOnly: state.activeOnly !== false,
         hideWithoutSolved: !!state.hideWithoutSolved,
         hideWithoutCurrent: !!state.hideWithoutCurrent,
         hideWithoutTime: !!state.hideWithoutTime

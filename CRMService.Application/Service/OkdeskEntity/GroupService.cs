@@ -147,7 +147,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 }
             }
 
-            if (desired.Count == 0)
+            List<int> groupIds = groups.Select(g => g.Id).Distinct().ToList();
+            if (groupIds.Count == 0)
             {
                 logger.LogInformation("[Method:{MethodName}] Employee-group connections update completed. Groups: {GroupCount}, employees: {EmployeeCount}, desired: {DesiredCount}, added: {AddedCount}, deleted: {DeletedCount}.",
                     nameof(UpsertEmployeeGroupConnectionsFromApi), groups.Count, allEmployeesFromApi.Count, desired.Count, 0, 0);
@@ -155,11 +156,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 return;
             }
 
-            List<int> groupIds = groups.Select(g => g.Id).Distinct().ToList();
-            List<int> employeeIds = allEmployeesFromApi.Select(e => e.Id).Distinct().ToList();
-
             List<EmployeeGroup> existing = await unitOfWork.EmployeeGroup
-                .GetByEmployeesAndGroupsReadOnlyAsync(employeeIds, groupIds, ct);
+                .GetByGroupIdsReadOnlyAsync(groupIds, ct);
 
             List<EmployeeGroup> toAdd = desired.Except(existing, EmployeeGroup.Comparer).ToList();
             List<EmployeeGroup> toDelete = existing.Except(desired, EmployeeGroup.Comparer).ToList();

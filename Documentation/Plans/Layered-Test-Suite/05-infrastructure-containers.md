@@ -9,22 +9,21 @@ Status: Completed
 
 ## Текущее состояние
 
-Добавлены отдельные SQL Server/PostgreSQL collections с Testcontainers `4.14.0`, Respawn `6.2.1`, pinned images, динамическими ports и уникальными container/database names. SQL Server применяет все production migrations через `MigrateAsync`; PostgreSQL создаёт текущую Okdesk-схему через `EnsureCreatedAsync`. Быстрый suite завершён с результатом 43 passed, Docker suite — 16 passed, failed/skipped отсутствуют. После прогонов containers, volumes и host backup files не остаются.
+Добавлена SQL Server collection с Testcontainers `4.14.0`, Respawn `6.2.1`, pinned image, динамическим port и уникальными container/database names. SQL Server применяет все production migrations через `MigrateAsync`. PostgreSQL collection и связанные с ней тесты удалены. После прогонов container, volumes и host backup files не остаются.
 
 ## Пакеты и разделение suite
 
-В `CRMService.Infrastructure.IntegrationTests` добавить Testcontainers modules для SQL Server и PostgreSQL, а также `Respawn` для очистки данных. Чистые инфраструктурные компоненты (`JwtTokenService`, HTTP adapters) тестировать в том же проекте без подключения container fixture.
+В `CRMService.Infrastructure.IntegrationTests` использовать Testcontainers module для SQL Server и `Respawn` для очистки данных. Чистые инфраструктурные компоненты (`JwtTokenService`, HTTP adapters) тестировать в том же проекте без подключения container fixture.
 
-Контейнерные тесты пометить `[Trait("Dependency", "Docker")]` и сгруппировать в отдельные xUnit v3 collections:
+Контейнерные тесты пометить `[Trait("Dependency", "Docker")]` и сгруппировать в xUnit v3 collection:
 
-- `SqlServerCollection` для `MainContext`;
-- `PostgreSqlCollection` для `OkdeskContext`.
+- `SqlServerCollection` для `MainContext`.
 
-Внутри каждой collection тесты выполняются последовательно относительно общей БД; SQL Server и PostgreSQL collections могут выполняться параллельно, если CI имеет достаточно ресурсов.
+Внутри collection тесты выполняются последовательно относительно общей БД.
 
 ## Жизненный цикл контейнеров
 
-Создать по одной assembly/collection fixture на provider с `IAsyncLifetime`:
+Создать collection fixture с `IAsyncLifetime`:
 
 1. Сформировать уникальное имя контейнера и database.
 2. Запустить container на динамическом host port без bind mounts.
@@ -38,7 +37,6 @@ Status: Completed
 ## Инициализация схемы
 
 - `MainContext`: на чистой SQL Server database выполнять `MigrateAsync`, тем самым проверяя production migrations. Отдельный smoke test должен подтвердить применение всех migrations с нуля.
-- `OkdeskContext`: migrations сейчас отсутствуют, поэтому для тестовой database применять `EnsureCreatedAsync`. Если появятся production migrations для этого контекста, заменить этот шаг на `MigrateAsync`.
 - Не использовать production-сервис автоматического backup/migration как fixture initializer: он смешивает проверку подключения, backup и migration.
 
 ## Набор инфраструктурных тестов
@@ -51,7 +49,6 @@ Status: Completed
 - фильтрация, сортировка и pagination заявок/оборудования;
 - report aggregate repositories на данных с граничными датами и пустыми выборками;
 - `UnitOfWork.SaveChangesAsync` и commit/rollback `ExecuteInTransaction`;
-- `OkdeskUnitOfWork` и cloud repositories на PostgreSQL.
 
 ### Инфраструктурные сервисы без внешней сети
 
@@ -71,5 +68,5 @@ Status: Completed
 ## Критерии завершения
 
 - После успешного и упавшего тестового прогона не остаётся контейнеров, volumes и host-файлов.
-- Оба provider проверяются реальными движками.
+- SQL Server проверяется реальным движком.
 - Тесты не зависят от порядка и production data.

@@ -30,7 +30,29 @@ public class GetOkdeskEntityServiceTests
 
         Assert.Equal(2, pages.Count);
         Assert.Contains("page[from_id]=0", links[0]);
-        Assert.Contains("page[from_id]=12", links[1]);
+        Assert.Contains("page[from_id]=11", links[1]);
+    }
+
+    [Fact]
+    public async Task GetAllItemsAsync_PageNumberPagination_DoesNotMixCursorParameters()
+    {
+        IHttpApiClient client = Substitute.For<IHttpApiClient>();
+        List<string> links = new();
+        client.GetAsync<List<ApiItem>>(Arg.Do<string>(links.Add), Arg.Any<IDictionary<string, string>?>(), Arg.Any<CancellationToken>())
+            .Returns(
+                [new ApiItem { Id = 10 }, new ApiItem { Id = 11 }],
+                [new ApiItem { Id = 12 }]);
+        GetOkdeskEntityService service = CreateService(client);
+
+        await foreach (List<ApiItem> _ in service.GetAllItemsAsync<ApiItem>("https://okdesk.invalid/items?x=1", 0, 2, pageNubmer: 1, ct: TestContext.Current.CancellationToken))
+        {
+        }
+
+        Assert.Equal(2, links.Count);
+        Assert.Contains("page[number]=1", links[0]);
+        Assert.Contains("page[number]=2", links[1]);
+        Assert.DoesNotContain("page[from_id]", links[0]);
+        Assert.DoesNotContain("page[direction]", links[0]);
     }
 
     [Fact]
@@ -58,15 +80,25 @@ public class GetOkdeskEntityServiceTests
     }
 
     [Fact]
-    public async Task GetItemAsync_OtherHttpError_ReturnsNull()
+    public async Task GetItemAsync_OtherHttpError_PropagatesFailure()
     {
         IHttpApiClient client = Substitute.For<IHttpApiClient>();
         client.GetAsync<ApiItem>(Arg.Any<string>(), Arg.Any<IDictionary<string, string>?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException<ApiItem?>(CreateHttpFailure(HttpStatusCode.BadGateway))!);
 
-        ApiItem? result = await CreateService(client).GetItemAsync<ApiItem>("https://okdesk.invalid/items/1", TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<HttpRequestFailedException>(() =>
+            CreateService(client).GetItemAsync<ApiItem>("https://okdesk.invalid/items/1", TestContext.Current.CancellationToken));
+    }
 
-        Assert.Null(result);
+    [Fact]
+    public async Task GetRangeOfItemsAsync_HttpError_PropagatesFailure()
+    {
+        IHttpApiClient client = Substitute.For<IHttpApiClient>();
+        client.GetAsync<List<ApiItem>>(Arg.Any<string>(), Arg.Any<IDictionary<string, string>?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<List<ApiItem>?>(CreateHttpFailure(HttpStatusCode.BadGateway))!);
+
+        await Assert.ThrowsAsync<HttpRequestFailedException>(() =>
+            CreateService(client).GetRangeOfItemsAsync<ApiItem>("https://okdesk.invalid/items?x=1", ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]

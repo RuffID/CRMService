@@ -86,7 +86,8 @@ public class CrmWebApplicationFactory : WebApplicationFactory<ReportBackgroundSe
         ["ConnectionStrings:MSSql"] = "Server=127.0.0.1,1;Database=crm_web_tests;User Id=test;Password=test-only;Encrypt=False;Connect Timeout=1",
         ["ConnectionStrings:Postgresql"] = "Host=127.0.0.1;Port=1;Database=crm_web_tests;Username=test;Password=test-only;Timeout=1",
         ["DatabaseBackup:ProjectName"] = "crm_web_tests",
-        ["DatabaseBackup:SqlServerPath"] = "/test-only/backups",
+        ["DatabaseBackup:WindowsSqlServerPath"] = "C:\\test-only\\backups",
+        ["DatabaseBackup:LinuxSqlServerPath"] = "/test-only/backups",
         ["JWTSymmetricSecurityKey"] = "test-only-signing-key-with-at-least-thirty-two-characters-1234567890",
         ["TelegramBot:SupportChatId"] = "1",
         ["TelegramBot:DebugChatId"] = "2",
@@ -106,8 +107,8 @@ public class CrmWebApplicationFactory : WebApplicationFactory<ReportBackgroundSe
 
         services.AddDbContext<MainContext>(options => options.UseSqlServer(
             "Server=127.0.0.1,1;Database=crm_web_tests;User Id=test;Password=test-only;Encrypt=False;Connect Timeout=1"));
-        services.AddDbContext<OkdeskContext>(options => options.UseNpgsql(
-            "Host=127.0.0.1;Port=1;Database=crm_web_tests;Username=test;Password=test-only;Timeout=1"));
+        services.AddDbContext<OkdeskContext>(options => options.UseSqlServer(
+            "Server=127.0.0.1,1;Database=crm_web_tests;User Id=test;Password=test-only;Encrypt=False;Connect Timeout=1"));
 
     }
 

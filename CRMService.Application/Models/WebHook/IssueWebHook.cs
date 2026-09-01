@@ -1,4 +1,4 @@
-﻿using CRMService.Domain.Models.OkdeskEntity;
+using CRMService.Domain.Models.OkdeskEntity;
 
 namespace CRMService.Application.Models.WebHook
 {
@@ -19,7 +19,9 @@ namespace CRMService.Application.Models.WebHook
         public DateTime? Completed_at { get; set; }
         public AssigneeWebHook? EffectiveAssignee => New_assignee ?? Assignee;
 
-        public Issue ConvertToIssue()
+        public Issue ConvertToIssue() => ConvertToIssue(EffectiveAssignee);
+
+        public Issue ConvertToIssue(AssigneeWebHook? assignee)
         {
             Issue convertIssue = new();
 
@@ -29,7 +31,7 @@ namespace CRMService.Application.Models.WebHook
             convertIssue.Priority = Priority;
             convertIssue.Status = Status;
             convertIssue.AuthorId = Author.Id;
-            convertIssue.AssigneeId = EffectiveAssignee?.Employee?.Id;
+            convertIssue.AssigneeId = assignee?.Employee?.Id;
             convertIssue.CreatedAt = Created_at;
             convertIssue.DeadlineAt = Deadline_at;
             convertIssue.CompletedAt = Completed_at;

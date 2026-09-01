@@ -46,6 +46,57 @@ public class SqlServerBackupServiceTests
         Assert.False(DatabaseBackupOptions.IsAbsoluteSqlServerPath(path));
     }
 
+    [Theory]
+    [InlineData("C:\\SqlBackups")]
+    [InlineData("C:/SqlBackups")]
+    [InlineData("\\\\server\\share")]
+    public void IsAbsoluteWindowsSqlServerPath_WindowsAbsolutePath_ReturnsTrue(string path)
+    {
+        Assert.True(DatabaseBackupOptions.IsAbsoluteWindowsSqlServerPath(path));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("backups")]
+    [InlineData("/var/opt/mssql/backups")]
+    public void IsAbsoluteWindowsSqlServerPath_NonWindowsPath_ReturnsFalse(string path)
+    {
+        Assert.False(DatabaseBackupOptions.IsAbsoluteWindowsSqlServerPath(path));
+    }
+
+    [Theory]
+    [InlineData("/var/opt/mssql/backups")]
+    [InlineData("/")]
+    public void IsAbsoluteLinuxSqlServerPath_LinuxAbsolutePath_ReturnsTrue(string path)
+    {
+        Assert.True(DatabaseBackupOptions.IsAbsoluteLinuxSqlServerPath(path));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("backups")]
+    [InlineData("C:\\SqlBackups")]
+    public void IsAbsoluteLinuxSqlServerPath_NonLinuxPath_ReturnsFalse(string path)
+    {
+        Assert.False(DatabaseBackupOptions.IsAbsoluteLinuxSqlServerPath(path));
+    }
+
+    [Fact]
+    public void GetSqlServerPathForCurrentOperatingSystem_ReturnsConfiguredPath()
+    {
+        DatabaseBackupOptions options = new()
+        {
+            WindowsSqlServerPath = "C:\\SqlBackups",
+            LinuxSqlServerPath = "/var/opt/mssql/backups"
+        };
+
+        string expected = OperatingSystem.IsWindows()
+            ? options.WindowsSqlServerPath
+            : options.LinuxSqlServerPath;
+
+        Assert.Equal(expected, options.GetSqlServerPathForCurrentOperatingSystem());
+    }
+
     [Fact]
     public async Task CreateBackupAsync_MissingConnectionString_FailsFast()
     {
@@ -119,7 +170,8 @@ public class SqlServerBackupServiceTests
         {
             ConnectionString = connectionString,
             ProjectName = projectName,
-            SqlServerPath = sqlServerPath
+            WindowsSqlServerPath = sqlServerPath,
+            LinuxSqlServerPath = sqlServerPath
         };
 
         return new SqlServerBackupService(

@@ -31,7 +31,11 @@ namespace CRMService.Application.Service.Report
             if (employeeIds.Count == 0)
                 return new();
 
-            List<Employee> employees = await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, ct: ct);
+            List<Employee> employees = await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, activeOnly: filters.ActiveOnly, ct: ct);
+
+            employeeIds = employees.Select(employee => employee.Id).Distinct().ToList();
+            if (employeeIds.Count == 0)
+                return new();
 
             Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
 
@@ -62,7 +66,8 @@ namespace CRMService.Application.Service.Report
                 GroupIds = null,
                 HideWithoutSolved = filters.HideWithoutSolved,
                 HideWithoutCurrent = filters.HideWithoutCurrent,
-                HideWithoutTime = filters.HideWithoutTime
+                HideWithoutTime = filters.HideWithoutTime,
+                ActiveOnly = filters.ActiveOnly
             };
 
             List<SolvedIssuesCountInfo> openCounts = await unitOfWork.EmployeePerformanceReport.GetOpenIssuesCountByEmployees(effectiveFilters, ct);

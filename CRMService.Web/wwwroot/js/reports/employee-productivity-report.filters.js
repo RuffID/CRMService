@@ -1,4 +1,4 @@
-﻿const expandedKey = "crm_report_filters_expanded_v1";
+const expandedKey = "crm_report_filters_expanded_v1";
 const storageKey = "crm_report_filters_v1";
 
 const reportEoModeKey = "crm_report_eo_mode_v1";
@@ -107,6 +107,7 @@ async function loadPlanSettingsAndRenderSelect() {
 }
 
 function wireFiltersPersistence(storageKey) {
+    getEl("activeOnly")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutCurrent")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutSolved")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutTime")?.addEventListener("change", () => saveFilters(storageKey));
@@ -533,6 +534,7 @@ function restoreFilters(storageKey) {
     setChecked(".filter-types", state.types);
     setChecked(".filter-employees", state.employees);
 
+    setBool("activeOnly", Object.prototype.hasOwnProperty.call(state, "activeOnly") ? state.activeOnly : true);
     setBool("hideWithoutCurrent", state.hideWithoutCurrent);
     setBool("hideWithoutSolved", state.hideWithoutSolved);
     setBool("hideWithoutTime", state.hideWithoutTime);
@@ -565,6 +567,7 @@ function resetFilters() {
     setChecked(".filter-types", []);
     setChecked(".filter-employees", []);
 
+    setBool("activeOnly", true);
     setBool("hideWithoutCurrent", false);
     setBool("hideWithoutSolved", false);
     setBool("hideWithoutTime", false);
@@ -601,6 +604,7 @@ function readState() {
         priorities: getChecked(".filter-priorities"),
         statuses: getChecked(".filter-statuses"),
         types: getChecked(".filter-types"),
+        activeOnly: getBool("activeOnly"),
         hideWithoutCurrent: getBool("hideWithoutCurrent"),
         hideWithoutSolved: getBool("hideWithoutSolved"),
         hideWithoutTime: getBool("hideWithoutTime"),

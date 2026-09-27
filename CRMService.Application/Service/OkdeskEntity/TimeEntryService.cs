@@ -80,7 +80,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                 entry.Employee = null;
                 entry.Issue = null;
 
-                await CreateOrUpdate(entry, ct);
+                await CreateOrUpdate(entry, TimeEntryDataSource.Realtime, ct);
             }
 
             await DeleteMarkedAsDeletedTimeEntries(timeEntry.Time_Entries, ct);
@@ -107,8 +107,8 @@ namespace CRMService.Application.Service.OkdeskEntity
                 if (entries.Count == 0)
                     break;
 
-                foreach (TimeEntry item in entries)                
-                    await CreateOrUpdate(item, ct);                
+                foreach (TimeEntry item in entries)
+                    await CreateOrUpdate(item, TimeEntryDataSource.SqlSnapshot, ct);
 
                 startId = entries.Last().Id;
 
@@ -119,7 +119,12 @@ namespace CRMService.Application.Service.OkdeskEntity
             logger.LogInformation("[Method:{MethodName}] Time entries update completed.", nameof(UpdateTimeEntriesFromCloudDb));
         }
 
-        public async Task CreateOrUpdate(TimeEntry entry, CancellationToken ct)
+        public Task CreateOrUpdate(TimeEntry entry, CancellationToken ct)
+        {
+            return CreateOrUpdate(entry, TimeEntryDataSource.Realtime, ct);
+        }
+
+        private async Task CreateOrUpdate(TimeEntry entry, TimeEntryDataSource dataSource, CancellationToken ct)
         {
             Issue? existingIssue = await unitOfWork.Issue.GetItemByIdReadOnlyAsync(entry.IssueId, ct);
 
@@ -134,9 +139,26 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (existingEntry == null)
                 unitOfWork.TimeEntry.Create(entry);
             else
-                existingEntry.CopyData(entry);
+                Merge(existingEntry, entry, dataSource);
 
             await unitOfWork.SaveChangesAsync(ct);
+        }
+
+        private static void Merge(TimeEntry existingEntry, TimeEntry incomingEntry, TimeEntryDataSource dataSource)
+        {
+            if (dataSource == TimeEntryDataSource.SqlSnapshot)
+            {
+                existingEntry.CreatedAt ??= incomingEntry.CreatedAt;
+                return;
+            }
+
+            existingEntry.EmployeeId = incomingEntry.EmployeeId;
+            existingEntry.SpentTime = incomingEntry.SpentTime;
+            existingEntry.IssueId = incomingEntry.IssueId;
+            existingEntry.LoggedAt = incomingEntry.LoggedAt;
+
+            if (incomingEntry.CreatedAt.HasValue)
+                existingEntry.CreatedAt = incomingEntry.CreatedAt;
         }
 
         private async Task DeleteMarkedAsDeletedTimeEntries(TimeEntry[] entriesFromCloudApi, CancellationToken ct)
@@ -164,6 +186,12 @@ namespace CRMService.Application.Service.OkdeskEntity
             }
 
             await unitOfWork.SaveChangesAsync(ct);
+        }
+
+        private enum TimeEntryDataSource
+        {
+            Realtime,
+            SqlSnapshot
         }
     }
 }

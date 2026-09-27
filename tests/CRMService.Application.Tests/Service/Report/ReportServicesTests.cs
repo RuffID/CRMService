@@ -55,6 +55,72 @@ public class ReportServicesTests
     }
 
     [Fact]
+    public async Task GetFullReportOnEmployees_IncludeUnassigned_AddsSelectedGroupRowWithoutEmployees()
+    {
+        IReportsUnitOfWork unitOfWork = Substitute.For<IReportsUnitOfWork>();
+        unitOfWork.Employee.GetItemsReadOnlyAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Employee>()));
+        unitOfWork.Group.GetByIdsReadOnlyAsync(
+                Arg.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { 7 })),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Group> { new() { Id = 7, Name = "Поддержка" } }));
+        unitOfWork.EmployeePerformanceReport
+            .GetOpenUnassignedIssuesCount(7, Arg.Any<ReportRequest>(), Arg.Any<CancellationToken>())
+            .Returns(3);
+        EmployeePerformanceReportService service = new(unitOfWork);
+
+        List<ReportInfo> result = await service.GetFullReportOnEmployees(
+            new DateTime(2026, 9, 1),
+            new DateTime(2026, 9, 2),
+            new ReportRequest
+            {
+                IncludeUnassigned = true,
+                UnassignedGroupId = 7,
+                HideWithoutSolved = true,
+                HideWithoutTime = true
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Collection(
+            result,
+            item =>
+            {
+                Assert.Null(item.EmployeeId);
+                Assert.Equal(7, item.ResponsibleGroupId);
+                Assert.True(item.IsUnassigned);
+                Assert.Equal("Поддержка — без ответственного", item.DisplayName);
+                Assert.Equal(3, item.CurrentIssuesCount);
+            });
+    }
+
+    [Fact]
+    public async Task GetFullReportOnEmployees_HideWithoutCurrent_HidesEmptyUnassignedGroupRow()
+    {
+        IReportsUnitOfWork unitOfWork = Substitute.For<IReportsUnitOfWork>();
+        unitOfWork.Employee.GetItemsReadOnlyAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Employee>()));
+        unitOfWork.Group.GetByIdsReadOnlyAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new List<Group> { new() { Id = 7, Name = "Поддержка" } }));
+        unitOfWork.EmployeePerformanceReport
+            .GetOpenUnassignedIssuesCount(7, Arg.Any<ReportRequest>(), Arg.Any<CancellationToken>())
+            .Returns(0);
+        EmployeePerformanceReportService service = new(unitOfWork);
+
+        List<ReportInfo> result = await service.GetFullReportOnEmployees(
+            new DateTime(2026, 9, 1),
+            new DateTime(2026, 9, 2),
+            new ReportRequest
+            {
+                IncludeUnassigned = true,
+                UnassignedGroupId = 7,
+                HideWithoutCurrent = true
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public async Task GetIssueDynamicsChartAsync_HourGranularity_PassesRangeAndBuildsBuckets()
     {
         IReportsUnitOfWork unitOfWork = Substitute.For<IReportsUnitOfWork>();

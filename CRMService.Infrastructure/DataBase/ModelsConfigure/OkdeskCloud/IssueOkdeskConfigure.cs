@@ -23,6 +23,7 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");           
 
             builder.Property<int?>("AssigneeInternalId").HasColumnName("assignee_id");
+            builder.Property<int?>("GroupInternalId").HasColumnName("group_id");
             builder.Property<int?>("AuthorInternalId").HasColumnName("author_id");
             builder.Property<int?>("CompanyInternalId").HasColumnName("company_id");
             builder.Property<int?>("ServiceObjectInternalId").HasColumnName("maintenance_entity_id");
@@ -65,6 +66,7 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
 
             builder.Ignore(x => x.TimeEntries);
             builder.Ignore(x => x.AssigneeId);
+            builder.Ignore(x => x.GroupId);
             builder.Ignore(x => x.AuthorId);
             builder.Ignore(x => x.CompanyId);
             builder.Ignore(x => x.ServiceObjectId);

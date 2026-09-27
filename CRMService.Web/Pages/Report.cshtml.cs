@@ -94,6 +94,9 @@ namespace CRMService.Web.Pages
 
         public async Task<IActionResult> OnPostReportAsync([FromBody] ReportRequest request, CancellationToken ct)
         {
+            if (request.IncludeUnassigned && request.UnassignedGroupId is not > 0)
+                return JsonResultMapper.ToJsonResult(ServiceResult<List<ReportInfo>>.Fail(400, "Выберите ответственную группу для заявок без ответственного."));
+
             if (request.DateTo.Hour == 0 && request.DateTo.Minute == 0 && request.DateTo.Second == 0)
                 request.DateTo = new(request.DateTo.Year, request.DateTo.Month, request.DateTo.Day, hour: 23, minute: 59, second: 59);
 

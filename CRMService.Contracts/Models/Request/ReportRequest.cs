@@ -10,11 +10,13 @@ namespace CRMService.Contracts.Models.Request
         public IReadOnlyCollection<int>? PriorityIds { get; init; }
         public IReadOnlyCollection<int>? TypeIds { get; init; }
         public IReadOnlyCollection<int>? GroupIds { get; init; }
+        public int? UnassignedGroupId { get; init; }
 
         public bool HideWithoutSolved { get; set; }
         public bool HideWithoutCurrent { get; set; }
         public bool HideWithoutTime { get; set; }
         public bool ActiveOnly { get; set; } = true;
+        public bool IncludeUnassigned { get; set; }
 
         public bool HasEmployees => EmployeeIds != null && EmployeeIds.Count > 0;
         public bool HasStatus => StatusIds != null && StatusIds.Count > 0;

@@ -23,20 +23,23 @@ namespace CRMService.Application.Models.WebHook
 
         public Issue ConvertToIssue(AssigneeWebHook? assignee)
         {
-            Issue convertIssue = new();
+            Issue convertIssue = new()
+            {
+                Id = Id,
+                Title = Title,
+                Type = Type,
+                Priority = Priority,
+                Status = Status,
+                AuthorId = Author.Id,
+                AssigneeId = assignee?.Employee?.Id,
+                GroupId = assignee?.Group?.Id,
+                CreatedAt = Created_at,
+                DeadlineAt = Deadline_at,
+                CompletedAt = Completed_at,
+                EmployeesUpdatedAt = DateTime.Now,
+                Company = Client?.Company
+            };
 
-            convertIssue.Id = Id;
-            convertIssue.Title = Title;
-            convertIssue.Type = Type;
-            convertIssue.Priority = Priority;
-            convertIssue.Status = Status;
-            convertIssue.AuthorId = Author.Id;
-            convertIssue.AssigneeId = assignee?.Employee?.Id;
-            convertIssue.CreatedAt = Created_at;
-            convertIssue.DeadlineAt = Deadline_at;
-            convertIssue.CompletedAt = Completed_at;
-            convertIssue.EmployeesUpdatedAt = DateTime.Now;
-            convertIssue.Company = Client?.Company;
             if (Maintenance_entity != null)
                 convertIssue.ServiceObject = new MaintenanceEntity() { Id = Maintenance_entity.Id, Name = Maintenance_entity.Name };
 

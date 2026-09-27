@@ -21,6 +21,7 @@ public class DomainCopyAndComparisonTests
         {
             Id = 200,
             AssigneeId = 3,
+            GroupId = 12,
             AuthorId = 4,
             Title = "Updated issue",
             EmployeesUpdatedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc),
@@ -42,6 +43,7 @@ public class DomainCopyAndComparisonTests
 
         Assert.Equal(100, target.Id);
         Assert.Equal(source.AssigneeId, target.AssigneeId);
+        Assert.Equal(source.GroupId, target.GroupId);
         Assert.Equal(source.AuthorId, target.AuthorId);
         Assert.Equal(source.Title, target.Title);
         Assert.Equal(source.EmployeesUpdatedAt, target.EmployeesUpdatedAt);

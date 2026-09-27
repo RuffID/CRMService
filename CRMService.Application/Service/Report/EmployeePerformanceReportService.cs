@@ -28,21 +28,17 @@ namespace CRMService.Application.Service.Report
                 employeeIds = (await unitOfWork.Employee.GetItemsReadOnlyAsync(ct)).Select(e => e.Id).ToList();
             }
 
-            if (employeeIds.Count == 0)
-                return new();
-
-            List<Employee> employees = await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, activeOnly: filters.ActiveOnly, ct: ct);
+            List<Employee> employees = employeeIds.Count == 0
+                ? new()
+                : await unitOfWork.Employee.GetByIdsReadOnlyAsync(employeeIds, activeOnly: filters.ActiveOnly, ct: ct);
 
             employeeIds = employees.Select(employee => employee.Id).Distinct().ToList();
-            if (employeeIds.Count == 0)
-                return new();
-
             Dictionary<int, Employee> employeeMap = employees.ToDictionary(e => e.Id, e => e);
 
             Dictionary<int, PlanSetting> planMap = new();
             string? planColor = null;
 
-            if (filters.PlanId.HasValue && filters.PlanId.Value != Guid.Empty)
+            if (employeeIds.Count > 0 && filters.PlanId.HasValue && filters.PlanId.Value != Guid.Empty)
             {
                 Guid planId = filters.PlanId.Value;
 
@@ -57,68 +53,104 @@ namespace CRMService.Application.Service.Report
                 }
             }
 
-            ReportRequest effectiveFilters = new()
+            List<ReportInfo> result = new(employeeIds.Count + (filters.IncludeUnassigned ? 1 : 0));
+
+            if (employeeIds.Count > 0)
             {
-                EmployeeIds = employeeIds,
-                StatusIds = filters.StatusIds,
-                PriorityIds = filters.PriorityIds,
-                TypeIds = filters.TypeIds,
-                GroupIds = null,
-                HideWithoutSolved = filters.HideWithoutSolved,
-                HideWithoutCurrent = filters.HideWithoutCurrent,
-                HideWithoutTime = filters.HideWithoutTime,
-                ActiveOnly = filters.ActiveOnly
-            };
-
-            List<SolvedIssuesCountInfo> openCounts = await unitOfWork.EmployeePerformanceReport.GetOpenIssuesCountByEmployees(effectiveFilters, ct);
-            List<SolvedIssuesCountInfo> solvedCounts = await unitOfWork.EmployeePerformanceReport.GetSolvedIssuesCountByEmployees(dateFrom, dateTo, effectiveFilters, ct);
-            List<SpentedTimeInfo> spentTimes = await unitOfWork.EmployeePerformanceReport.GetSpentedTimeByEmployee(dateFrom, dateTo, effectiveFilters, ct);
-
-            Dictionary<int, int> currentByEmployee = openCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
-            Dictionary<int, int> solvedByEmployee = solvedCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
-            Dictionary<int, double> spentByEmployee = spentTimes.ToDictionary(x => x.EmployeeId, x => x.SpentedTime);
-
-            List<ReportInfo> result = new(employeeIds.Count);
-
-            foreach (int employeeId in employeeIds)
-            {
-                currentByEmployee.TryGetValue(employeeId, out int current);
-                solvedByEmployee.TryGetValue(employeeId, out int solved);
-                spentByEmployee.TryGetValue(employeeId, out double spent);
-                employeeMap.TryGetValue(employeeId, out Employee? employee);
-                planMap.TryGetValue(employeeId, out PlanSetting? planSetting);
-
-                if (effectiveFilters.HideWithoutSolved && solved == 0)
-                    continue;
-
-                if (effectiveFilters.HideWithoutCurrent && current == 0)
-                    continue;
-
-                if (effectiveFilters.HideWithoutTime && spent == 0)
-                    continue;
-
-                if (!effectiveFilters.HideWithoutSolved && !effectiveFilters.HideWithoutCurrent && !effectiveFilters.HideWithoutTime)
+                ReportRequest effectiveFilters = new()
                 {
-                    if (current == 0 && solved == 0 && spent == 0)
+                    EmployeeIds = employeeIds,
+                    StatusIds = filters.StatusIds,
+                    PriorityIds = filters.PriorityIds,
+                    TypeIds = filters.TypeIds,
+                    GroupIds = null,
+                    HideWithoutSolved = filters.HideWithoutSolved,
+                    HideWithoutCurrent = filters.HideWithoutCurrent,
+                    HideWithoutTime = filters.HideWithoutTime,
+                    ActiveOnly = filters.ActiveOnly
+                };
+
+                List<SolvedIssuesCountInfo> openCounts = await unitOfWork.EmployeePerformanceReport.GetOpenIssuesCountByEmployees(effectiveFilters, ct);
+                List<SolvedIssuesCountInfo> solvedCounts = await unitOfWork.EmployeePerformanceReport.GetSolvedIssuesCountByEmployees(dateFrom, dateTo, effectiveFilters, ct);
+                List<SpentedTimeInfo> spentTimes = await unitOfWork.EmployeePerformanceReport.GetSpentedTimeByEmployee(dateFrom, dateTo, effectiveFilters, ct);
+
+                Dictionary<int, int> currentByEmployee = openCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
+                Dictionary<int, int> solvedByEmployee = solvedCounts.ToDictionary(x => x.EmployeeId, x => x.Count);
+                Dictionary<int, double> spentByEmployee = spentTimes.ToDictionary(x => x.EmployeeId, x => x.SpentedTime);
+
+                foreach (int employeeId in employeeIds)
+                {
+                    currentByEmployee.TryGetValue(employeeId, out int current);
+                    solvedByEmployee.TryGetValue(employeeId, out int solved);
+                    spentByEmployee.TryGetValue(employeeId, out double spent);
+                    employeeMap.TryGetValue(employeeId, out Employee? employee);
+                    planMap.TryGetValue(employeeId, out PlanSetting? planSetting);
+
+                    if (effectiveFilters.HideWithoutSolved && solved == 0)
                         continue;
-                }
 
-                result.Add(new ReportInfo
-                {
-                    EmployeeId = employeeId,
-                    FirstName = employee?.FirstName,
-                    LastName = employee?.LastName,
-                    Patronymic = employee?.Patronymic,
-                    CurrentIssuesCount = current,
-                    SolvedIssues = solved,
-                    SpentedTime = spent,
-                    PlanId = filters.PlanId,
-                    PlanValue = planSetting?.PlanValue,
-                    PlanColor = planColor
-                });
+                    if (effectiveFilters.HideWithoutCurrent && current == 0)
+                        continue;
+
+                    if (effectiveFilters.HideWithoutTime && spent == 0)
+                        continue;
+
+                    if (!effectiveFilters.HideWithoutSolved && !effectiveFilters.HideWithoutCurrent && !effectiveFilters.HideWithoutTime)
+                    {
+                        if (current == 0 && solved == 0 && spent == 0)
+                            continue;
+                    }
+
+                    result.Add(new ReportInfo
+                    {
+                        EmployeeId = employeeId,
+                        FirstName = employee?.FirstName,
+                        LastName = employee?.LastName,
+                        Patronymic = employee?.Patronymic,
+                        CurrentIssuesCount = current,
+                        SolvedIssues = solved,
+                        SpentedTime = spent,
+                        PlanId = filters.PlanId,
+                        PlanValue = planSetting?.PlanValue,
+                        PlanColor = planColor
+                    });
+                }
             }
 
+            await AddUnassignedGroupRowAsync(result, filters, ct);
+
             return result;
+        }
+
+        private async Task AddUnassignedGroupRowAsync(List<ReportInfo> result, ReportRequest filters, CancellationToken ct)
+        {
+            if (!filters.IncludeUnassigned || filters.UnassignedGroupId is not > 0)
+                return;
+
+            int groupId = filters.UnassignedGroupId.Value;
+            List<Group> groups = await unitOfWork.Group.GetByIdsReadOnlyAsync([groupId], ct);
+            Group? group = groups.SingleOrDefault();
+            if (group == null)
+                return;
+
+            ReportRequest issueFilters = new()
+            {
+                StatusIds = filters.StatusIds,
+                PriorityIds = filters.PriorityIds,
+                TypeIds = filters.TypeIds
+            };
+
+            int current = await unitOfWork.EmployeePerformanceReport.GetOpenUnassignedIssuesCount(groupId, issueFilters, ct);
+            if (filters.HideWithoutCurrent && current == 0)
+                return;
+
+            result.Add(new ReportInfo
+            {
+                ResponsibleGroupId = groupId,
+                IsUnassigned = true,
+                DisplayName = $"{group.Name} — без ответственного",
+                CurrentIssuesCount = current
+            });
         }
     }
 }

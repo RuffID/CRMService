@@ -221,7 +221,7 @@ namespace CRMService.Application.Service.OkdeskEntity
                     issue.AssigneeId = assigneeId == 0 ? null : assigneeId;
 
                 IssueBatchContext batchContext = await CreateIssueBatchContextAsync(uniqueIssues, ct);
-                await ProcessIssueBatchAsync(uniqueIssues, batchContext, ct);
+                await ProcessIssueBatchAsync(uniqueIssues, batchContext, IssueDataSource.RestApi, ct);
             }
         }
 
@@ -325,7 +325,7 @@ namespace CRMService.Application.Service.OkdeskEntity
 
                 IssueBatchContext batchContext = await CreateIssueBatchContextAsync(issues, ct);
 
-                await ProcessIssueBatchAsync(issues, batchContext, ct);
+                await ProcessIssueBatchAsync(issues, batchContext, IssueDataSource.SqlSnapshot, ct);
 
                 startIndex = issues.Last().Id;
 
@@ -344,12 +344,16 @@ namespace CRMService.Application.Service.OkdeskEntity
             if (existingIssue == null)
                 unitOfWork.Issue.Create(issue);
             else
-                existingIssue.CopyData(issue);
+                Merge(existingIssue, issue, IssueDataSource.Webhook);
 
             await unitOfWork.SaveChangesAsync(ct);
         }
 
-        private async Task ProcessIssueBatchAsync(List<Issue> issues, IssueBatchContext batchContext, CancellationToken ct)
+        private async Task ProcessIssueBatchAsync(
+            List<Issue> issues,
+            IssueBatchContext batchContext,
+            IssueDataSource dataSource,
+            CancellationToken ct)
         {
             HashSet<int> issueIds = issues.Select(issue => issue.Id).ToHashSet();
 
@@ -370,11 +374,35 @@ namespace CRMService.Application.Service.OkdeskEntity
                         return;
                     }
 
-                    existingIssue.CopyData(issue);
+                    Merge(existingIssue, issue, dataSource);
                 }, ct);
             }
 
             await unitOfWork.SaveChangesAsync(ct);
+        }
+
+        private static void Merge(Issue existingIssue, Issue incomingIssue, IssueDataSource dataSource)
+        {
+            if (dataSource == IssueDataSource.SqlSnapshot
+                && incomingIssue.EmployeesUpdatedAt < existingIssue.EmployeesUpdatedAt)
+            {
+                return;
+            }
+
+            if (dataSource == IssueDataSource.RestApi)
+            {
+                int? groupId = existingIssue.GroupId;
+                DateTime employeesUpdatedAt = existingIssue.EmployeesUpdatedAt > incomingIssue.EmployeesUpdatedAt
+                    ? existingIssue.EmployeesUpdatedAt
+                    : incomingIssue.EmployeesUpdatedAt;
+
+                existingIssue.CopyData(incomingIssue);
+                existingIssue.GroupId = groupId;
+                existingIssue.EmployeesUpdatedAt = employeesUpdatedAt;
+                return;
+            }
+
+            existingIssue.CopyData(incomingIssue);
         }
 
         public async Task CheckAttributesAsync(Issue issue, CancellationToken ct)
@@ -732,6 +760,13 @@ namespace CRMService.Application.Service.OkdeskEntity
             public Dictionary<string, int> StatusIdsByCode { get; } = statusIdsByCode;
             public Dictionary<string, int> TypeIdsByCode { get; } = typeIdsByCode;
             public Dictionary<string, int> PriorityIdsByCode { get; } = priorityIdsByCode;
+        }
+
+        private enum IssueDataSource
+        {
+            RestApi,
+            Webhook,
+            SqlSnapshot
         }
     }
 }

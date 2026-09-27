@@ -20,6 +20,8 @@
 Публичные справочники, не требующие логина и пароля:
 - обычный API, статья «Получение детализации по трудозатратам заявки»: `https://apidocs.okdesk.ru/apidoc/#!poluchenie-detalizaczii-po-trudozatratam-zayavki-poluchenie-detalizaczii-po-trudozatratam-zayavki`;
 - SQL API, статья «Таблица трудозатрат по заявкам»: `https://apidocs.okdesk.ru/sql_apidoc/#!trudozatraty-po-zayavkam-tablicza-trudozatrat-po-zayavkam`;
+- SQL API, статья «Таблица заявок»: `https://apidocs.okdesk.ru/sql_apidoc/#!zayavki-tablicza-zayavok`;
+- SQL API, статья «Таблица групп сотрудников»: `https://apidocs.okdesk.ru/sql_apidoc/#!gruppy-sotrudnikov-tablicza-grupp-sotrudnikov`;
 - API вебхуков, общая структура вебхуков заявок: `https://apidocs.okdesk.ru/webhookdoc/#!obshhee-dlya-zayavki-obshhee`.
 
 Ссылки ведут на конкретные статьи, чтобы документация корректно загрузилась. К остальным разделам переходить через боковое меню открытой страницы.

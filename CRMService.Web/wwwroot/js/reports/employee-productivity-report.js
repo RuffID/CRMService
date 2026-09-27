@@ -282,6 +282,8 @@ function buildReportPayload() {
     const employees = state.employees || [];
     const groups = state.groups || [];
     const selectedPlanId = normalizeGuid(state.selectedPlanId || getSelectedPlanId());
+    const includeUnassigned = state.includeUnassigned === true;
+    const unassignedGroupId = Number(state.unassignedGroupId);
 
     return {
         dateFrom: state.dateFrom ? new Date(state.dateFrom).toISOString() : null,
@@ -289,6 +291,10 @@ function buildReportPayload() {
         planId: selectedPlanId,
         employeeIds: employees.length > 0 ? employees.map(Number) : null,
         groupIds: employees.length === 0 && groups.length > 0 ? groups.map(Number) : null,
+        includeUnassigned: includeUnassigned,
+        unassignedGroupId: includeUnassigned && Number.isInteger(unassignedGroupId) && unassignedGroupId > 0
+            ? unassignedGroupId
+            : null,
         statusIds: (state.statuses || []).map(Number),
         priorityIds: (state.priorities || []).map(Number),
         typeIds: (state.types || []).map(Number),
@@ -314,8 +320,8 @@ function applyClientFilters(items) {
     const state = typeof window.readState === "function" ? window.readState() : {};
     let filtered = items;
 
-    if (state.hideWithoutSolved) filtered = filtered.filter((x) => Number(x?.solvedIssues ?? 0) > 0);
-    if (state.hideWithoutTime) filtered = filtered.filter((x) => Number(x?.spentedTime ?? 0) > 0);
+    if (state.hideWithoutSolved) filtered = filtered.filter((x) => x?.isUnassigned === true || Number(x?.solvedIssues ?? 0) > 0);
+    if (state.hideWithoutTime) filtered = filtered.filter((x) => x?.isUnassigned === true || Number(x?.spentedTime ?? 0) > 0);
     if (state.hideWithoutCurrent) filtered = filtered.filter((x) => Number(x?.currentIssuesCount ?? 0) > 0);
 
     return filtered;
@@ -374,6 +380,12 @@ function buildCellForColumn(columnId, item) {
     }
 
     if (columnId === "resolved") {
+        if (item?.isUnassigned === true) {
+            td.className = "text-center text-muted";
+            td.textContent = "—";
+            return td;
+        }
+
         const solved = Number(item?.solvedIssues ?? 0);
         td.className = "text-center";
         td.textContent = String(solved);
@@ -387,6 +399,12 @@ function buildCellForColumn(columnId, item) {
 
     if (columnId === "plan") {
         td.className = "text-center";
+
+        if (item?.isUnassigned === true) {
+            td.classList.add("text-muted");
+            td.textContent = "—";
+            return td;
+        }
 
         const planValue = item?.planValue;
         const text = planValue === null || planValue === undefined ? "" : String(planValue);
@@ -410,6 +428,12 @@ function buildCellForColumn(columnId, item) {
     }
 
     if (columnId === "time") {
+        if (item?.isUnassigned === true) {
+            td.className = "text-center text-muted";
+            td.textContent = "—";
+            return td;
+        }
+
         const spent = Number(item?.spentedTime ?? 0);
         td.className = "text-center";
         td.textContent = formatHours(spent);
@@ -427,7 +451,7 @@ function renderSummaryBar(items) {
     if (!left || !right) return;
 
     const rows = Array.isArray(items) ? items : [];
-    const totalEmployees = rows.length;
+    const totalEmployees = rows.filter((item) => item?.isUnassigned !== true).length;
 
     let totalSolved = 0;
     let totalCurrent = 0;
@@ -516,6 +540,9 @@ function formatLastUpdated(date) {
 }
 
 function buildFullName(item) {
+    const displayName = String(item?.displayName || "").trim();
+    if (displayName) return displayName;
+
     const ln = item?.lastName || "";
     const fn = item?.firstName || "";
     const pn = item?.patronymic || "";

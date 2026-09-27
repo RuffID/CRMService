@@ -10,11 +10,16 @@ public class IssueWebHookTests
     public void ConvertToIssue_EventAssignee_OverridesIssueSnapshotAssignee()
     {
         IssueWebHook webhook = CreateWebhook(new Employee { Id = 6 });
-        AssigneeWebHook eventAssignee = new() { Employee = new Employee { Id = 5 } };
+        AssigneeWebHook eventAssignee = new()
+        {
+            Employee = new Employee { Id = 5 },
+            Group = new Group { Id = 3 }
+        };
 
         Issue issue = webhook.ConvertToIssue(eventAssignee);
 
         Assert.Equal(5, issue.AssigneeId);
+        Assert.Equal(3, issue.GroupId);
     }
 
     [Fact]
@@ -25,6 +30,7 @@ public class IssueWebHookTests
         Issue issue = webhook.ConvertToIssue(null);
 
         Assert.Null(issue.AssigneeId);
+        Assert.Null(issue.GroupId);
     }
 
     private static IssueWebHook CreateWebhook(Employee assignee) => new()

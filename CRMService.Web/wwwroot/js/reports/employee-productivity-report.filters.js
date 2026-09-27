@@ -66,6 +66,7 @@ async function initReportFiltersState() {
     applyEmployeeVisibilityByGroups();
     applyGroupsVisibilityByEmployees();
     applyMutualExclusionUI();
+    syncUnassignedGroupUi(true);
     syncTypesTreeFolders();
     updateBadges();
 
@@ -108,6 +109,11 @@ async function loadPlanSettingsAndRenderSelect() {
 
 function wireFiltersPersistence(storageKey) {
     getEl("activeOnly")?.addEventListener("change", () => saveFilters(storageKey));
+    getEl("includeUnassigned")?.addEventListener("change", () => {
+        syncUnassignedGroupUi(true);
+        saveFilters(storageKey);
+    });
+    getEl("unassignedGroupId")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutCurrent")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutSolved")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutTime")?.addEventListener("change", () => saveFilters(storageKey));
@@ -535,6 +541,8 @@ function restoreFilters(storageKey) {
     setChecked(".filter-employees", state.employees);
 
     setBool("activeOnly", Object.prototype.hasOwnProperty.call(state, "activeOnly") ? state.activeOnly : true);
+    setBool("includeUnassigned", state.includeUnassigned);
+    setValue("unassignedGroupId", state.unassignedGroupId);
     setBool("hideWithoutCurrent", state.hideWithoutCurrent);
     setBool("hideWithoutSolved", state.hideWithoutSolved);
     setBool("hideWithoutTime", state.hideWithoutTime);
@@ -568,6 +576,8 @@ function resetFilters() {
     setChecked(".filter-employees", []);
 
     setBool("activeOnly", true);
+    setBool("includeUnassigned", false);
+    setValue("unassignedGroupId", "");
     setBool("hideWithoutCurrent", false);
     setBool("hideWithoutSolved", false);
     setBool("hideWithoutTime", false);
@@ -594,6 +604,7 @@ function resetFilters() {
     applyEmployeeVisibilityByGroups();
     applyGroupsVisibilityByEmployees();
     applyMutualExclusionUI();
+    syncUnassignedGroupUi();
     updateBadges();
 }
 
@@ -605,6 +616,8 @@ function readState() {
         statuses: getChecked(".filter-statuses"),
         types: getChecked(".filter-types"),
         activeOnly: getBool("activeOnly"),
+        includeUnassigned: getBool("includeUnassigned"),
+        unassignedGroupId: getValue("unassignedGroupId"),
         hideWithoutCurrent: getBool("hideWithoutCurrent"),
         hideWithoutSolved: getBool("hideWithoutSolved"),
         hideWithoutTime: getBool("hideWithoutTime"),
@@ -796,12 +809,58 @@ async function loadAndRenderDictionaries() {
 
         renderEmployeeList(allEmployees);
         renderCheckboxList("listGroups", "filter-groups", groups, x => x.name ?? x.Name ?? "", "g");
+        renderUnassignedGroupSelect(groups);
         renderCheckboxList("listPriorities", "filter-priorities", priorities, x => x.name ?? x.Name ?? "", "p");
         renderCheckboxList("listStatuses", "filter-statuses", statuses, x => x.name ?? x.Name ?? "", "s");
         renderTypesTree("listTypes", typeGroups, types);
     }
     catch (e) {
         console.error(e);
+    }
+}
+
+function renderUnassignedGroupSelect(groups) {
+    const select = getEl("unassignedGroupId");
+    const checkbox = getEl("includeUnassigned");
+    if (!select || !checkbox) return;
+
+    select.textContent = "";
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Выберите группу";
+    select.appendChild(placeholder);
+
+    const items = Array.isArray(groups) ? groups : [];
+    for (const group of items) {
+        const id = Number(group.id ?? group.Id);
+        if (!id || id <= 0) continue;
+
+        const option = document.createElement("option");
+        option.value = String(id);
+        option.textContent = String(group.name ?? group.Name ?? `#${id}`).trim();
+        select.appendChild(option);
+    }
+
+    const hasGroups = select.options.length > 1;
+    checkbox.disabled = !hasGroups;
+    if (!hasGroups) {
+        checkbox.checked = false;
+        placeholder.textContent = "Нет доступных групп";
+    }
+}
+
+function syncUnassignedGroupUi(selectDefault = false) {
+    const checkbox = getEl("includeUnassigned");
+    const select = getEl("unassignedGroupId");
+    if (!checkbox || !select) return;
+
+    select.disabled = !checkbox.checked;
+    if (!checkbox.checked) return;
+
+    if (selectDefault && !select.value) {
+        const firstGroupOption = Array.from(select.options).find(option => Number(option.value) > 0);
+        select.value = firstGroupOption?.value || "";
     }
 }
 

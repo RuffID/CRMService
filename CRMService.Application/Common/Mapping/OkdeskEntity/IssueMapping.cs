@@ -17,6 +17,7 @@ namespace CRMService.Application.Common.Mapping.OkdeskEntity
             {
                 Id = issue.Id,
                 AssigneeId = issue.AssigneeId,
+                GroupId = issue.GroupId,
                 AuthorId = issue.AuthorId,
                 Title = issue.Title,
                 EmployeesUpdatedAt = issue.EmployeesUpdatedAt,

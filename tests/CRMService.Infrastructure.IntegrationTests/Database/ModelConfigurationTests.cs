@@ -40,6 +40,11 @@ public class ModelConfigurationTests
         IEntityType issue = context.Model.FindEntityType(typeof(Issue))!;
         Assert.Equal("Issue", issue.GetTableName());
         Assert.Equal(3000, issue.FindProperty(nameof(Issue.Title))!.GetMaxLength());
+        Assert.True(issue.FindProperty(nameof(Issue.GroupId))!.IsNullable);
+        Assert.Contains(
+            issue.GetIndexes(),
+            index => index.GetDatabaseName() == "issue_groupId_idx"
+                && index.Properties.Single().Name == nameof(Issue.GroupId));
         Assert.True(issue.FindProperty(nameof(Issue.StatusId))!.IsNullable);
         Assert.All(issue.GetForeignKeys(), key => Assert.Equal(DeleteBehavior.Restrict, key.DeleteBehavior));
     }
@@ -67,6 +72,16 @@ public class ModelConfigurationTests
         IEntityType employee = context.Model.FindEntityType(typeof(Employee))!;
         Assert.Equal("users", employee.GetTableName());
         Assert.Equal("type", employee.FindProperty("Type")!.GetColumnName());
+
+        IEntityType issue = context.Model.FindEntityType(typeof(Issue))!;
+        Assert.Equal("issues", issue.GetTableName());
+        Assert.Null(issue.FindProperty(nameof(Issue.GroupId)));
+        Assert.Equal("group_id", issue.FindProperty("GroupInternalId")!.GetColumnName());
+
+        IEntityType group = context.Model.FindEntityType(typeof(Group))!;
+        Assert.Equal("groups", group.GetTableName());
+        Assert.Equal("sequential_id", group.FindProperty(nameof(Group.Id))!.GetColumnName());
+        Assert.Equal("id", group.FindProperty("InternalId")!.GetColumnName());
 
         IEntityType kindParameter = context.Model.FindEntityType(typeof(OkdeskKindParameterRecord))!;
         Assert.Equal("equipment_parameters", kindParameter.GetTableName());

@@ -2,7 +2,10 @@
 {
     public class ReportInfo
     {
-        public int EmployeeId { get; set; }
+        public int? EmployeeId { get; set; }
+        public int? ResponsibleGroupId { get; set; }
+        public bool IsUnassigned { get; set; }
+        public string? DisplayName { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? Patronymic { get; set; }

@@ -10,7 +10,8 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
         IGetItemByIdRepository<Issue, int, OkdeskContext> getItemById,
         IGetItemByPredicateRepository<Issue, OkdeskContext> getItemByPredicate,
         IQueryRepository<Issue, OkdeskContext> issueQuery,
-        IQueryRepository<Employee, OkdeskContext> employeeQuery) : IOkdeskIssueRepository
+        IQueryRepository<Employee, OkdeskContext> employeeQuery,
+        IQueryRepository<Group, OkdeskContext> groupQuery) : IOkdeskIssueRepository
     {
         public Task<Issue?> GetItemByIdAsync(int id, bool asNoTracking = false, Func<IQueryable<Issue>, IQueryable<Issue>>? include = null, CancellationToken ct = default)
             => getItemById.GetItemByIdAsync(id, asNoTracking, include, ct);
@@ -34,6 +35,10 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
                 {
                     Id = x.Id,
                     AssigneeId = x.Assignee != null ? x.Assignee.Id : null,
+                    GroupId = groupQuery.Query()
+                        .Where(g => EF.Property<int>(g, "InternalId") == EF.Property<int?>(x, "GroupInternalId"))
+                        .Select(g => (int?)g.Id)
+                        .FirstOrDefault(),
                     AuthorId = employeeQuery.Query()
                         .Where(e => EF.Property<int>(e, "InternalId") == EF.Property<int?>(x, "AuthorInternalId"))
                         .Select(e => (int?)e.Id)
@@ -58,6 +63,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
                 {
                     Id = x.Id,
                     AssigneeId = x.AssigneeId,
+                    GroupId = x.GroupId,
                     AuthorId = x.AuthorId,
                     CompanyId = x.CompanyId,
                     ServiceObjectId = x.ServiceObjectId,
@@ -79,6 +85,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
         {
             public int Id { get; set; }
             public int? AssigneeId { get; set; }
+            public int? GroupId { get; set; }
             public int? AuthorId { get; set; }
             public string? Title { get; set; }
             public DateTime EmployeesUpdatedAt { get; set; }

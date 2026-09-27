@@ -12,6 +12,8 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Id).HasColumnName("sequential_id");
+            builder.Property<int>("InternalId").HasColumnName("id");
+            builder.HasAlternateKey("InternalId");
             builder.Property(x => x.Name).HasColumnName("name");
             builder.Ignore(x => x.Active);
             builder.Ignore(x => x.Description);

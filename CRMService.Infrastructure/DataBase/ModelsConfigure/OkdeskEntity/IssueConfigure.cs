@@ -12,6 +12,8 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskEntity
 
             builder.HasIndex(e => e.AssigneeId, "issue_assigneeId_idx");
 
+            builder.HasIndex(e => e.GroupId, "issue_groupId_idx");
+
             builder.HasIndex(e => e.CompanyId, "issue_companyId_idx");
 
             builder.HasIndex(e => e.PriorityId, "issue_priorityId_idx");

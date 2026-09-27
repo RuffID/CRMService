@@ -9,6 +9,9 @@ namespace CRMService.Domain.Models.OkdeskEntity
 
         public int? AssigneeId { get; set; }
 
+        [JsonPropertyName("group_id")]
+        public int? GroupId { get; set; }
+
         public int? AuthorId { get; set; }
 
         public string Title { get; set; } = string.Empty;
@@ -59,6 +62,7 @@ namespace CRMService.Domain.Models.OkdeskEntity
         public void CopyData(Issue item)
         {
             AssigneeId = item.AssigneeId;
+            GroupId = item.GroupId;
             AuthorId = item.AuthorId;
             Title = item.Title;
             EmployeesUpdatedAt = item.EmployeesUpdatedAt;

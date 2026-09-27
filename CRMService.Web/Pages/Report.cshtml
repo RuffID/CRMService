@@ -196,7 +196,7 @@
                                         <div class="ms-4" id="unassignedGroupField">
                                             <label class="form-label mb-1" for="unassignedGroupId">Ответственная группа</label>
                                             <select id="unassignedGroupId" name="unassignedGroupId" class="form-select form-select-sm" disabled>
-                                                <option value="">Выберите группу</option>
+                                                <option value="" disabled selected hidden>Выберите группу</option>
                                             </select>
                                         </div>
 
@@ -315,6 +315,26 @@
                             <button type="button" class="btn btn-outline-dark btn-sm" id="reportReload" title="Обновить">
                                 ↻
                             </button>
+
+                            <div class="dropdown mt-2">
+                                <button type="button"
+                                        class="btn btn-outline-dark btn-sm"
+                                        id="reportColumnSettings"
+                                        title="Настроить столбцы"
+                                        aria-label="Настроить столбцы"
+                                        aria-expanded="false"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside">
+                                    <i class="bi bi-gear" aria-hidden="true"></i>
+                                </button>
+
+                                <div class="dropdown-menu p-3 shadow" aria-labelledby="reportColumnSettings" style="min-width: 320px;">
+                                    <div class="fw-semibold mb-2 text-nowrap">Столбцы отчёта</div>
+                                    <div class="vstack gap-2 overflow-auto pe-2"
+                                         id="reportColumnSettingsList"
+                                         style="max-height: 240px;"></div>
+                                </div>
+                            </div>
                         </div>
 
                         @* Производительность сотрудников *@
@@ -323,19 +343,19 @@
                                 <table class="table table-hover table-striped align-middle mb-0" id="grid">
                                     <thead class="table-light">
                                         <tr>
-                                            <th data-col-id="name" data-sort-key="name" class="user-select-none border-end border-secondary-subtle" draggable="true">
+                                            <th data-col-id="name" data-col-label="Сотрудник / группа" data-sort-key="name" class="user-select-none border-end border-secondary-subtle" draggable="true">
                                                 Сотрудник / группа
                                             </th>
-                                            <th data-col-id="resolved" data-sort-key="resolved" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
+                                            <th data-col-id="resolved" data-col-label="Решённые заявки" data-sort-key="resolved" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
                                                 Решённые заявки
                                             </th>
-                                            <th data-col-id="plan" data-sort-key="plan" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
+                                            <th data-col-id="plan" data-col-label="План" data-sort-key="plan" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
                                                 План
                                             </th>
-                                            <th data-col-id="current" data-sort-key="current" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
+                                            <th data-col-id="current" data-col-label="Текущие заявки" data-sort-key="current" class="text-center user-select-none border-end border-secondary-subtle" draggable="true">
                                                 Текущие заявки
                                             </th>
-                                            <th data-col-id="time" data-sort-key="time" class="text-center user-select-none" draggable="true">
+                                            <th data-col-id="time" data-col-label="Списанное время" data-sort-key="time" class="text-center user-select-none" draggable="true">
                                                 Списанное время
                                             </th>
                                         </tr>
@@ -350,6 +370,11 @@
                         <div class="fw-semibold fs-6 text-dark" id="summaryLeft">—</div>
                         <div class="fw-semibold fs-6 text-dark" id="summaryRight">—</div>
                     </div>
+
+                    <div class="dropdown-menu shadow" id="reportColumnContextMenu">
+                        <button type="button" class="dropdown-item" id="hideReportColumnButton">Скрыть</button>
+                    </div>
+
                 </div>
             </div>
 

@@ -2,6 +2,7 @@ const reportSortKey = "crm_report_sort_v1";
 const reportFontScaleKey = "crm_report_font_scale_v1";
 const reportFocusKey = "crm_report_focus_v1";
 const reportColOrderKey = "crm_report_col_order_v1";
+const reportHiddenColumnsKey = "crm_report_hidden_columns_v1";
 
 let isManualReloadInProgress = false;
 let antiForgeryToken = null;
@@ -14,6 +15,8 @@ let dragSrcColId = null;
 let headerInsert = { targetId: null, side: null };
 let headerInsertEl = null;
 let columnOrder = null;
+let hiddenColumnIds = new Set();
+let contextMenuColumnId = null;
 
 window.resetReportSorting = resetReportSorting;
 window.loadPerformanceReport = loadPerformanceReport;
@@ -39,6 +42,7 @@ async function initReport() {
     initReportFocusMode();
     initReportReloadButton();
     initReportColumnOrder();
+    initReportColumnVisibility();
 
     await initPlanColors();
 
@@ -251,6 +255,127 @@ function initReportColumnOrder() {
     });
 }
 
+function initReportColumnVisibility() {
+    const grid = document.getElementById("grid");
+    const settingsList = document.getElementById("reportColumnSettingsList");
+    const contextMenu = document.getElementById("reportColumnContextMenu");
+    const hideButton = document.getElementById("hideReportColumnButton");
+    if (!grid || !settingsList || !contextMenu || !hideButton) return;
+
+    const columnDefinitions = getReportColumnDefinitions();
+    hiddenColumnIds = loadHiddenColumns(columnDefinitions.map((column) => column.id));
+    renderColumnVisibilitySettings(columnDefinitions);
+
+    grid.querySelectorAll("thead th[data-col-id]").forEach((th) => {
+        th.addEventListener("contextmenu", (event) => {
+            const columnId = th.dataset.colId;
+            if (!columnId || th.classList.contains("d-none")) return;
+
+            event.preventDefault();
+            contextMenuColumnId = columnId;
+            showColumnContextMenu(event.clientX, event.clientY);
+        });
+    });
+
+    settingsList.addEventListener("change", (event) => {
+        const checkbox = event.target.closest("input[data-column-id]");
+        if (!checkbox) return;
+
+        setReportColumnVisible(checkbox.dataset.columnId, checkbox.checked === true);
+    });
+
+    hideButton.addEventListener("click", () => {
+        if (contextMenuColumnId) setReportColumnVisible(contextMenuColumnId, false);
+        hideColumnContextMenu();
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        if (!contextMenu.contains(event.target)) hideColumnContextMenu();
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") hideColumnContextMenu();
+    });
+
+    window.addEventListener("resize", hideColumnContextMenu);
+    document.getElementById("reportTableScroll")?.addEventListener("scroll", hideColumnContextMenu);
+
+    syncHeaderColumns(getVisibleReportColumnOrder(!!getSelectedPlanId()));
+    syncColumnVisibilitySettings();
+}
+
+function getReportColumnDefinitions() {
+    const grid = document.getElementById("grid");
+    if (!grid) return [];
+
+    return Array.from(grid.querySelectorAll("thead th[data-col-id]"))
+        .map((th) => ({
+            id: th.dataset.colId,
+            label: th.dataset.colLabel
+        }))
+        .filter((column) => !!column.id && !!column.label);
+}
+
+function renderColumnVisibilitySettings(columnDefinitions) {
+    const settingsList = document.getElementById("reportColumnSettingsList");
+    if (!settingsList) return;
+
+    settingsList.replaceChildren();
+
+    for (const column of columnDefinitions) {
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("form-check");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = `reportColumn_${column.id}`;
+        checkbox.name = `reportColumn_${column.id}`;
+        checkbox.dataset.columnId = column.id;
+        checkbox.classList.add("form-check-input");
+
+        const label = document.createElement("label");
+        label.htmlFor = checkbox.id;
+        label.textContent = column.label;
+        label.classList.add("form-check-label");
+
+        wrapper.append(checkbox, label);
+        settingsList.appendChild(wrapper);
+    }
+}
+
+function setReportColumnVisible(columnId, visible) {
+    if (!columnId) return;
+
+    if (visible) hiddenColumnIds.delete(columnId);
+    else hiddenColumnIds.add(columnId);
+
+    saveHiddenColumns(hiddenColumnIds);
+    applySortAndRender();
+}
+
+function showColumnContextMenu(clientX, clientY) {
+    const menu = document.getElementById("reportColumnContextMenu");
+    if (!menu) return;
+
+    menu.classList.add("show");
+    menu.style.position = "fixed";
+    menu.style.left = `${clientX}px`;
+    menu.style.top = `${clientY}px`;
+    menu.style.zIndex = "4000";
+
+    const rect = menu.getBoundingClientRect();
+    const left = Math.min(clientX, Math.max(0, window.innerWidth - rect.width));
+    const top = Math.min(clientY, Math.max(0, window.innerHeight - rect.height));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+}
+
+function hideColumnContextMenu() {
+    const menu = document.getElementById("reportColumnContextMenu");
+    if (menu) menu.classList.remove("show");
+    contextMenuColumnId = null;
+}
+
 async function loadPerformanceReport() {
     try {
         if (typeof window.enforceReportModeDates === "function") {
@@ -314,6 +439,7 @@ function applySortAndRender() {
 
     renderTableRows(items);
     renderSummaryBar(items);
+    syncColumnVisibilitySettings();
 }
 
 function applyClientFilters(items) {
@@ -336,18 +462,20 @@ function renderTableRows(items) {
     const state = typeof window.readState === "function" ? window.readState() : {};
     const selectedPlanId = normalizeGuid(state.selectedPlanId || getSelectedPlanId());
     const showPlanColumn = !!selectedPlanId;
-
-    let order = Array.isArray(columnOrder) && columnOrder.length > 0
-        ? [...columnOrder]
-        : ["name", "resolved", "plan", "current", "time"];
-
-    if (!showPlanColumn) {
-        order = order.filter((x) => x !== "plan");
-    } else if (!order.includes("plan")) {
-        order.splice(2, 0, "plan");
-    }
+    const order = getVisibleReportColumnOrder(showPlanColumn);
 
     syncHeaderColumns(order);
+
+    if (order.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 1;
+        cell.className = "text-center text-muted py-4";
+        cell.textContent = "Все столбцы скрыты";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+    }
 
     if (!items || items.length === 0) {
         const row = document.createElement("tr");
@@ -369,6 +497,20 @@ function renderTableRows(items) {
     }
 
     applyRowDensity(0.3);
+}
+
+function getVisibleReportColumnOrder(showPlanColumn) {
+    let order = Array.isArray(columnOrder) && columnOrder.length > 0
+        ? [...columnOrder]
+        : ["name", "resolved", "plan", "current", "time"];
+
+    if (!showPlanColumn) {
+        order = order.filter((columnId) => columnId !== "plan");
+    } else if (!order.includes("plan")) {
+        order.splice(2, 0, "plan");
+    }
+
+    return order.filter((columnId) => !hiddenColumnIds.has(columnId));
 }
 
 function buildCellForColumn(columnId, item) {
@@ -795,6 +937,38 @@ function loadColumnOrder(defaultOrder) {
 
 function saveColumnOrder(order) {
     localStorage.setItem(reportColOrderKey, JSON.stringify(order));
+}
+
+function loadHiddenColumns(validColumnIds) {
+    const raw = localStorage.getItem(reportHiddenColumnsKey);
+    if (!raw) return new Set();
+
+    try {
+        const values = JSON.parse(raw);
+        if (!Array.isArray(values)) return new Set();
+
+        const validIds = new Set(validColumnIds);
+        return new Set(values.filter((value) => typeof value === "string" && validIds.has(value)));
+    } catch {
+        return new Set();
+    }
+}
+
+function saveHiddenColumns(columnIds) {
+    localStorage.setItem(reportHiddenColumnsKey, JSON.stringify(Array.from(columnIds)));
+}
+
+function syncColumnVisibilitySettings() {
+    const state = typeof window.readState === "function" ? window.readState() : {};
+    const selectedPlanId = normalizeGuid(state.selectedPlanId || getSelectedPlanId());
+
+    document.querySelectorAll("#reportColumnSettingsList input[data-column-id]").forEach((checkbox) => {
+        const columnId = checkbox.dataset.columnId;
+        const available = columnId !== "plan" || !!selectedPlanId;
+
+        checkbox.disabled = !available;
+        checkbox.checked = available && !hiddenColumnIds.has(columnId);
+    });
 }
 
 function applyColumnOrderToHeader(order) {

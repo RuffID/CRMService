@@ -66,7 +66,7 @@ async function initReportFiltersState() {
     applyEmployeeVisibilityByGroups();
     applyGroupsVisibilityByEmployees();
     applyMutualExclusionUI();
-    syncUnassignedGroupUi(true);
+    syncUnassignedGroupUi();
     syncTypesTreeFolders();
     updateBadges();
 
@@ -110,7 +110,7 @@ async function loadPlanSettingsAndRenderSelect() {
 function wireFiltersPersistence(storageKey) {
     getEl("activeOnly")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("includeUnassigned")?.addEventListener("change", () => {
-        syncUnassignedGroupUi(true);
+        syncUnassignedGroupUi();
         saveFilters(storageKey);
     });
     getEl("unassignedGroupId")?.addEventListener("change", () => saveFilters(storageKey));
@@ -829,6 +829,9 @@ function renderUnassignedGroupSelect(groups) {
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = "Выберите группу";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.hidden = true;
     select.appendChild(placeholder);
 
     const items = Array.isArray(groups) ? groups : [];
@@ -850,18 +853,12 @@ function renderUnassignedGroupSelect(groups) {
     }
 }
 
-function syncUnassignedGroupUi(selectDefault = false) {
+function syncUnassignedGroupUi() {
     const checkbox = getEl("includeUnassigned");
     const select = getEl("unassignedGroupId");
     if (!checkbox || !select) return;
 
     select.disabled = !checkbox.checked;
-    if (!checkbox.checked) return;
-
-    if (selectDefault && !select.value) {
-        const firstGroupOption = Array.from(select.options).find(option => Number(option.value) > 0);
-        select.value = firstGroupOption?.value || "";
-    }
 }
 
 async function fetchDict(handlerName, loadingId, defaultErrorMessage) {

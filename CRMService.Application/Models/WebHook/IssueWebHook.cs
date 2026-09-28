@@ -40,6 +40,8 @@ namespace CRMService.Application.Models.WebHook
                 Company = Client?.Company
             };
 
+            convertIssue.GroupUpdatedAt = convertIssue.EmployeesUpdatedAt;
+
             if (Maintenance_entity != null)
                 convertIssue.ServiceObject = new MaintenanceEntity() { Id = Maintenance_entity.Id, Name = Maintenance_entity.Name };
 

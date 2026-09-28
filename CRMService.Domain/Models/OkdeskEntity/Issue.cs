@@ -12,6 +12,9 @@ namespace CRMService.Domain.Models.OkdeskEntity
         [JsonPropertyName("group_id")]
         public int? GroupId { get; set; }
 
+        [JsonIgnore]
+        public DateTime? GroupUpdatedAt { get; set; }
+
         public int? AuthorId { get; set; }
 
         public string Title { get; set; } = string.Empty;
@@ -63,6 +66,7 @@ namespace CRMService.Domain.Models.OkdeskEntity
         {
             AssigneeId = item.AssigneeId;
             GroupId = item.GroupId;
+            GroupUpdatedAt = item.GroupUpdatedAt;
             AuthorId = item.AuthorId;
             Title = item.Title;
             EmployeesUpdatedAt = item.EmployeesUpdatedAt;

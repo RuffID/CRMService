@@ -67,6 +67,7 @@ namespace CRMService.Infrastructure.DataBase.ModelsConfigure.OkdeskCloud
             builder.Ignore(x => x.TimeEntries);
             builder.Ignore(x => x.AssigneeId);
             builder.Ignore(x => x.GroupId);
+            builder.Ignore(x => x.GroupUpdatedAt);
             builder.Ignore(x => x.AuthorId);
             builder.Ignore(x => x.CompanyId);
             builder.Ignore(x => x.ServiceObjectId);

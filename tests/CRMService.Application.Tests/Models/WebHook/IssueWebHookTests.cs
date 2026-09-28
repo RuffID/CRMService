@@ -20,6 +20,7 @@ public class IssueWebHookTests
 
         Assert.Equal(5, issue.AssigneeId);
         Assert.Equal(3, issue.GroupId);
+        Assert.Equal(issue.EmployeesUpdatedAt, issue.GroupUpdatedAt);
     }
 
     [Fact]
@@ -31,6 +32,7 @@ public class IssueWebHookTests
 
         Assert.Null(issue.AssigneeId);
         Assert.Null(issue.GroupId);
+        Assert.Equal(issue.EmployeesUpdatedAt, issue.GroupUpdatedAt);
     }
 
     private static IssueWebHook CreateWebhook(Employee assignee) => new()

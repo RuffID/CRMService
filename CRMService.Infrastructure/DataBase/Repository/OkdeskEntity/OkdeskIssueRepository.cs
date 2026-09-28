@@ -48,6 +48,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
                     CompletedAt = x.CompletedAt,
                     DeadlineAt = x.DeadlineAt,
                     EmployeesUpdatedAt = x.EmployeesUpdatedAt,
+                    GroupUpdatedAt = x.EmployeesUpdatedAt,
                     DeletedAt = x.DeletedAt,
                     DelayTo = x.DelayTo,
                     StatusCode = x.Status != null ? x.Status.Code : null,
@@ -76,6 +77,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
                     DeadlineAt = x.DeadlineAt?.ToLocalTime(),
                     DelayTo = x.DelayTo?.ToLocalTime(),
                     EmployeesUpdatedAt = x.EmployeesUpdatedAt.ToLocalTime(),
+                    GroupUpdatedAt = x.GroupUpdatedAt.ToLocalTime(),
                     DeletedAt = x.DeletedAt?.ToLocalTime()
                 })
                 .ToList();
@@ -89,6 +91,7 @@ namespace CRMService.Infrastructure.DataBase.Repository.OkdeskEntity
             public int? AuthorId { get; set; }
             public string? Title { get; set; }
             public DateTime EmployeesUpdatedAt { get; set; }
+            public DateTime GroupUpdatedAt { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime? CompletedAt { get; set; }
             public DateTime? DeadlineAt { get; set; }

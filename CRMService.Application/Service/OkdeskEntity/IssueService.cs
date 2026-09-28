@@ -383,26 +383,54 @@ namespace CRMService.Application.Service.OkdeskEntity
 
         private static void Merge(Issue existingIssue, Issue incomingIssue, IssueDataSource dataSource)
         {
-            if (dataSource == IssueDataSource.SqlSnapshot
-                && incomingIssue.EmployeesUpdatedAt < existingIssue.EmployeesUpdatedAt)
+            if (dataSource == IssueDataSource.SqlSnapshot)
             {
+                MergeResponsibleGroup(existingIssue, incomingIssue);
+
+                if (incomingIssue.EmployeesUpdatedAt >= existingIssue.EmployeesUpdatedAt)
+                {
+                    int? groupId = existingIssue.GroupId;
+                    DateTime? groupUpdatedAt = existingIssue.GroupUpdatedAt;
+
+                    existingIssue.CopyData(incomingIssue);
+                    existingIssue.GroupId = groupId;
+                    existingIssue.GroupUpdatedAt = groupUpdatedAt;
+                }
+
                 return;
             }
 
             if (dataSource == IssueDataSource.RestApi)
             {
                 int? groupId = existingIssue.GroupId;
+                DateTime? groupUpdatedAt = existingIssue.GroupUpdatedAt;
                 DateTime employeesUpdatedAt = existingIssue.EmployeesUpdatedAt > incomingIssue.EmployeesUpdatedAt
                     ? existingIssue.EmployeesUpdatedAt
                     : incomingIssue.EmployeesUpdatedAt;
 
                 existingIssue.CopyData(incomingIssue);
                 existingIssue.GroupId = groupId;
+                existingIssue.GroupUpdatedAt = groupUpdatedAt;
                 existingIssue.EmployeesUpdatedAt = employeesUpdatedAt;
                 return;
             }
 
             existingIssue.CopyData(incomingIssue);
+        }
+
+        private static void MergeResponsibleGroup(Issue existingIssue, Issue incomingIssue)
+        {
+            if (!incomingIssue.GroupUpdatedAt.HasValue)
+                throw new InvalidOperationException("SQL issue snapshot does not contain responsible group version.");
+
+            if (existingIssue.GroupUpdatedAt.HasValue
+                && incomingIssue.GroupUpdatedAt.Value < existingIssue.GroupUpdatedAt.Value)
+            {
+                return;
+            }
+
+            existingIssue.GroupId = incomingIssue.GroupId;
+            existingIssue.GroupUpdatedAt = incomingIssue.GroupUpdatedAt;
         }
 
         public async Task CheckAttributesAsync(Issue issue, CancellationToken ct)

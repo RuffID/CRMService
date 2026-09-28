@@ -32,7 +32,8 @@ document.addEventListener("change", (e) => {
         || t.classList?.contains("filter-priorities")
         || t.classList?.contains("filter-statuses")
         || t.classList?.contains("filter-types")
-        || t.classList?.contains("filter-employees");
+        || t.classList?.contains("filter-employees")
+        || t.classList?.contains("filter-unassigned-groups");
 
     if (!isFilter) return;
 
@@ -66,7 +67,7 @@ async function initReportFiltersState() {
     applyEmployeeVisibilityByGroups();
     applyGroupsVisibilityByEmployees();
     applyMutualExclusionUI();
-    syncUnassignedGroupUi();
+    syncUnassignedGroupsAvailability();
     syncTypesTreeFolders();
     updateBadges();
 
@@ -113,7 +114,6 @@ function wireFiltersPersistence(storageKey) {
         syncUnassignedGroupUi();
         saveFilters(storageKey);
     });
-    getEl("unassignedGroupId")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutCurrent")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutSolved")?.addEventListener("change", () => saveFilters(storageKey));
     getEl("hideWithoutTime")?.addEventListener("change", () => saveFilters(storageKey));
@@ -534,6 +534,13 @@ function restoreFilters(storageKey) {
     try { state = JSON.parse(raw); } catch { return; }
     if (!state) return;
 
+    if (!Array.isArray(state.unassignedGroupIds)) {
+        state.includeUnassigned = false;
+        state.unassignedGroupIds = [];
+        delete state.unassignedGroupId;
+        localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
     setChecked(".filter-groups", state.groups);
     setChecked(".filter-priorities", state.priorities);
     setChecked(".filter-statuses", state.statuses);
@@ -542,7 +549,7 @@ function restoreFilters(storageKey) {
 
     setBool("activeOnly", Object.prototype.hasOwnProperty.call(state, "activeOnly") ? state.activeOnly : true);
     setBool("includeUnassigned", state.includeUnassigned);
-    setValue("unassignedGroupId", state.unassignedGroupId);
+    setChecked(".filter-unassigned-groups", state.unassignedGroupIds);
     setBool("hideWithoutCurrent", state.hideWithoutCurrent);
     setBool("hideWithoutSolved", state.hideWithoutSolved);
     setBool("hideWithoutTime", state.hideWithoutTime);
@@ -577,7 +584,7 @@ function resetFilters() {
 
     setBool("activeOnly", true);
     setBool("includeUnassigned", false);
-    setValue("unassignedGroupId", "");
+    setChecked(".filter-unassigned-groups", []);
     setBool("hideWithoutCurrent", false);
     setBool("hideWithoutSolved", false);
     setBool("hideWithoutTime", false);
@@ -617,7 +624,7 @@ function readState() {
         types: getChecked(".filter-types"),
         activeOnly: getBool("activeOnly"),
         includeUnassigned: getBool("includeUnassigned"),
-        unassignedGroupId: getValue("unassignedGroupId"),
+        unassignedGroupIds: getChecked(".filter-unassigned-groups"),
         hideWithoutCurrent: getBool("hideWithoutCurrent"),
         hideWithoutSolved: getBool("hideWithoutSolved"),
         hideWithoutTime: getBool("hideWithoutTime"),
@@ -670,6 +677,7 @@ function updateBadges() {
     setBadge("badgePriorities", countChecked(".filter-priorities"));
     setBadge("badgeStatuses", countChecked(".filter-statuses"));
     setBadge("badgeTypes", countChecked(".filter-types"));
+    setBadge("badgeUnassignedGroups", countChecked(".filter-unassigned-groups"));
 }
 
 function countChecked(selector) {
@@ -809,7 +817,8 @@ async function loadAndRenderDictionaries() {
 
         renderEmployeeList(allEmployees);
         renderCheckboxList("listGroups", "filter-groups", groups, x => x.name ?? x.Name ?? "", "g");
-        renderUnassignedGroupSelect(groups);
+        renderCheckboxList("listUnassignedGroups", "filter-unassigned-groups", groups, x => x.name ?? x.Name ?? "", "ug");
+        syncUnassignedGroupsAvailability();
         renderCheckboxList("listPriorities", "filter-priorities", priorities, x => x.name ?? x.Name ?? "", "p");
         renderCheckboxList("listStatuses", "filter-statuses", statuses, x => x.name ?? x.Name ?? "", "s");
         renderTypesTree("listTypes", typeGroups, types);
@@ -819,46 +828,27 @@ async function loadAndRenderDictionaries() {
     }
 }
 
-function renderUnassignedGroupSelect(groups) {
-    const select = getEl("unassignedGroupId");
+function syncUnassignedGroupsAvailability() {
+    const toggle = getEl("unassignedGroupsToggle");
     const checkbox = getEl("includeUnassigned");
-    if (!select || !checkbox) return;
+    if (!toggle || !checkbox) return;
 
-    select.textContent = "";
-
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Выберите группу";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    placeholder.hidden = true;
-    select.appendChild(placeholder);
-
-    const items = Array.isArray(groups) ? groups : [];
-    for (const group of items) {
-        const id = Number(group.id ?? group.Id);
-        if (!id || id <= 0) continue;
-
-        const option = document.createElement("option");
-        option.value = String(id);
-        option.textContent = String(group.name ?? group.Name ?? `#${id}`).trim();
-        select.appendChild(option);
-    }
-
-    const hasGroups = select.options.length > 1;
+    const hasGroups = document.querySelectorAll(".filter-unassigned-groups").length > 0;
     checkbox.disabled = !hasGroups;
     if (!hasGroups) {
         checkbox.checked = false;
-        placeholder.textContent = "Нет доступных групп";
+        toggle.querySelector("span")?.replaceChildren("Нет доступных групп");
     }
+
+    syncUnassignedGroupUi();
 }
 
 function syncUnassignedGroupUi() {
     const checkbox = getEl("includeUnassigned");
-    const select = getEl("unassignedGroupId");
-    if (!checkbox || !select) return;
+    const toggle = getEl("unassignedGroupsToggle");
+    if (!checkbox || !toggle) return;
 
-    select.disabled = !checkbox.checked;
+    toggle.disabled = !checkbox.checked || checkbox.disabled;
 }
 
 async function fetchDict(handlerName, loadingId, defaultErrorMessage) {
@@ -901,7 +891,7 @@ function renderCheckboxList(listId, checkboxClass, items, textSelector, idPrefix
     const list = getEl(listId);
     if (!list) return;
 
-    list.innerHTML = "";
+    list.replaceChildren();
 
     if (!items || items.length === 0) {
         const div = document.createElement("div");

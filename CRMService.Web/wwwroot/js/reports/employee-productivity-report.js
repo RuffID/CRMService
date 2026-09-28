@@ -408,7 +408,9 @@ function buildReportPayload() {
     const groups = state.groups || [];
     const selectedPlanId = normalizeGuid(state.selectedPlanId || getSelectedPlanId());
     const includeUnassigned = state.includeUnassigned === true;
-    const unassignedGroupId = Number(state.unassignedGroupId);
+    const unassignedGroupIds = (state.unassignedGroupIds || [])
+        .map(Number)
+        .filter((groupId) => Number.isInteger(groupId) && groupId > 0);
 
     return {
         dateFrom: state.dateFrom ? new Date(state.dateFrom).toISOString() : null,
@@ -417,8 +419,8 @@ function buildReportPayload() {
         employeeIds: employees.length > 0 ? employees.map(Number) : null,
         groupIds: employees.length === 0 && groups.length > 0 ? groups.map(Number) : null,
         includeUnassigned: includeUnassigned,
-        unassignedGroupId: includeUnassigned && Number.isInteger(unassignedGroupId) && unassignedGroupId > 0
-            ? unassignedGroupId
+        unassignedGroupIds: includeUnassigned && unassignedGroupIds.length > 0
+            ? [...new Set(unassignedGroupIds)]
             : null,
         statusIds: (state.statuses || []).map(Number),
         priorityIds: (state.priorities || []).map(Number),
@@ -745,6 +747,10 @@ function sortReportItems(items, key, dir) {
     const cmpStr = (a, b) => a.localeCompare(b, "ru");
 
     items.sort((a, b) => {
+        const aIsUnassigned = a?.isUnassigned === true;
+        const bIsUnassigned = b?.isUnassigned === true;
+        if (aIsUnassigned !== bIsUnassigned) return aIsUnassigned ? 1 : -1;
+
         let result = 0;
 
         if (key === "name") result = cmpStr(getName(a), getName(b));

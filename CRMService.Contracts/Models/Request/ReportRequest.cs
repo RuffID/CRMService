@@ -10,7 +10,7 @@ namespace CRMService.Contracts.Models.Request
         public IReadOnlyCollection<int>? PriorityIds { get; init; }
         public IReadOnlyCollection<int>? TypeIds { get; init; }
         public IReadOnlyCollection<int>? GroupIds { get; init; }
-        public int? UnassignedGroupId { get; init; }
+        public IReadOnlyCollection<int>? UnassignedGroupIds { get; init; }
 
         public bool HideWithoutSolved { get; set; }
         public bool HideWithoutCurrent { get; set; }
@@ -23,6 +23,7 @@ namespace CRMService.Contracts.Models.Request
         public bool HasPriority => PriorityIds != null && PriorityIds.Count > 0;
         public bool HasType => TypeIds != null && TypeIds.Count > 0;
         public bool HasGroups => GroupIds != null && GroupIds.Count > 0;
+        public bool HasUnassignedGroups => UnassignedGroupIds?.Any(groupId => groupId > 0) == true;
     }
 }
 

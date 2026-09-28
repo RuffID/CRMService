@@ -193,11 +193,25 @@
                                             <label class="form-check-label" for="includeUnassigned">Показывать заявки без ответственного</label>
                                         </div>
 
-                                        <div class="ms-4" id="unassignedGroupField">
-                                            <label class="form-label mb-1" for="unassignedGroupId">Ответственная группа</label>
-                                            <select id="unassignedGroupId" name="unassignedGroupId" class="form-select form-select-sm" disabled>
-                                                <option value="" disabled selected hidden>Выберите группу</option>
-                                            </select>
+                                        <div class="ms-4" id="unassignedGroupsField">
+                                            <div class="form-label mb-1">Ответственные группы</div>
+                                            <div class="dropdown w-100">
+                                                <button id="unassignedGroupsToggle"
+                                                        class="btn btn-sm btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                                                        type="button"
+                                                        data-bs-toggle="dropdown"
+                                                        data-bs-auto-close="outside"
+                                                        aria-expanded="false"
+                                                        disabled>
+                                                    <span>Выберите группы</span>
+                                                    <span class="badge bg-primary" id="badgeUnassignedGroups">0</span>
+                                                </button>
+                                                <div class="dropdown-menu p-2 w-100">
+                                                    <div class="overflow-auto px-1" id="listUnassignedGroups" style="max-height:300px;">
+                                                        <div class="text-muted small px-1 py-2">Загрузка...</div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div class="form-check">

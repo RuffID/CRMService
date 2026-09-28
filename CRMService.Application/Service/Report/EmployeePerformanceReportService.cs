@@ -117,20 +117,28 @@ namespace CRMService.Application.Service.Report
                 }
             }
 
-            await AddUnassignedGroupRowAsync(result, filters, ct);
+            await AddUnassignedGroupsRowAsync(result, filters, ct);
 
             return result;
         }
 
-        private async Task AddUnassignedGroupRowAsync(List<ReportInfo> result, ReportRequest filters, CancellationToken ct)
+        private async Task AddUnassignedGroupsRowAsync(List<ReportInfo> result, ReportRequest filters, CancellationToken ct)
         {
-            if (!filters.IncludeUnassigned || filters.UnassignedGroupId is not > 0)
+            if (!filters.IncludeUnassigned || !filters.HasUnassignedGroups)
                 return;
 
-            int groupId = filters.UnassignedGroupId.Value;
-            List<Group> groups = await unitOfWork.Group.GetByIdsReadOnlyAsync([groupId], ct);
-            Group? group = groups.SingleOrDefault();
-            if (group == null)
+            List<int> selectedGroupIds = filters.UnassignedGroupIds!
+                .Where(groupId => groupId > 0)
+                .Distinct()
+                .ToList();
+            if (selectedGroupIds.Count == 0)
+                return;
+
+            List<int> groupIds = (await unitOfWork.Group.GetByIdsReadOnlyAsync(selectedGroupIds, ct))
+                .Select(group => group.Id)
+                .Distinct()
+                .ToList();
+            if (groupIds.Count == 0)
                 return;
 
             ReportRequest issueFilters = new()
@@ -140,15 +148,15 @@ namespace CRMService.Application.Service.Report
                 TypeIds = filters.TypeIds
             };
 
-            int current = await unitOfWork.EmployeePerformanceReport.GetOpenUnassignedIssuesCount(groupId, issueFilters, ct);
+            int current = await unitOfWork.EmployeePerformanceReport.GetOpenUnassignedIssuesCount(groupIds, issueFilters, ct);
             if (filters.HideWithoutCurrent && current == 0)
                 return;
 
             result.Add(new ReportInfo
             {
-                ResponsibleGroupId = groupId,
+                ResponsibleGroupIds = groupIds,
                 IsUnassigned = true,
-                DisplayName = $"{group.Name} — без ответственного",
+                DisplayName = "Без ответственного",
                 CurrentIssuesCount = current
             });
         }
